@@ -9,7 +9,7 @@ import os from 'os';
 import type { Server as SocketIOServer } from 'socket.io';
 import { logger } from '../utils/logger.js';
 
-export interface PerformanceThresholds {
+interface PerformanceThresholds {
   memory: {
     critical: number;
     warning: number;
@@ -19,7 +19,7 @@ export interface PerformanceThresholds {
   };
 }
 
-export interface PerformanceMonitorOptions {
+interface PerformanceMonitorOptions {
   io?: SocketIOServer;
   interval?: number;
   memoryCritical?: number;
@@ -27,10 +27,10 @@ export interface PerformanceMonitorOptions {
   heapWarning?: number;
 }
 
-export type AlertSeverity = 'critical' | 'warning';
-export type AlertType = 'memory' | 'heap';
+type AlertSeverity = 'critical' | 'warning';
+type AlertType = 'memory' | 'heap';
 
-export interface PerformanceAlert {
+interface PerformanceAlert {
   type: AlertType;
   severity: AlertSeverity;
   title: string;
@@ -38,7 +38,7 @@ export interface PerformanceAlert {
   value: string;
 }
 
-export interface PerformanceAlertWithTimestamp extends PerformanceAlert {
+interface PerformanceAlertWithTimestamp extends PerformanceAlert {
   timestamp: string;
 }
 
@@ -49,7 +49,7 @@ interface PerformanceStats {
   lastAlert: PerformanceAlertWithTimestamp | null;
 }
 
-export interface MemoryUsageSnapshot {
+interface MemoryUsageSnapshot {
   heapUsed: number;
   heapTotal: number;
   heapPercent: string;

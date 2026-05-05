@@ -14,7 +14,7 @@ interface HealthCheckDefinition {
   critical: boolean;
 }
 
-export interface HealthCheckResult {
+interface HealthCheckResult {
   name: string;
   status: 'passed' | 'failed';
   critical: boolean;
@@ -22,7 +22,7 @@ export interface HealthCheckResult {
   error: string | null;
 }
 
-export interface HealthCheckSummary {
+interface HealthCheckSummary {
   total: number;
   passed: number;
   failed: number;

@@ -37,7 +37,7 @@ interface ActiveSession {
   hourlyStats: Map<number, number>;
 }
 
-export interface RecordActivityEvent {
+interface RecordActivityEvent {
   change_type?: string;
   diff?: string;
   filepath?: string;
@@ -45,19 +45,19 @@ export interface RecordActivityEvent {
   risk_score?: number;
 }
 
-export interface QualityFactor {
+interface QualityFactor {
   type: 'high_rollback_rate' | 'long_session' | 'increasing_change_size' | 'high_risk_changes';
   severity: number;
   message: string;
 }
 
-export interface QualityRecommendation {
+interface QualityRecommendation {
   level: 'critical' | 'warning';
   message: string;
   actions: string[];
 }
 
-export interface SessionQuality {
+interface SessionQuality {
   score: number;
   factors: QualityFactor[];
   recommendation: QualityRecommendation | null;
@@ -76,7 +76,7 @@ interface SessionRow {
   duration_hours: number;
 }
 
-export interface SessionStats {
+interface SessionStats {
   totalSessions: number;
   avgDuration: string | number;
   avgQuality: number;

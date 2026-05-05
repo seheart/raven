@@ -562,6 +562,3 @@ class DataService {
 
 // Export singleton instance
 export const dataService = new DataService();
-
-// Export stores for reactive access
-export const { fileEvents, dashboardStats, systemMetrics, projects, topFiles } = dataService.stores;

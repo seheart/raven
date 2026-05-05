@@ -44,20 +44,29 @@ export function createSessionsRouter({ repo, snapshotsDir }: SessionsDeps): Rout
 
       const sessionStartMs = repo.sessionStartMs(sessionId);
 
-      const changes = files.map(({ filepath }) => {
-        const prefix = filepath.replace(/\//g, '_');
-        const fileSnapshots = snapshots
-          .filter(s => s.startsWith(prefix))
-          .map(s => ({ name: s, timestamp: parseInt(s.split('_').pop() || '0', 10) }))
-          .sort((a, b) => b.timestamp - a.timestamp);
-        const beforeSnapshot = fileSnapshots.find(s => s.timestamp < sessionStartMs);
-        return {
-          filepath,
-          hasBackup: !!beforeSnapshot,
-          snapshotName: beforeSnapshot?.name,
-          currentExists: true
-        };
-      });
+      const changes = await Promise.all(
+        files.map(async ({ filepath }) => {
+          const prefix = filepath.replace(/\//g, '_');
+          const fileSnapshots = snapshots
+            .filter(s => s.startsWith(prefix))
+            .map(s => ({ name: s, timestamp: parseInt(s.split('_').pop() || '0', 10) }))
+            .sort((a, b) => b.timestamp - a.timestamp);
+          const beforeSnapshot = fileSnapshots.find(s => s.timestamp < sessionStartMs);
+          let currentExists = false;
+          try {
+            await fs.access(filepath);
+            currentExists = true;
+          } catch {
+            currentExists = false;
+          }
+          return {
+            filepath,
+            hasBackup: !!beforeSnapshot,
+            snapshotName: beforeSnapshot?.name,
+            currentExists
+          };
+        })
+      );
 
       return res.json({
         sessionId,

@@ -85,6 +85,9 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
     LIMIT 20
   `);
 
+  // Per-event window query. Capped at 20 events; indexed range lookup keeps
+  // each call ~50µs, so the surface N+1 is cheaper than a single full scan
+  // with datetime() function calls (which disables the timestamp index).
   const correlationMetricStmt = db.db.prepare(`
     SELECT AVG(cpu_percent) as cpu_percent, AVG(memory_percent) as mem_percent
     FROM raven_metrics

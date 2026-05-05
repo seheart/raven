@@ -74,12 +74,12 @@ function parseDurationMs(token: string | undefined): number | null {
   }
 }
 
-export interface OllamaWatcherOptions {
+interface OllamaWatcherOptions {
   unit?: string;
   since?: string;
 }
 
-export interface OllamaInferenceEvent {
+interface OllamaInferenceEvent {
   type: 'tool_call' | 'tool_error';
   tool: string;
   file: string;
@@ -89,7 +89,7 @@ export interface OllamaInferenceEvent {
   eventCategory: 'agent_event';
 }
 
-export type OllamaEventCallback = (event: OllamaInferenceEvent) => Promise<void> | void;
+type OllamaEventCallback = (event: OllamaInferenceEvent) => Promise<void> | void;
 
 export class OllamaLogWatcher {
   private eventCallback: OllamaEventCallback;

@@ -300,34 +300,36 @@ export function createProjectsRouter({
         return res.status(400).json({ error: 'Invalid base path' });
       }
 
-      const discovered: ProjectConfig[] = [];
       const MAX_DISCOVERIES = 100;
+      const candidates = entries
+        .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+        .map(e => ({ name: e.name, projectPath: join(basePath, e.name) }))
+        .filter(c => isPathAllowed(c.projectPath, config.basePath))
+        .slice(0, MAX_DISCOVERIES * 2); // headroom; final cap below
 
-      for (const entry of entries) {
+      const probed = await Promise.all(
+        candidates.map(async ({ name, projectPath }) => {
+          const [hasGit, hasPackageJson] = await Promise.all([
+            fs.access(join(projectPath, '.git')).then(() => true).catch(() => false),
+            fs.access(join(projectPath, 'package.json')).then(() => true).catch(() => false)
+          ]);
+          return { name, projectPath, isProject: hasGit || hasPackageJson };
+        })
+      );
+
+      const discovered: ProjectConfig[] = [];
+      for (const { name, projectPath, isProject } of probed) {
         if (discovered.length >= MAX_DISCOVERIES) break;
-        if (entry.isDirectory() && !entry.name.startsWith('.')) {
-          const projectPath = join(basePath, entry.name);
-          if (!isPathAllowed(projectPath, config.basePath)) continue;
-          const hasGit = await fs
-            .access(join(projectPath, '.git'))
-            .then(() => true)
-            .catch(() => false);
-          const hasPackageJson = await fs
-            .access(join(projectPath, 'package.json'))
-            .then(() => true)
-            .catch(() => false);
-          if (hasGit || hasPackageJson) {
-            const id = sanitizeProjectId(entry.name);
-            if (!config.projects.some(p => p.id === id)) {
-              discovered.push({
-                id,
-                name: entry.name,
-                path: projectPath,
-                enabled: false,
-                ignorePatterns: ['node_modules/**', 'dist/**', '.git/**']
-              });
-            }
-          }
+        if (!isProject) continue;
+        const id = sanitizeProjectId(name);
+        if (!config.projects.some(p => p.id === id)) {
+          discovered.push({
+            id,
+            name,
+            path: projectPath,
+            enabled: false,
+            ignorePatterns: ['node_modules/**', 'dist/**', '.git/**']
+          });
         }
       }
 
@@ -336,8 +338,8 @@ export function createProjectsRouter({
         for (const project of discovered) {
           project.enabled = true;
           config.projects.push(project);
-          await projectManager.startWatcher(project);
         }
+        await Promise.all(discovered.map(p => projectManager.startWatcher(p)));
         await projectsConfigService.save(config);
         logger.info(`Auto-registered ${discovered.length} discovered projects`);
       }

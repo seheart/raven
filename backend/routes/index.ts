@@ -9,7 +9,6 @@
  */
 
 import type { Express } from 'express';
-import express from 'express';
 import type { Server as SocketIOServer } from 'socket.io';
 import { join } from 'path';
 import type { RateLimitRequestHandler } from 'express-rate-limit';
@@ -82,7 +81,7 @@ import { createTelemetryRouter } from './telemetry.js';
 import { createTrendsRouter } from './trends.js';
 import { createTriggersRouter } from './triggers.js';
 
-export interface WireRoutesDeps {
+interface WireRoutesDeps {
   // Core
   db: RavenDB;
   io: SocketIOServer;
@@ -282,6 +281,3 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   selfAnalysisService.setExpressApp(app);
 }
 
-// Re-exported so server.ts can build the static SPA fallback without
-// re-importing express directly when it just wants `express.static`.
-export { express };

@@ -6,10 +6,14 @@ import type { RavenDB } from '../db.js';
 
 interface HealthIssueRow {
   id: number;
-  created_at: string;
+  project_name: string;
+  issue_type: string;
   severity: string;
-  message: string;
-  resolved: number;
+  title: string;
+  description: string | null;
+  auto_resolved: number;
+  resolved_at: string | null;
+  created_at: string;
 }
 
 export interface NotificationsRepository {
@@ -39,10 +43,12 @@ export function createNotificationsRepository(db: RavenDB): NotificationsReposit
       if (!tableExists(db, 'health_issues')) {
         return { total: 0, unread: 0 };
       }
-      const row = db.db.prepare('SELECT COUNT(*) as total FROM health_issues').get() as
-        | { total: number }
-        | undefined;
-      return { total: row?.total ?? 0, unread: 0 };
+      const row = db.db
+        .prepare(
+          'SELECT COUNT(*) as total, SUM(CASE WHEN auto_resolved = 0 THEN 1 ELSE 0 END) as unread FROM health_issues'
+        )
+        .get() as { total: number; unread: number | null } | undefined;
+      return { total: row?.total ?? 0, unread: row?.unread ?? 0 };
     }
   };
 }

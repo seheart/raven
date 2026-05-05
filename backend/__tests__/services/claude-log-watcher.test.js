@@ -17,7 +17,7 @@ jest.unstable_mockModule('chokidar', () => ({
 }));
 
 // Now import ClaudeLogWatcher after mocking
-const { ClaudeLogWatcher } = await import('../../services/claude-log-watcher.js');
+const { ClaudeLogWatcher } = await import('../../dist/services/claude-log-watcher.js');
 
 describe('ClaudeLogWatcher', () => {
   let watcher;

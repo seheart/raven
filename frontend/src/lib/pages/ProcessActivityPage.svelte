@@ -44,17 +44,18 @@
 
   async function loadData() {
     try {
+      const minutes = chartTimeRange === '24h' ? 1440 : chartTimeRange === '6h' ? 360 : chartTimeRange === '1h' ? 60 : 15;
       const [activityRes, latencyRes] = await Promise.all([
-        api.fetch('/api/process-activity'),
-        api.fetch(`/api/api-latency?limit=500&minutes=${chartTimeRange === '24h' ? 1440 : chartTimeRange === '6h' ? 360 : chartTimeRange === '1h' ? 60 : 15}`)
+        api.get('/process-activity'),
+        api.get(`/api-latency?limit=500&minutes=${minutes}`)
       ]);
       agents = activityRes || [];
       latencyData = (latencyRes?.recent || []).reverse();
       latencyStats = latencyRes?.stats || latencyStats;
       lastUpdated = new Date();
       buildLatencyChart();
-    } catch {
-      // ignore fetch errors
+    } catch (err) {
+      if (err?.name !== 'AbortError') console.error('ProcessActivityPage loadData failed:', err);
     } finally {
       loading = false;
     }

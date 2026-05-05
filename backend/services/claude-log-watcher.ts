@@ -45,7 +45,7 @@ interface BaseEvent {
   source: 'claude-code';
 }
 
-export interface ClaudeEvent extends Partial<BaseEvent> {
+interface ClaudeEvent extends Partial<BaseEvent> {
   type: string;
   eventCategory:
     | 'token_usage'
@@ -78,9 +78,9 @@ export interface ClaudeEvent extends Partial<BaseEvent> {
   subagentType?: string;
 }
 
-export type ClaudeEventCallback = (event: ClaudeEvent) => Promise<void> | void;
+type ClaudeEventCallback = (event: ClaudeEvent) => Promise<void> | void;
 
-export interface ClaudeWatcherOptions {
+interface ClaudeWatcherOptions {
   positionsFile?: string | null;
 }
 

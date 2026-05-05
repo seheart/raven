@@ -25,7 +25,7 @@
     "test:all": "npm run test && npm run test:e2e",
     "playwright:install": "playwright install --with-deps",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "cd backend && npm run type-check && cd ../frontend && npm run check",
     "lint:dead": "knip --include duplicates,exports,types,dependencies,devDependencies,unlisted,binaries",
     "lint:dead:full": "knip"
   },

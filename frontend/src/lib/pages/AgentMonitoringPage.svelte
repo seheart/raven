@@ -369,12 +369,12 @@
     loadingMore = false;
   }
 
-  // Auto-refresh effect - only reacts to autoRefresh toggle
+  // 30s safety-net refresh — WebSocket pushes are the primary update path.
   $effect(() => {
     if (autoRefresh) {
       refreshInterval = setInterval(() => {
         loadMonitoringData();
-      }, 5000);
+      }, 30000);
     } else if (refreshInterval) {
       clearInterval(refreshInterval);
       refreshInterval = null;

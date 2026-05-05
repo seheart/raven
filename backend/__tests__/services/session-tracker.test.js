@@ -4,7 +4,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import Database from 'better-sqlite3';
-import { SessionTracker, createSessionTracker } from '../../services/session-tracker.js';
+import { SessionTracker, createSessionTracker } from '../../dist/services/session-tracker.js';
 
 describe('SessionTracker', () => {
   let tracker;

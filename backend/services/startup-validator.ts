@@ -15,7 +15,7 @@
 import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
 
-export interface StartupValidatorDeps {
+interface StartupValidatorDeps {
   backendUrl?: string;
   frontendUrl?: string;
   db?: RavenDB;
@@ -26,7 +26,7 @@ interface CheckDefinition {
   fn: () => Promise<void>;
 }
 
-export interface ValidationResult {
+interface ValidationResult {
   name: string;
   status: 'passed' | 'failed';
   duration: number;
@@ -43,7 +43,7 @@ interface PhaseResults {
   userFlows: ValidationResult[];
 }
 
-export interface ValidationSummary {
+interface ValidationSummary {
   healthy: boolean;
   passed: number;
   failed: number;

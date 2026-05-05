@@ -24,6 +24,10 @@ interface ProjectManagerLike {
   stopAllWatchers(): Promise<unknown>;
 }
 
+interface SelfAnalysisLike {
+  stopSchedule(): unknown;
+}
+
 interface ShutdownDeps {
   httpServer: HttpServer;
   db: RavenDB;
@@ -36,6 +40,8 @@ interface ShutdownDeps {
   localModelWatcher: Stoppable;
   metricsCollector: Stoppable;
   healthMonitor: MonitorStoppable;
+  insightsService?: Stoppable;
+  selfAnalysisService?: SelfAnalysisLike;
   /** Optional process-check interval to clear; passed by reference. */
   getProcessCheckTimer: () => ReturnType<typeof setInterval> | null;
 }
@@ -85,6 +91,15 @@ export function installGracefulShutdown(deps: ShutdownDeps): {
 
       logger.info('🛑 Stopping health monitor...');
       deps.healthMonitor.stopMonitoring();
+
+      if (deps.insightsService) {
+        logger.info('🛑 Stopping insights service...');
+        deps.insightsService.stop();
+      }
+      if (deps.selfAnalysisService) {
+        logger.info('🛑 Stopping self-analysis service...');
+        deps.selfAnalysisService.stopSchedule();
+      }
 
       logger.info('🛑 Closing database...');
       deps.db.close();

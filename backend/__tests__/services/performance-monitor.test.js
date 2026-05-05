@@ -3,7 +3,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { PerformanceMonitor } from '../../services/performance-monitor.js';
+import { PerformanceMonitor } from '../../dist/services/performance-monitor.js';
 
 describe('PerformanceMonitor', () => {
   let monitor;

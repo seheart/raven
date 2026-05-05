@@ -119,16 +119,13 @@ export function createAgentsRouter(
         )
         .all();
 
-      const enriched = agentEvents.map((agent: any) => ({
+      // The events table has no agent attribution, so we can't split fileStats
+      // per-agent. Attach the global figures only to a synthetic "_aggregate"
+      // entry; do NOT spread them into every agent (was misleading every row
+      // with identical counts).
+      const enriched: any[] = agentEvents.map((agent: any) => ({
         ...agent,
         agent_name: agent.agent_name || agent.agent,
-        total_file_changes: fileStats?.total_file_changes || 0,
-        unique_files: fileStats?.unique_files || 0,
-        edit_count: fileStats?.edit_count || 0,
-        create_count: fileStats?.create_count || 0,
-        delete_count: fileStats?.delete_count || 0,
-        first_seen: fileStats?.first_seen || null,
-        last_active: fileStats?.last_active || null,
         tool_breakdown: toolBreakdown || []
       }));
 
@@ -145,13 +142,26 @@ export function createAgentsRouter(
             models_available: agent.models_available || [],
             total_events: 0,
             event_count: 0,
-            total_file_changes: 0,
-            unique_files: 0,
             last_active: agent.last_seen,
             tool_breakdown: []
           });
         }
       }
+
+      // Sentinel row consumers can ignore. Carries globals so existing dashboards
+      // that read fileStats fields don't break.
+      enriched.push({
+        agent: '_aggregate',
+        agent_name: '_aggregate',
+        is_aggregate: true,
+        total_file_changes: fileStats?.total_file_changes || 0,
+        unique_files: fileStats?.unique_files || 0,
+        edit_count: fileStats?.edit_count || 0,
+        create_count: fileStats?.create_count || 0,
+        delete_count: fileStats?.delete_count || 0,
+        first_seen: fileStats?.first_seen || null,
+        last_active: fileStats?.last_active || null
+      });
 
       res.json(enriched);
     })

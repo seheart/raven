@@ -4,7 +4,7 @@
  */
 
 import express, { Request, Response } from 'express';
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { promises as fs } from 'fs';
 import { join, basename } from 'path';
 import { homedir } from 'os';
 import { logger } from '../utils/logger.js';
@@ -28,11 +28,11 @@ function getProjectLogDir(): string {
   return join(homedir(), '.claude', 'projects', encoded);
 }
 
-function parseSessionLog(filePath: string, limit: number): ActivityEntry[] {
+async function parseSessionLog(filePath: string, limit: number): Promise<ActivityEntry[]> {
   const entries: ActivityEntry[] = [];
 
   try {
-    const content = readFileSync(filePath, 'utf-8');
+    const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n').filter(l => l.trim());
 
     for (const line of lines) {
@@ -153,20 +153,22 @@ export function createSessionActivityRouter() {
    * GET /api/session-activity
    * Returns conversation timeline for current or specified session
    */
-  router.get('/', (req: Request, res: Response): void => {
+  router.get('/', async (req: Request, res: Response): Promise<void> => {
     try {
       const limit = Math.min(parseInt(req.query.limit as string, 10) || 200, 1000);
       const logDir = getProjectLogDir();
 
       let files: { path: string; mtime: number }[];
       try {
-        files = readdirSync(logDir)
-          .filter(f => f.endsWith('.jsonl'))
-          .map(f => ({
-            path: join(logDir, f),
-            mtime: statSync(join(logDir, f)).mtimeMs
-          }))
-          .sort((a, b) => b.mtime - a.mtime);
+        const dirEntries = (await fs.readdir(logDir)).filter(f => f.endsWith('.jsonl'));
+        const stats = await Promise.all(
+          dirEntries.map(async f => {
+            const path = join(logDir, f);
+            const stat = await fs.stat(path);
+            return { path, mtime: stat.mtimeMs };
+          })
+        );
+        files = stats.sort((a, b) => b.mtime - a.mtime);
       } catch {
         res.json({ entries: [], sessions: [] });
         return;
@@ -187,7 +189,7 @@ export function createSessionActivityRouter() {
         return;
       }
 
-      const entries = parseSessionLog(targetFile, limit);
+      const entries = await parseSessionLog(targetFile, limit);
 
       // List available sessions
       const sessions = files.slice(0, 20).map(f => ({

@@ -12,6 +12,37 @@ import type { Database } from 'better-sqlite3';
 import { logger } from '../utils/logger.js';
 
 const execFileAsync = promisify(execFile);
+const GIT_TIMEOUT_MS = 3000;
+const NUMSTAT_TTL_MS = 5000;
+
+let numstatCache: { ts: number; map: Record<string, { added: number; removed: number }> } | null =
+  null;
+
+async function getGitNumstat(): Promise<Record<string, { added: number; removed: number }>> {
+  if (numstatCache && Date.now() - numstatCache.ts < NUMSTAT_TTL_MS) {
+    return numstatCache.map;
+  }
+  const map: Record<string, { added: number; removed: number }> = {};
+  try {
+    const { stdout } = await execFileAsync('git', ['diff', '--numstat', 'HEAD'], {
+      timeout: GIT_TIMEOUT_MS
+    });
+    for (const line of stdout.trim().split('\n')) {
+      if (!line) continue;
+      const parts = line.split('\t');
+      if (parts.length < 3) continue;
+      const added = parseInt(parts[0], 10) || 0;
+      const removed = parseInt(parts[1], 10) || 0;
+      const filepath = parts[2];
+      map[filepath] = { added, removed };
+      map[`raven/${filepath}`] = { added, removed };
+    }
+  } catch (err) {
+    logger.debug('git diff --numstat failed:', err as Error);
+  }
+  numstatCache = { ts: Date.now(), map };
+  return map;
+}
 
 export function createLiveSessionRouter(ravenDB: RavenDB) {
   const router = express.Router();
@@ -31,33 +62,12 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
           `SELECT DISTINCT filepath, change_type, timestamp
        FROM events
        WHERE timestamp > ?
-       ORDER BY timestamp DESC`
+       ORDER BY timestamp DESC
+       LIMIT 500`
         )
         .all(oneHourAgo);
 
-      // Get line counts for ALL files with a single git command (optimized)
-      const gitStats: Record<string, { added: number; removed: number }> = {};
-
-      try {
-        const { stdout } = await execFileAsync('git', ['diff', '--numstat', 'HEAD']);
-        const lines = stdout.trim().split('\n');
-
-        lines.forEach(line => {
-          if (!line) return;
-          const parts = line.split('\t');
-          if (parts.length >= 3) {
-            const added = parseInt(parts[0], 10) || 0;
-            const removed = parseInt(parts[1], 10) || 0;
-            const filepath = parts[2];
-
-            // Store with both possible path formats (with/without raven/ prefix)
-            gitStats[filepath] = { added, removed };
-            gitStats[`raven/${filepath}`] = { added, removed };
-          }
-        });
-      } catch (err) {
-        // Ignore git errors - gitStats will remain empty
-      }
+      const gitStats = await getGitNumstat();
 
       // Map files to include git stats (no subprocess spawning per file)
       const filesWithStats = files.map((file: any) => {
@@ -97,7 +107,9 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       }
 
       // Get git diff for the file
-      const { stdout } = await execFileAsync('git', ['diff', 'HEAD', '--', normalized]);
+      const { stdout } = await execFileAsync('git', ['diff', 'HEAD', '--', normalized], {
+        timeout: GIT_TIMEOUT_MS
+      });
 
       res.json({
         filePath,
@@ -126,21 +138,18 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
         .prepare(`SELECT COUNT(DISTINCT filepath) as count FROM events WHERE timestamp > ?`)
         .get(oneHourAgo) as any;
 
-      // Get total line changes from git
+      // Get total line changes from git (cached)
       let linesAdded = 0;
       let linesRemoved = 0;
-
-      try {
-        const { stdout } = await execFileAsync('git', ['diff', '--numstat', 'HEAD']);
-        const lines = stdout.trim().split('\n');
-
-        lines.forEach(line => {
-          const [added, removed] = line.split('\t').map(Number);
-          if (!isNaN(added)) linesAdded += added;
-          if (!isNaN(removed)) linesRemoved += removed;
-        });
-      } catch (err) {
-        // Ignore git errors
+      const stats = await getGitNumstat();
+      const seen = new Set<string>();
+      for (const [filepath, s] of Object.entries(stats)) {
+        // Skip the duplicated `raven/`-prefixed keys
+        const canonical = filepath.replace(/^raven\//, '');
+        if (seen.has(canonical)) continue;
+        seen.add(canonical);
+        linesAdded += s.added;
+        linesRemoved += s.removed;
       }
 
       // Determine session health based on recent errors

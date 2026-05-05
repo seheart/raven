@@ -15,7 +15,7 @@ import { logger } from '../utils/logger.js';
  *
  * @returns {boolean}
  */
-export function isAuthDisabled() {
+function isAuthDisabled() {
   return process.env.RAVEN_DEV_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production';
 }
 

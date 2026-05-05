@@ -306,7 +306,10 @@
 
       // Fetch agent stats and events
       const statsData = await api.get('/agent-stats').catch(() => []);
-      const stats = Array.isArray(statsData) ? statsData : [];
+      const raw = Array.isArray(statsData) ? statsData : [];
+      // Backend appends a synthetic _aggregate row carrying global file stats.
+      // Skip it for the per-agent table.
+      const stats = raw.filter(a => !a?.is_aggregate && a?.agent !== '_aggregate');
 
       agentStats = stats.map(agent => {
         const daysSinceFirst = agent.first_seen

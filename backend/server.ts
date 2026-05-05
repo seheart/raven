@@ -221,9 +221,13 @@ startRetentionCleanup(db, {
 
 // Set up health alert handler to emit via WebSocket
 healthMonitor.onAlert(report => {
+  const failing = report.checks
+    .filter(c => c.status !== 'healthy')
+    .map(c => `${c.category}/${c.name}: ${c.message}`);
   logger.warn(`🚨 Health alert: System status is ${report.overallStatus}`, {
     critical: report.summary.critical,
-    warnings: report.summary.warnings
+    warnings: report.summary.warnings,
+    failing
   });
 
   const criticalIssues = report.checks.filter(c => c.status === 'critical');
@@ -568,6 +572,12 @@ httpServer.listen(PORT, BIND_HOST, async () => {
   logger.info(
     `Comprehensive health: ${comprehensiveHealth.overallStatus} - ${comprehensiveHealth.summary.healthy}/${comprehensiveHealth.summary.total} checks passed`
   );
+  if (comprehensiveHealth.summary.warnings > 0) {
+    const warnings = comprehensiveHealth.checks
+      .filter(c => c.status === 'warning')
+      .map(c => `${c.category}/${c.name}: ${c.message}`);
+    logger.warn(`⚠️  Health warnings (${warnings.length}):\n  - ${warnings.join('\n  - ')}`);
+  }
 
   if (comprehensiveHealth.summary.critical > 0) {
     logger.error(
@@ -616,5 +626,7 @@ installGracefulShutdown({
   localModelWatcher,
   metricsCollector,
   healthMonitor,
+  insightsService,
+  selfAnalysisService,
   getProcessCheckTimer: () => processCheckTimer
 });

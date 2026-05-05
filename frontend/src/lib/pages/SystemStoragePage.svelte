@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { dataService } from '../dataService.js';
   import { formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
@@ -64,9 +65,9 @@
     try {
       loading = true;
       const [storageData, retentionData, projectData] = await Promise.all([
-        api.get('/storage').catch(() => null),
+        dataService.fetch('/storage', { ttl: 30000 }).catch(() => null),
         api.get('/storage/retention').catch(() => retention),
-        api.get('/storage/projects').catch(() => [])
+        dataService.fetch('/storage/projects', { ttl: 10000 }).catch(() => [])
       ]);
       if (storageData) storage = storageData;
       retention = retentionData;

@@ -9,6 +9,7 @@
    * Compare all monitored projects side-by-side
    */
   import { createPageApi } from '../apiClient.js';
+  import { dataService } from '../dataService.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let projects = $state([]);
@@ -192,12 +193,11 @@
   async function loadProjects() {
     try {
       loading = true;
-      const [configData, storageData] = await Promise.all([
-        api.get('/projects').catch(() => ({ projects: [] })),
-        api.get('/storage/projects').catch(() => [])
+      const [projectsList, storageData] = await Promise.all([
+        dataService.fetchProjects().catch(() => []),
+        dataService.fetch('/storage/projects', { ttl: 10000 }).catch(() => [])
       ]);
 
-      const projectsList = configData.projects || [];
       const storageMap = new Map(
         (Array.isArray(storageData) ? storageData : []).map(s => [s.project_name, s])
       );

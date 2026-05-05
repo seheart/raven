@@ -7,7 +7,7 @@ import os from 'os';
 import type { Server as SocketIOServer } from 'socket.io';
 import { logger } from '../utils/logger.js';
 
-export interface MonitoringOptions {
+interface MonitoringOptions {
   io?: SocketIOServer;
   errorRateThreshold?: number;
   memoryPercentThreshold?: number;
@@ -62,7 +62,7 @@ interface MonitoringMetricsInternal {
   dbOperations: DbOperationCounts;
 }
 
-export interface MonitoringSnapshot {
+interface MonitoringSnapshot {
   uptime: number;
   errorCount: number;
   recentErrorCount: number;
@@ -72,7 +72,7 @@ export interface MonitoringSnapshot {
   watcherHealth: Array<{ name: string } & WatcherHealth>;
 }
 
-export type DbOperationType = 'read' | 'write' | 'error';
+type DbOperationType = 'read' | 'write' | 'error';
 
 export class MonitoringService {
   io: SocketIOServer | undefined;

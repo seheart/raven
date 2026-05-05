@@ -6,6 +6,7 @@
 import express, { Request, Response, Router } from 'express';
 import type { RavenDB } from '../db.js';
 import { asyncHandler } from '../middleware/async-handler.js';
+import { cacheMiddleware } from '../services/cache-service.js';
 import { getModelFamily } from '../services/token-cost-calculator.js';
 
 export function createCostsRouter(db: RavenDB): Router {
@@ -17,6 +18,7 @@ export function createCostsRouter(db: RavenDB): Router {
    */
   router.get(
     '/summary',
+    cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       const { start, end, project } = req.query;
       let query = `
@@ -62,6 +64,7 @@ export function createCostsRouter(db: RavenDB): Router {
    */
   router.get(
     '/by-project',
+    cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       const { start, end } = req.query;
       let query = `
@@ -98,6 +101,7 @@ export function createCostsRouter(db: RavenDB): Router {
    */
   router.get(
     '/by-model',
+    cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       const { start, end } = req.query;
       let query = `
@@ -138,6 +142,7 @@ export function createCostsRouter(db: RavenDB): Router {
    */
   router.get(
     '/by-session',
+    cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       const { start, end, project, limit } = req.query;
       let query = `
@@ -181,6 +186,7 @@ export function createCostsRouter(db: RavenDB): Router {
    */
   router.get(
     '/timeline',
+    cacheMiddleware(10000),
     asyncHandler(async (req: Request, res: Response) => {
       const { start, end, project, bucket } = req.query;
       // Whitelist bucket formats to prevent SQL injection

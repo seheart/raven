@@ -2,7 +2,7 @@
   import RavenLogo from '../ui/RavenLogo.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
   import { projectFilter, availableProjects } from '../../projectFilterStore.js';
   import { get } from 'svelte/store';
 
@@ -91,7 +91,7 @@
 
   async function loadStats() {
     try {
-      const data = await api.get('/dashboard-stats');
+      const data = await dataService.fetchDashboardStats();
       stats = {
         files: data.total_files || 0,
         edits: data.edits || 0,
@@ -105,8 +105,8 @@
 
   async function loadProjects() {
     try {
-      const data = await api.get('/projects');
-      const names = (data.projects || []).filter(p => p.enabled).map(p => p.name);
+      const list = await dataService.fetchProjects();
+      const names = list.filter(p => p.enabled).map(p => p.name);
       projects = names;
       availableProjects.set(names);
     } catch {
@@ -117,10 +117,18 @@
   onMount(() => {
     loadStats();
     loadProjects();
-
-    const interval = setInterval(loadStats, 30000);
+    // dataService.startBackgroundRefresh() already refreshes dashboardStats every 15s.
+    const unsubStats = dataService.stores.dashboardStats.subscribe(d => {
+      if (!d || typeof d !== 'object') return;
+      stats = {
+        files: d.total_files || 0,
+        edits: d.edits || 0,
+        creates: d.creates || 0,
+        deletes: d.deletes || 0
+      };
+    });
     return () => {
-      clearInterval(interval);
+      unsubStats();
       unsubFilter();
     };
   });

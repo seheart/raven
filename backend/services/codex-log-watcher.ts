@@ -41,7 +41,7 @@ interface BaseEvent {
   source: 'codex';
 }
 
-export interface CodexEvent extends Partial<BaseEvent> {
+interface CodexEvent extends Partial<BaseEvent> {
   type: string;
   content?: string;
   tool?: string;
@@ -50,9 +50,9 @@ export interface CodexEvent extends Partial<BaseEvent> {
   eventCategory: 'conversation' | 'agent_event' | 'file_change';
 }
 
-export type CodexEventCallback = (event: CodexEvent) => Promise<void> | void;
+type CodexEventCallback = (event: CodexEvent) => Promise<void> | void;
 
-export interface CodexWatcherOptions {
+interface CodexWatcherOptions {
   positionsFile?: string | null;
 }
 

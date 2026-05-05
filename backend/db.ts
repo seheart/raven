@@ -30,6 +30,7 @@ export class RavenDB {
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL'); // Better performance
     this.db.pragma('busy_timeout = 5000'); // Wait up to 5s for locked database
+    this.db.pragma('foreign_keys = ON'); // Required for ON DELETE CASCADE
     try {
       this.initializeSchema();
     } catch (err) {
@@ -329,11 +330,13 @@ export class RavenDB {
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type)`);
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_filepath ON events(filepath)`);
 
-    // Safe migration: add agent_source column if it doesn't exist
-    try {
+    // Safe migration: add agent_source column if it doesn't exist (PRAGMA-checked,
+    // not try/catch — the latter masks unrelated SQL errors).
+    const eventsCols = this.db.prepare(`PRAGMA table_info(events)`).all() as Array<{
+      name: string;
+    }>;
+    if (!eventsCols.some(c => c.name === 'agent_source')) {
       this.db.exec(`ALTER TABLE events ADD COLUMN agent_source TEXT`);
-    } catch {
-      // Column already exists
     }
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent_source ON events(agent_source)`);
 
@@ -431,6 +434,9 @@ export class RavenDB {
     );
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_subagent_tree_agent_id ON subagent_tree(agent_id)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_subagent_tree_parent_agent_id ON subagent_tree(parent_agent_id)`
     );
   }
 

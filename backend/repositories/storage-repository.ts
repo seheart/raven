@@ -132,36 +132,43 @@ export function createStorageRepository({
 
   return {
     async overview() {
-      const databases: DatabaseEntry[] = [];
       const dbFiles = (await fs.readdir(dbDir)).filter(f => f.endsWith('.db'));
-      for (const dbFile of dbFiles) {
-        const stats = await fs.stat(join(dbDir, dbFile));
-        const name = dbFile.replace('.db', '');
-        databases.push({
-          name,
-          filename: dbFile,
-          size: stats.size,
-          modified: stats.mtime,
-          isActive: name === 'raven'
-        });
-      }
+      const databases: DatabaseEntry[] = await Promise.all(
+        dbFiles.map(async dbFile => {
+          const stats = await fs.stat(join(dbDir, dbFile));
+          const name = dbFile.replace('.db', '');
+          return {
+            name,
+            filename: dbFile,
+            size: stats.size,
+            modified: stats.mtime,
+            isActive: name === 'raven'
+          };
+        })
+      );
 
       const snapshots: SnapshotGroup[] = [];
       try {
         await fs.access(snapshotsDir);
         const entries = await fs.readdir(snapshotsDir);
+        const entryStats = await Promise.all(
+          entries.map(async entry => {
+            const entryPath = join(snapshotsDir, entry);
+            const stat = await fs.stat(entryPath);
+            const fileCount = stat.isDirectory() ? (await fs.readdir(entryPath)).length : 0;
+            return { entry, entryPath, stat, fileCount };
+          })
+        );
+
         let flatCount = 0;
         let oldest: Date | null = null;
         let newest: Date | null = null;
 
-        for (const entry of entries) {
-          const entryPath = join(snapshotsDir, entry);
-          const stat = await fs.stat(entryPath);
+        for (const { entry, stat, fileCount } of entryStats) {
           if (stat.isDirectory()) {
-            const files = await fs.readdir(entryPath);
             snapshots.push({
               project: entry,
-              files: files.length,
+              files: fileCount,
               size: 0,
               oldest: stat.mtime,
               newest: stat.mtime

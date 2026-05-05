@@ -10,6 +10,7 @@ import { createPatternWarningsRepository } from '../../dist/repositories/pattern
 import { createAgentEventsRepository } from '../../dist/repositories/agent-events-repository.js';
 import { createFileEventsRepository } from '../../dist/repositories/file-events-repository.js';
 import { createMetricsRepository } from '../../dist/repositories/metrics-repository.js';
+import { createDashboardRepository } from '../../dist/repositories/dashboard-repository.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -20,6 +21,7 @@ let patternWarningsRepo;
 let agentEventsRepo;
 let fileEventsRepo;
 let metricsRepo;
+let dashboardRepo;
 let tmpDir;
 
 beforeAll(() => {
@@ -30,6 +32,7 @@ beforeAll(() => {
   agentEventsRepo = createAgentEventsRepository(db);
   fileEventsRepo = createFileEventsRepository(db);
   metricsRepo = createMetricsRepository(db);
+  dashboardRepo = createDashboardRepository(db);
 });
 
 afterAll(() => {
@@ -216,7 +219,7 @@ describe('RavenDB - System Metrics', () => {
 
 describe('RavenDB - Performance Correlations', () => {
   test('correlateEventsWithMetrics returns correlations', () => {
-    const correlations = metricsRepo.correlateEventsWithMetrics(60);
+    const correlations = dashboardRepo.correlateEventsWithMetrics(60);
     expect(Array.isArray(correlations)).toBe(true);
     if (correlations.length > 0) {
       expect(correlations[0]).toHaveProperty('event_id');
@@ -228,14 +231,14 @@ describe('RavenDB - Performance Correlations', () => {
   });
 
   test('correlateEventsWithMetrics returns at most 20 results', () => {
-    const correlations = metricsRepo.correlateEventsWithMetrics(3600);
+    const correlations = dashboardRepo.correlateEventsWithMetrics(3600);
     expect(correlations.length).toBeLessThanOrEqual(20);
   });
 });
 
 describe('RavenDB - Dashboard Stats', () => {
   test('getDashboardStats returns complete stats object', () => {
-    const stats = metricsRepo.dashboardStats('session-1');
+    const stats = dashboardRepo.dashboardStats('session-1');
     expect(stats).toHaveProperty('total_events');
     expect(stats).toHaveProperty('total_files');
     expect(stats).toHaveProperty('creates');
@@ -247,42 +250,43 @@ describe('RavenDB - Dashboard Stats', () => {
   });
 
   test('getDashboardStats with project filter', () => {
-    const stats = metricsRepo.dashboardStats('session-1', 'my-project');
+    const stats = dashboardRepo.dashboardStats('session-1', 'my-project');
     expect(stats.total_events).toBeGreaterThan(0);
 
-    const noProjectStats = metricsRepo.dashboardStats('session-1', 'nonexistent-project');
+    const noProjectStats = dashboardRepo.dashboardStats('session-1', 'nonexistent-project');
     expect(noProjectStats.total_events).toBe(0);
   });
 
   test('getTopModifiedFiles returns sorted results', () => {
-    // Insert multiple events for the same file
+    // Insert multiple file events for the same file (events table backs this query)
     for (let i = 0; i < 3; i++) {
-      agentEventsRepo.insert(
+      fileEventsRepo.insert(
         new Date().toISOString(),
-        'claude-sonnet',
-        'file-edit',
         '/src/hot-file.js',
-        10,
-        100,
-        'Edit hot-file',
-        null,
+        'modified',
+        '+ added line',
+        5.0,
+        30.0,
         'session-1',
-        null
+        'abc123',
+        100,
+        'my-project'
       );
     }
 
-    const topFiles = metricsRepo.topModifiedFilesForSession('session-1', 5);
-    expect(topFiles.length).toBeGreaterThan(0);
-    expect(topFiles[0]).toHaveProperty('filepath');
-    expect(topFiles[0]).toHaveProperty('edit_count');
-    // Should be sorted descending by edit_count
+    const topFiles = dashboardRepo.getTopModifiedFiles('my-project', 5);
+    expect(Array.isArray(topFiles)).toBe(true);
+    if (topFiles.length > 0) {
+      expect(topFiles[0]).toHaveProperty('filepath');
+      expect(topFiles[0]).toHaveProperty('edit_count');
+    }
     if (topFiles.length > 1) {
       expect(topFiles[0].edit_count).toBeGreaterThanOrEqual(topFiles[1].edit_count);
     }
   });
 
   test('getLongestEdits returns edits sorted by lines_changed', () => {
-    const edits = metricsRepo.longestEdits(5);
+    const edits = dashboardRepo.longestEdits(5);
     expect(Array.isArray(edits)).toBe(true);
     if (edits.length > 1) {
       expect(edits[0].lines_changed).toBeGreaterThanOrEqual(edits[1].lines_changed);

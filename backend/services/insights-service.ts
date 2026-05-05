@@ -1184,4 +1184,13 @@ ${conversations || '(no conversation data)'}`;
     if (projectStr) return `Session summary: ${projectStr}`;
     return 'Session summary';
   }
+
+  /** Cancel any pending diff-risk batch so timers don't fire after DB close. */
+  stop(): void {
+    if (this.diffRiskTimer) {
+      clearTimeout(this.diffRiskTimer);
+      this.diffRiskTimer = null;
+    }
+    this.pendingDiffRisks.length = 0;
+  }
 }

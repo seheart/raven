@@ -3,7 +3,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { MonitoringService } from '../../services/monitoring.js';
+import { MonitoringService } from '../../dist/services/monitoring.js';
 
 describe('MonitoringService', () => {
   let service;
