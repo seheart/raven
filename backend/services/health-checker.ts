@@ -5,31 +5,69 @@
  * Runs during startup to catch broken features before users encounter them.
  */
 
+import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
 
+interface HealthCheckDefinition {
+  name: string;
+  fn: () => Promise<unknown>;
+  critical: boolean;
+}
+
+export interface HealthCheckResult {
+  name: string;
+  status: 'passed' | 'failed';
+  critical: boolean;
+  duration: number;
+  error: string | null;
+}
+
+export interface HealthCheckSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  criticalFailed: number;
+  warnings: number;
+  results: HealthCheckResult[];
+  healthy: boolean;
+}
+
+interface ConversationApiRow {
+  timestamp?: string;
+  last_activity?: string;
+}
+
+interface ConversationApiResponse {
+  conversations?: ConversationApiRow[];
+  error?: string;
+  message?: string;
+}
+
+interface AgentEventRow {
+  timestamp: string;
+  event_type: string;
+}
+
 export class HealthChecker {
-  constructor(baseUrl = 'http://localhost:9100', db = null) {
+  private baseUrl: string;
+  private db: RavenDB | null;
+  private results: HealthCheckResult[];
+
+  constructor(baseUrl = 'http://localhost:9100', db: RavenDB | null = null) {
     this.baseUrl = baseUrl;
     this.db = db;
     this.results = [];
   }
 
-  /**
-   * Run all health checks
-   * @returns {Object} { passed: number, failed: number, warnings: number, results: [] }
-   */
-  async runAll() {
+  async runAll(): Promise<HealthCheckSummary> {
     logger.info('🏥 Starting comprehensive health checks...');
     this.results = [];
 
-    // Define all checks with criticality levels
-    const checks = [
-      // Critical - App won't function without these
+    const checks: HealthCheckDefinition[] = [
+      // Critical
       { name: 'Health Endpoint', fn: () => this.checkEndpoint('/api/health'), critical: true },
       { name: 'Session ID', fn: () => this.checkEndpoint('/api/session-id'), critical: true },
       { name: 'Database Connection', fn: () => this.checkEndpoint('/api/health'), critical: true },
-
-      // Core Features - Major functionality
       {
         name: 'Agent Events',
         fn: () => this.checkEndpoint('/api/agent-events?limit=1'),
@@ -49,7 +87,7 @@ export class HealthChecker {
         critical: false
       },
 
-      // Safety Features
+      // Safety
       { name: 'Sessions API', fn: () => this.checkEndpoint('/api/sessions'), critical: false },
       {
         name: 'Syntax Errors',
@@ -73,7 +111,8 @@ export class HealthChecker {
         fn: () => this.checkConversationFreshness(),
         critical: false
       },
-      // System Features
+
+      // System
       { name: 'Storage Info', fn: () => this.checkEndpoint('/api/storage'), critical: false },
       {
         name: 'Notifications',
@@ -81,11 +120,10 @@ export class HealthChecker {
         critical: false
       },
 
-      // Git Integration
+      // Git
       { name: 'Git Status', fn: () => this.checkEndpoint('/api/git/status'), critical: false }
     ];
 
-    // Run all checks in parallel
     const checkPromises = checks.map(async check => {
       const startTime = Date.now();
       try {
@@ -101,30 +139,30 @@ export class HealthChecker {
         logger.info(`  ✅ ${check.name} (${duration}ms)`);
       } catch (error) {
         const duration = Date.now() - startTime;
+        const message = error instanceof Error ? error.message : String(error);
         this.results.push({
           name: check.name,
           status: 'failed',
           critical: check.critical,
           duration,
-          error: error.message
+          error: message
         });
         if (check.critical) {
-          logger.error(`  ❌ ${check.name} - ${error.message}`);
+          logger.error(`  ❌ ${check.name} - ${message}`);
         } else {
-          logger.warn(`  ⚠️  ${check.name} - ${error.message}`);
+          logger.warn(`  ⚠️  ${check.name} - ${message}`);
         }
       }
     });
 
     await Promise.all(checkPromises);
 
-    // Calculate summary
     const passed = this.results.filter(r => r.status === 'passed').length;
     const failed = this.results.filter(r => r.status === 'failed').length;
     const criticalFailed = this.results.filter(r => r.status === 'failed' && r.critical).length;
     const warnings = this.results.filter(r => r.status === 'failed' && !r.critical).length;
 
-    const summary = {
+    const summary: HealthCheckSummary = {
       total: this.results.length,
       passed,
       failed,
@@ -134,7 +172,6 @@ export class HealthChecker {
       healthy: criticalFailed === 0
     };
 
-    // Log summary
     logger.info('');
     logger.info('🏥 Health Check Summary:');
     logger.info(`  ✅ Passed: ${passed}/${this.results.length}`);
@@ -158,10 +195,7 @@ export class HealthChecker {
     return summary;
   }
 
-  /**
-   * Check if an endpoint returns 200 OK
-   */
-  async checkEndpoint(path) {
+  async checkEndpoint(path: string): Promise<unknown> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
       method: 'GET',
@@ -172,9 +206,8 @@ export class HealthChecker {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { error?: string; message?: string };
 
-    // Check for common error patterns in response
     if (data.error || data.message?.includes('not available')) {
       throw new Error(data.error || data.message);
     }
@@ -182,17 +215,14 @@ export class HealthChecker {
     return data;
   }
 
-  /**
-   * Check if conversation data is fresh (not stale)
-   * Verifies that conversations have been captured recently
-   */
-  async checkConversationFreshness() {
+  async checkConversationFreshness(): Promise<void> {
     if (!this.db) {
-      // Fall back to API check when DB is not directly available
-      const data = await this.checkEndpoint('/api/conversations?limit=1');
+      const data = (await this.checkEndpoint('/api/conversations?limit=1')) as ConversationApiResponse;
       if (data.conversations && data.conversations.length > 0) {
         const mostRecent = data.conversations[0];
-        const conversationTime = new Date(mostRecent.timestamp || mostRecent.last_activity);
+        const ts = mostRecent.timestamp || mostRecent.last_activity;
+        if (!ts) return;
+        const conversationTime = new Date(ts);
         const now = new Date();
         const hoursSinceLastConversation =
           (now.getTime() - conversationTime.getTime()) / (1000 * 60 * 60);
@@ -206,8 +236,10 @@ export class HealthChecker {
       return;
     }
 
-    // Query most recent conversation from agent_events
-    const stmt = this.db.prepareStatement(`
+    // Note: previous .js version called this.db.prepareStatement(...) which
+    // does not exist on RavenDB — that path threw silently and was logged as
+    // a failed warning. Use the actual better-sqlite3 wrapped instance.
+    const stmt = this.db.db.prepare<unknown[], AgentEventRow>(`
       SELECT timestamp, event_type
       FROM agent_events
       ORDER BY timestamp DESC
@@ -216,17 +248,15 @@ export class HealthChecker {
     const mostRecent = stmt.get();
 
     if (!mostRecent) {
-      // No conversations yet - this is OK for new installations
       logger.info('  ℹ️  No conversations found (new installation)');
       return;
     }
 
-    // Check if most recent conversation is within acceptable timeframe
     const conversationTime = new Date(mostRecent.timestamp);
     const now = new Date();
-    const hoursSinceLastConversation = (now - conversationTime) / (1000 * 60 * 60);
+    const hoursSinceLastConversation =
+      (now.getTime() - conversationTime.getTime()) / (1000 * 60 * 60);
 
-    // If no conversation in last 24 hours, warn (may indicate sync issue)
     if (hoursSinceLastConversation > 24) {
       throw new Error(
         `Stale conversation data (last: ${mostRecent.timestamp}, ` +
@@ -238,17 +268,11 @@ export class HealthChecker {
     logger.info(`  ℹ️  Last conversation: ${hoursSinceLastConversation.toFixed(1)} hours ago`);
   }
 
-  /**
-   * Get results from last health check
-   */
-  getResults() {
+  getResults(): HealthCheckResult[] {
     return this.results;
   }
 
-  /**
-   * Check if system is healthy (no critical failures)
-   */
-  isHealthy() {
+  isHealthy(): boolean {
     const criticalFailed = this.results.filter(r => r.status === 'failed' && r.critical).length;
     return criticalFailed === 0;
   }
