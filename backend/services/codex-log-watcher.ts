@@ -16,32 +16,112 @@
 
 import fs from 'fs';
 import path from 'path';
-import chokidar from 'chokidar';
+import chokidar, { type FSWatcher } from 'chokidar';
 import { homedir } from 'os';
 
-// Codex's apply_patch heredoc uses `*** Update File: <path>` /
-// `*** Add File: <path>` / `*** Delete File: <path>` markers.
+interface MinimalLogger {
+  debug: (msg: string, meta?: object) => void;
+  info: (msg: string, meta?: object) => void;
+  warn: (msg: string, meta?: object) => void;
+  error: (msg: string, meta?: object) => void;
+}
+
+interface SessionMeta {
+  sessionId: string;
+  cwd: string;
+  projectName: string;
+  model: string | null;
+}
+
+interface BaseEvent {
+  projectName: string;
+  projectPath: string;
+  sessionId: string;
+  timestamp: string;
+  source: 'codex';
+}
+
+export interface CodexEvent extends Partial<BaseEvent> {
+  type: string;
+  content?: string;
+  tool?: string;
+  file?: string;
+  path?: string;
+  eventCategory: 'conversation' | 'agent_event' | 'file_change';
+}
+
+export type CodexEventCallback = (event: CodexEvent) => Promise<void> | void;
+
+export interface CodexWatcherOptions {
+  positionsFile?: string | null;
+}
+
+interface SessionMetaPayload {
+  id?: string;
+  cwd?: string;
+  model?: string;
+}
+
+interface TurnContextPayload {
+  model?: string;
+}
+
+interface EventMsgPayload {
+  type?: string;
+  message?: string;
+}
+
+interface ResponseItemContentBlock {
+  type?: string;
+  text?: string;
+}
+
+interface ResponseItemPayload {
+  type?: string;
+  role?: string;
+  content?: ResponseItemContentBlock[];
+  name?: string;
+  arguments?: string | Record<string, unknown>;
+}
+
+interface CodexLogEntry {
+  type?: string;
+  timestamp?: string;
+  payload?: SessionMetaPayload | TurnContextPayload | EventMsgPayload | ResponseItemPayload;
+}
+
 const APPLY_PATCH_TARGET = /^\*\*\* (Update|Add|Delete) File:\s*(.+)$/m;
 
 export class CodexLogWatcher {
-  constructor(eventCallback, logger, options = {}) {
+  private eventCallback: CodexEventCallback;
+  private logger: MinimalLogger;
+  private codexSessionsDir: string;
+  private logWatcher: FSWatcher | null;
+  private filePositions: Map<string, number>;
+  private sessionMeta: Map<string, SessionMeta>;
+  private positionsFile: string | null;
+  private positionsSaveTimer: NodeJS.Timeout | null;
+  private _currentIdle: boolean | undefined;
+  private _idleSwitching: boolean | undefined;
+
+  constructor(eventCallback: CodexEventCallback, logger: MinimalLogger, options: CodexWatcherOptions = {}) {
     this.eventCallback = eventCallback;
     this.logger = logger;
     this.codexSessionsDir = path.join(homedir(), '.codex', 'sessions');
     this.logWatcher = null;
-    this.filePositions = new Map(); // filepath -> bytes read so far
-    this.sessionMeta = new Map(); // filepath -> { sessionId, cwd, projectName, model }
+    this.filePositions = new Map();
+    this.sessionMeta = new Map();
     this.positionsFile = options.positionsFile || null;
     this.positionsSaveTimer = null;
   }
 
-  async loadPositions() {
+  async loadPositions(): Promise<void> {
     if (!this.positionsFile) return;
     try {
       const raw = await fs.promises.readFile(this.positionsFile, 'utf8');
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(raw) as unknown;
       if (parsed && typeof parsed === 'object') {
-        for (const [filepath, position] of Object.entries(parsed)) {
+        for (const [filepath, position] of Object.entries(parsed as Record<string, unknown>)) {
           if (typeof position === 'number' && position >= 0) {
             this.filePositions.set(filepath, position);
           }
@@ -51,24 +131,26 @@ export class CodexLogWatcher {
         );
       }
     } catch (err) {
-      if (err.code !== 'ENOENT') {
-        this.logger.warn(`Could not load Codex log positions: ${err.message}`);
+      const e = err as NodeJS.ErrnoException;
+      if (e.code !== 'ENOENT') {
+        this.logger.warn(`Could not load Codex log positions: ${e.message}`);
       }
     }
   }
 
-  async savePositions() {
+  async savePositions(): Promise<void> {
     if (!this.positionsFile) return;
     try {
       const payload = Object.fromEntries(this.filePositions);
       await fs.promises.mkdir(path.dirname(this.positionsFile), { recursive: true });
       await fs.promises.writeFile(this.positionsFile, JSON.stringify(payload), 'utf8');
     } catch (err) {
-      this.logger.warn(`Could not save Codex log positions: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Could not save Codex log positions: ${msg}`);
     }
   }
 
-  async start() {
+  async start(): Promise<void> {
     this.logger.info('🔍 Starting Codex Log Watcher...');
     this.logger.info(`   Watching: ${this.codexSessionsDir}`);
 
@@ -76,7 +158,6 @@ export class CodexLogWatcher {
       this.logger.warn(
         '⚠️  Codex sessions directory not found — Codex monitoring will activate when it appears.'
       );
-      // Still start the watcher; chokidar will pick up the dir when it's created.
     }
 
     await this.loadPositions();
@@ -94,8 +175,8 @@ export class CodexLogWatcher {
       awaitWriteFinish: false,
       ignorePermissionErrors: true,
       alwaysStat: true,
-      depth: 4, // sessions/YYYY/MM/DD/file.jsonl
-      ignored: (watchPath, stats) => {
+      depth: 4,
+      ignored: (watchPath: string, stats?: fs.Stats) => {
         if (stats?.isFile()) {
           return !watchPath.endsWith('.jsonl');
         }
@@ -103,10 +184,10 @@ export class CodexLogWatcher {
       }
     });
 
-    this.logWatcher.on('add', filepath => this.handleLogFileAdded(filepath));
-    this.logWatcher.on('change', filepath => this.handleLogFileChanged(filepath));
+    this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
+    this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
     this.logWatcher.on('error', error =>
-      this.logger.error(`❌ Codex watcher error: ${error.message}`)
+      this.logger.error(`❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`)
     );
 
     this.logWatcher.on('ready', () => {
@@ -118,7 +199,7 @@ export class CodexLogWatcher {
     this.logger.info(`   Watching ${stats.fileCount} rollout files`);
   }
 
-  async setIdle(idle) {
+  async setIdle(idle: boolean): Promise<void> {
     if (!this.logWatcher) return;
     if (this._currentIdle === idle) return;
     if (this._idleSwitching) return;
@@ -142,26 +223,27 @@ export class CodexLogWatcher {
         ignorePermissionErrors: true,
         alwaysStat: true,
         depth: 4,
-        ignored: (watchPath, stats) => {
+        ignored: (watchPath: string, stats?: fs.Stats) => {
           if (stats?.isFile()) {
             return !watchPath.endsWith('.jsonl');
           }
           return false;
         }
       });
-      this.logWatcher.on('add', filepath => this.handleLogFileAdded(filepath));
-      this.logWatcher.on('change', filepath => this.handleLogFileChanged(filepath));
+      this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
+      this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
       this.logWatcher.on('error', error =>
-        this.logger.error(`❌ Codex watcher error: ${error.message}`)
+        this.logger.error(`❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`)
       );
     } catch (err) {
-      this.logger.error(`Failed to switch Codex idle mode: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to switch Codex idle mode: ${msg}`);
     } finally {
       this._idleSwitching = false;
     }
   }
 
-  async stop() {
+  async stop(): Promise<void> {
     if (this.positionsSaveTimer) {
       clearInterval(this.positionsSaveTimer);
       this.positionsSaveTimer = null;
@@ -174,7 +256,7 @@ export class CodexLogWatcher {
     }
   }
 
-  async handleLogFileAdded(filepath) {
+  async handleLogFileAdded(filepath: string): Promise<void> {
     this.logger.info(`📄 Codex session: ${path.basename(filepath)}`);
     try {
       const stats = await fs.promises.stat(filepath);
@@ -197,7 +279,7 @@ export class CodexLogWatcher {
         for (const line of headLines) {
           if (!line.trim()) continue;
           try {
-            const entry = JSON.parse(line);
+            const entry = JSON.parse(line) as CodexLogEntry;
             if (entry?.type === 'session_meta' || entry?.type === 'turn_context') {
               await this.processLogEntry(entry, filepath);
             }
@@ -227,7 +309,7 @@ export class CodexLogWatcher {
       let processed = 0;
       for (const line of lines) {
         try {
-          const entry = JSON.parse(line);
+          const entry = JSON.parse(line) as CodexLogEntry;
           await this.processLogEntry(entry, filepath);
           processed++;
         } catch (_err) {
@@ -242,11 +324,12 @@ export class CodexLogWatcher {
         );
       }
     } catch (error) {
-      this.logger.error(`Error processing Codex file ${filepath}: ${error.message}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error processing Codex file ${filepath}: ${msg}`);
     }
   }
 
-  async handleLogFileChanged(filepath) {
+  async handleLogFileChanged(filepath: string): Promise<void> {
     try {
       const stats = await fs.promises.stat(filepath);
       const lastPosition = this.filePositions.get(filepath) || 0;
@@ -259,11 +342,12 @@ export class CodexLogWatcher {
 
       const bytesToRead = stats.size - lastPosition;
       const buffer = Buffer.alloc(bytesToRead);
-      let fd;
+      let fd: number;
       try {
         fd = fs.openSync(filepath, 'r');
       } catch (openErr) {
-        this.logger.error(`Failed to open Codex log ${filepath}: ${openErr.message}`);
+        const msg = openErr instanceof Error ? openErr.message : String(openErr);
+        this.logger.error(`Failed to open Codex log ${filepath}: ${msg}`);
         return;
       }
       try {
@@ -274,29 +358,31 @@ export class CodexLogWatcher {
 
       const lastNewline = buffer.lastIndexOf(0x0a);
       if (lastNewline === -1) return;
-      const completeSlice = buffer.slice(0, lastNewline + 1);
+      const completeSlice = buffer.subarray(0, lastNewline + 1);
       const completeBytes = completeSlice.length;
       const lines = completeSlice.toString('utf8').split('\n');
       lines.pop();
 
       for (const line of lines) {
         if (!line.trim()) continue;
-        let entry;
+        let entry: CodexLogEntry;
         try {
-          entry = JSON.parse(line);
+          entry = JSON.parse(line) as CodexLogEntry;
         } catch (_err) {
           continue;
         }
         try {
           await this.processLogEntry(entry, filepath);
         } catch (err) {
-          this.logger.error(`Error processing Codex entry: ${err.message}`);
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.error(`Error processing Codex entry: ${msg}`);
         }
       }
 
       this.filePositions.set(filepath, lastPosition + completeBytes);
     } catch (err) {
-      this.logger.error(`Error processing Codex log ${filepath}: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Error processing Codex log ${filepath}: ${msg}`);
     }
   }
 
@@ -305,17 +391,16 @@ export class CodexLogWatcher {
    * and session id in the very first `session_meta` line, so callers
    * after that point have a populated record.
    */
-  getSessionInfo(filepath) {
+  getSessionInfo(filepath: string): SessionMeta | null {
     return this.sessionMeta.get(filepath) || null;
   }
 
   /**
    * Build the baseEvent fields shared by every emit, given the file's
    * cached session metadata. Returns null if we haven't seen session_meta
-   * yet (i.e. lines arriving before the file's header — shouldn't happen
-   * with append-only writes, but be defensive).
+   * yet.
    */
-  baseEventFor(filepath, timestamp) {
+  baseEventFor(filepath: string, timestamp: string): BaseEvent | null {
     const meta = this.sessionMeta.get(filepath);
     if (!meta) return null;
     return {
@@ -327,28 +412,28 @@ export class CodexLogWatcher {
     };
   }
 
-  async processLogEntry(entry, filepath) {
+  async processLogEntry(entry: CodexLogEntry, filepath: string): Promise<void> {
     const timestamp = entry.timestamp || new Date().toISOString();
     const type = entry.type;
     const payload = entry.payload || {};
 
-    // First line of every rollout — cache the session header.
     if (type === 'session_meta') {
-      const cwd = payload.cwd || homedir();
+      const meta = payload as SessionMetaPayload;
+      const cwd = meta.cwd || homedir();
       this.sessionMeta.set(filepath, {
-        sessionId: payload.id || path.basename(filepath, '.jsonl'),
+        sessionId: meta.id || path.basename(filepath, '.jsonl'),
         cwd,
         projectName: path.basename(cwd),
-        model: payload.model || null
+        model: meta.model || null
       });
       return;
     }
 
-    // turn_context refreshes the active model.
     if (type === 'turn_context') {
+      const turn = payload as TurnContextPayload;
       const meta = this.sessionMeta.get(filepath);
-      if (meta && payload.model) {
-        meta.model = payload.model;
+      if (meta && turn.model) {
+        meta.model = turn.model;
       }
       return;
     }
@@ -357,13 +442,14 @@ export class CodexLogWatcher {
     if (!baseEvent) return;
 
     if (type === 'event_msg') {
-      const evt = payload.type;
+      const msg = payload as EventMsgPayload;
+      const evt = msg.type;
 
       if (evt === 'user_message') {
         await this.eventCallback({
           ...baseEvent,
           type: 'user_message',
-          content: (payload.message || '').slice(0, 500),
+          content: (msg.message || '').slice(0, 500),
           eventCategory: 'conversation'
         });
         return;
@@ -373,7 +459,7 @@ export class CodexLogWatcher {
         await this.eventCallback({
           ...baseEvent,
           type: 'assistant_text',
-          content: (payload.message || '').slice(0, 500),
+          content: (msg.message || '').slice(0, 500),
           eventCategory: 'conversation'
         });
         return;
@@ -384,17 +470,18 @@ export class CodexLogWatcher {
     }
 
     if (type === 'response_item') {
-      const sub = payload.type;
+      const item = payload as ResponseItemPayload;
+      const sub = item.type;
 
       if (sub === 'function_call') {
-        await this.handleFunctionCall(payload, baseEvent);
+        await this.handleFunctionCall(item, baseEvent);
         return;
       }
 
       if (sub === 'message') {
-        const role = payload.role;
-        const text = Array.isArray(payload.content)
-          ? payload.content
+        const role = item.role;
+        const text = Array.isArray(item.content)
+          ? item.content
               .filter(c => c?.type === 'input_text' || c?.type === 'output_text')
               .map(c => c.text || '')
               .join('\n')
@@ -423,25 +510,24 @@ export class CodexLogWatcher {
     }
   }
 
-  async handleFunctionCall(payload, baseEvent) {
+  async handleFunctionCall(payload: ResponseItemPayload, baseEvent: BaseEvent): Promise<void> {
     const name = payload.name || 'unknown';
-    let args = {};
+    let args: Record<string, unknown> = {};
     try {
       args =
         typeof payload.arguments === 'string'
-          ? JSON.parse(payload.arguments)
-          : payload.arguments || {};
+          ? (JSON.parse(payload.arguments) as Record<string, unknown>)
+          : (payload.arguments as Record<string, unknown>) || {};
     } catch (_err) {
       args = {};
     }
 
     const cmd = typeof args.cmd === 'string' ? args.cmd : '';
 
-    // Detect apply_patch — Codex's mechanism for editing files.
     if (cmd) {
       const patchTarget = APPLY_PATCH_TARGET.exec(cmd);
       if (patchTarget) {
-        const action = patchTarget[1]; // Update | Add | Delete
+        const action = patchTarget[1];
         const filePath = patchTarget[2].trim();
         const fileEventType = action === 'Add' ? 'add' : action === 'Delete' ? 'delete' : 'change';
         await this.eventCallback({
@@ -454,20 +540,19 @@ export class CodexLogWatcher {
       }
     }
 
-    // Always emit the tool call so the activity feed shows Codex working.
     await this.eventCallback({
       ...baseEvent,
       type: 'tool_call',
       tool: name,
-      file: cmd ? cmd.slice(0, 100) : null,
+      file: cmd ? cmd.slice(0, 100) : undefined,
       eventCategory: 'agent_event'
     });
   }
 
-  async getWatchStats() {
-    const files = [];
+  async getWatchStats(): Promise<{ fileCount: number; files: string[] }> {
+    const files: string[] = [];
     try {
-      const walk = dir => {
+      const walk = (dir: string): void => {
         if (!fs.existsSync(dir)) return;
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
@@ -481,13 +566,14 @@ export class CodexLogWatcher {
       };
       walk(this.codexSessionsDir);
     } catch (err) {
-      this.logger.error(`Error walking Codex sessions: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Error walking Codex sessions: ${msg}`);
     }
     return { fileCount: files.length, files };
   }
 
-  getActiveProjects() {
-    const seen = new Map();
+  getActiveProjects(): Array<{ projectPath: string; projectName: string; sessionId: string }> {
+    const seen = new Map<string, { projectPath: string; projectName: string; sessionId: string }>();
     for (const meta of this.sessionMeta.values()) {
       if (!seen.has(meta.cwd)) {
         seen.set(meta.cwd, {
