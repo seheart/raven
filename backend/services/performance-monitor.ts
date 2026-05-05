@@ -6,16 +6,71 @@
  */
 
 import os from 'os';
+import type { Server as SocketIOServer } from 'socket.io';
 import { logger } from '../utils/logger.js';
 
+export interface PerformanceThresholds {
+  memory: {
+    critical: number;
+    warning: number;
+  };
+  heap: {
+    warning: number;
+  };
+}
+
+export interface PerformanceMonitorOptions {
+  io?: SocketIOServer;
+  interval?: number;
+  memoryCritical?: number;
+  memoryWarning?: number;
+  heapWarning?: number;
+}
+
+export type AlertSeverity = 'critical' | 'warning';
+export type AlertType = 'memory' | 'heap';
+
+export interface PerformanceAlert {
+  type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  value: string;
+}
+
+export interface PerformanceAlertWithTimestamp extends PerformanceAlert {
+  timestamp: string;
+}
+
+interface PerformanceStats {
+  checksPerformed: number;
+  alertsEmitted: number;
+  lastCheck: string | null;
+  lastAlert: PerformanceAlertWithTimestamp | null;
+}
+
+export interface MemoryUsageSnapshot {
+  heapUsed: number;
+  heapTotal: number;
+  heapPercent: string;
+  rss: number;
+  external: number;
+}
+
 export class PerformanceMonitor {
-  constructor(options = {}) {
+  io: SocketIOServer | undefined;
+  interval: number;
+  intervalId: NodeJS.Timeout | null;
+  isRunning: boolean;
+  thresholds: PerformanceThresholds;
+  stats: PerformanceStats;
+
+  constructor(options: PerformanceMonitorOptions = {}) {
     this.io = options.io;
-    this.interval = options.interval || 5000; // Check every 5 seconds
+    this.interval = options.interval || 5000;
     this.intervalId = null;
     this.isRunning = false;
 
-    // Thresholds
     this.thresholds = {
       memory: {
         critical: options.memoryCritical || 90,
@@ -26,7 +81,6 @@ export class PerformanceMonitor {
       }
     };
 
-    // Stats
     this.stats = {
       checksPerformed: 0,
       alertsEmitted: 0,
@@ -35,17 +89,11 @@ export class PerformanceMonitor {
     };
   }
 
-  /**
-   * Set Socket.io instance for alert emission
-   */
-  setIO(io) {
+  setIO(io: SocketIOServer): void {
     this.io = io;
   }
 
-  /**
-   * Start monitoring
-   */
-  start() {
+  start(): void {
     if (this.isRunning) {
       logger.warn('Performance monitor already running');
       return;
@@ -62,10 +110,7 @@ export class PerformanceMonitor {
     });
   }
 
-  /**
-   * Stop monitoring
-   */
-  stop() {
+  stop(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
@@ -74,10 +119,7 @@ export class PerformanceMonitor {
     }
   }
 
-  /**
-   * Check performance metrics
-   */
-  checkPerformance() {
+  checkPerformance(): void {
     this.stats.checksPerformed++;
     this.stats.lastCheck = new Date().toISOString();
 
@@ -85,13 +127,11 @@ export class PerformanceMonitor {
       const memUsage = process.memoryUsage();
       const heapPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
 
-      // Get system memory
       const totalMem = os.totalmem();
       const freeMem = os.freemem();
       const usedMem = totalMem - freeMem;
       const systemMemoryPercent = (usedMem / totalMem) * 100;
 
-      // Check thresholds and emit alerts
       if (systemMemoryPercent > this.thresholds.memory.critical) {
         this.emitAlert({
           type: 'memory',
@@ -118,37 +158,29 @@ export class PerformanceMonitor {
         });
       }
     } catch (error) {
-      logger.error('Error checking performance:', error);
+      logger.error('Error checking performance:', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
-  /**
-   * Emit performance alert
-   */
-  emitAlert(alert) {
+  emitAlert(alert: PerformanceAlert): void {
     this.stats.alertsEmitted++;
     this.stats.lastAlert = {
       ...alert,
       timestamp: new Date().toISOString()
     };
 
-    // Log alert
     if (alert.severity === 'critical') {
       logger.error(`Performance Alert: ${alert.title} - ${alert.message}`);
     } else {
       logger.warn(`Performance Alert: ${alert.title} - ${alert.message}`);
     }
 
-    // Emit via WebSocket
     if (this.io) {
       this.io.emit('performance-alert', alert);
     }
   }
 
-  /**
-   * Get current memory usage
-   */
-  getMemoryUsage() {
+  getMemoryUsage(): MemoryUsageSnapshot {
     const memUsage = process.memoryUsage();
     return {
       heapUsed: memUsage.heapUsed,
@@ -159,10 +191,12 @@ export class PerformanceMonitor {
     };
   }
 
-  /**
-   * Get monitoring stats
-   */
-  getStats() {
+  getStats(): PerformanceStats & {
+    isRunning: boolean;
+    interval: number;
+    thresholds: PerformanceThresholds;
+    currentMemory: MemoryUsageSnapshot;
+  } {
     return {
       ...this.stats,
       isRunning: this.isRunning,
@@ -172,10 +206,7 @@ export class PerformanceMonitor {
     };
   }
 
-  /**
-   * Update thresholds
-   */
-  updateThresholds(newThresholds) {
+  updateThresholds(newThresholds: Partial<PerformanceThresholds>): void {
     this.thresholds = {
       ...this.thresholds,
       ...newThresholds
@@ -183,10 +214,7 @@ export class PerformanceMonitor {
     logger.info('Performance thresholds updated', { thresholds: this.thresholds });
   }
 
-  /**
-   * Reset stats
-   */
-  resetStats() {
+  resetStats(): void {
     this.stats = {
       checksPerformed: 0,
       alertsEmitted: 0,
@@ -196,10 +224,7 @@ export class PerformanceMonitor {
     logger.info('Performance stats reset');
   }
 
-  /**
-   * Force an immediate performance check
-   */
-  checkNow() {
+  checkNow(): ReturnType<PerformanceMonitor['getStats']> {
     this.checkPerformance();
     return this.getStats();
   }
