@@ -7,7 +7,7 @@
    *   • smoothly draining eviction bar (sub-second)
    */
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
   import { websocketService } from '../../services/websocket.js';
 
   let models = $state([]);
@@ -94,7 +94,10 @@
 
   async function refresh() {
     try {
-      const data = await api.get('/ollama/ps');
+      // Shared /ollama/ps cache via dataService (3s TTL == poll interval)
+      // — CompactActiveModel + CombinedLlmCard + this card all share one
+      // network round-trip when on screen together.
+      const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
       const seenNames = new Set();
       for (const m of data.models || []) {
         seenNames.add(m.name);

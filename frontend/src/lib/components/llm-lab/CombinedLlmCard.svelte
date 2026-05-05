@@ -5,7 +5,7 @@
    * scarce. Kept the same animations as the standalone cards.
    */
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
   import { websocketService } from '../../services/websocket.js';
 
   let models = $state([]);
@@ -41,7 +41,8 @@
 
   async function refreshPs() {
     try {
-      const data = await api.get('/ollama/ps');
+      // Shared /ollama/ps cache via dataService (3s TTL == poll interval).
+      const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
       const seen = new Set();
       for (const m of data.models || []) { seen.add(m.name); ensure(m.name); }
       for (const k of Object.keys(modelState)) if (!seen.has(k)) delete modelState[k];
@@ -51,7 +52,8 @@
   let utilHistory = $state([]);
   async function refreshGpu() {
     try {
-      const data = await api.get('/gpu');
+      // Shared /gpu cache via dataService (2s TTL == poll interval).
+      const data = await dataService.fetch('/gpu', { ttl: 2000 });
       gpu = data.gpus?.[0] || null;
       if (gpu) utilHistory = [...utilHistory, gpu.gpu_util_pct].slice(-30);
     } catch {}

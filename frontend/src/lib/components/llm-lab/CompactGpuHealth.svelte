@@ -4,7 +4,7 @@
    * Single line of stats, smaller VRAM bar, smaller sparkline.
    */
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
 
   let gpu = $state(null);
   let history = $state([]);
@@ -20,7 +20,10 @@
 
   async function refresh() {
     try {
-      const data = await api.get('/gpu');
+      // Route through dataService — multiple GPU components share the
+      // same /gpu cache (2s TTL matches our poll interval). One network
+      // round-trip serves whichever components are mounted at the time.
+      const data = await dataService.fetch('/gpu', { ttl: 2000 });
       gpu = data.gpus?.[0] || null;
       if (gpu) history = [...history, gpu.gpu_util_pct].slice(-30);
     } catch {}

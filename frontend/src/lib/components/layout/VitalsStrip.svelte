@@ -9,7 +9,7 @@
    * always one glance away regardless of which page is open.
    */
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
 
   let cpu = $state(0);
   let memPct = $state(0);
@@ -32,7 +32,15 @@
 
   async function refresh() {
     try {
-      const sys = await api.get('/system-metrics').catch(() => null);
+      // Route through dataService — same /system-metrics + /gpu caches
+      // shared with every other component that watches them. Background
+      // refresh in dataService keeps system-metrics warm; GPU is fetched
+      // on demand here at 2s, which matches the cache TTL so dedup is
+      // effectively perfect when GpuHealthCard / CombinedLlmCard are
+      // also mounted.
+      const sys = await dataService
+        .fetch('/system-metrics', { params: { limit: 1 }, ttl: 2000 })
+        .catch(() => null);
       if (Array.isArray(sys) && sys[0]) {
         cpu = sys[0].cpu_percent || 0;
         memPct = sys[0].memory_percent || 0;
@@ -41,7 +49,7 @@
       }
     } catch {}
     try {
-      const gpuData = await api.get('/gpu').catch(() => null);
+      const gpuData = await dataService.fetch('/gpu', { ttl: 2000 }).catch(() => null);
       if (gpuData?.gpus?.[0]) {
         gpu = gpuData.gpus[0];
         gpuError = false;

@@ -5,7 +5,7 @@
    * the live pulse, sparkline, and eviction bar.
    */
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
   import { websocketService } from '../../services/websocket.js';
 
   let models = $state([]);
@@ -57,7 +57,8 @@
 
   async function refresh() {
     try {
-      const data = await api.get('/ollama/ps');
+      // Shared /ollama/ps cache via dataService (3s TTL == poll interval).
+      const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
       const seen = new Set();
       for (const m of data.models || []) { seen.add(m.name); ensure(m.name); }
       for (const k of Object.keys(modelState)) if (!seen.has(k)) delete modelState[k];

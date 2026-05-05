@@ -4,7 +4,7 @@
    * Polls /api/gpu every 2s. Util history kept for sparkline.
    */
   import { onMount } from 'svelte';
-  import { api } from '../../apiClient.js';
+  import { dataService } from '../../dataService.js';
 
   let gpu = $state(null);
   let error = $state(null);
@@ -37,7 +37,10 @@
 
   async function refresh() {
     try {
-      const data = await api.get('/gpu');
+      // Shared /gpu cache via dataService (2s TTL == poll interval)
+      // means VitalsStrip + CompactGpuHealth + CombinedLlmCard + this
+      // card all share one network request when on screen together.
+      const data = await dataService.fetch('/gpu', { ttl: 2000 });
       gpu = (data.gpus && data.gpus[0]) || null;
       error = null;
       if (gpu) {
