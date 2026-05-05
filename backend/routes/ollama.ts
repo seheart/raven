@@ -14,7 +14,9 @@ import { spawn } from 'child_process';
 import { cacheMiddleware } from '../services/cache-service.js';
 import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 
-const OLLAMA_INTERNAL_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+// Read lazily so the transparent-ollama-proxy EADDRINUSE fallback (which
+// mutates OLLAMA_URL after a port conflict) takes effect without a restart.
+const ollamaInternalUrl = (): string => process.env.OLLAMA_URL || 'http://localhost:11434';
 
 interface OllamaPsModel {
   name: string;
@@ -45,7 +47,7 @@ export function createOllamaDetailRouter(agentEventsRepo: AgentEventsRepository)
   // GET /api/ollama/ps — resident-in-VRAM models with attribution
   router.get('/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Response) => {
     try {
-      const r = await fetch(`${OLLAMA_INTERNAL_URL}/api/ps`, {
+      const r = await fetch(`${ollamaInternalUrl()}/api/ps`, {
         signal: AbortSignal.timeout(3000)
       });
       if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
@@ -79,7 +81,7 @@ export function createOllamaDetailRouter(agentEventsRepo: AgentEventsRepository)
   // GET /api/ollama/library — installed model catalog
   router.get('/ollama/library', cacheMiddleware(30000), async (_req: Request, res: Response) => {
     try {
-      const r = await fetch(`${OLLAMA_INTERNAL_URL}/api/tags`, {
+      const r = await fetch(`${ollamaInternalUrl()}/api/tags`, {
         signal: AbortSignal.timeout(3000)
       });
       if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });

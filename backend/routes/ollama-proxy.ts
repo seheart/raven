@@ -36,7 +36,10 @@ interface OllamaProxyDeps {
 
 export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
   const { io, logger, sessionId: SESSION_ID, agentRegistry, agentEventsRepo } = deps;
-  const OLLAMA_URL = deps.ollamaUrl || process.env.OLLAMA_URL || 'http://localhost:11434';
+  // Read lazily on each request so the transparent-proxy EADDRINUSE fallback
+  // (which mutates process.env.OLLAMA_URL) takes effect without a restart.
+  const getOllamaUrl = (): string =>
+    deps.ollamaUrl || process.env.OLLAMA_URL || 'http://localhost:11434';
 
   const router = express.Router();
 
@@ -100,7 +103,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
   router.all('/*', ollamaInferenceLimiter, async (req: Request, res: Response): Promise<any> => {
     // When mounted at /ollama, req.path here is the portion after /ollama (e.g. /api/chat)
     const ollamaPath = req.path;
-    const targetUrl = `${OLLAMA_URL}${ollamaPath}`;
+    const targetUrl = `${getOllamaUrl()}${ollamaPath}`;
     const startTime = Date.now();
 
     // Resolve which project triggered this call by walking /proc from
@@ -335,7 +338,7 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
       removeHint?.();
       return res.status(502).json({
         error: 'Ollama not reachable',
-        message: `Could not connect to ${OLLAMA_URL}. Is Ollama running?`
+        message: `Could not connect to ${getOllamaUrl()}. Is Ollama running?`
       });
     }
   });
