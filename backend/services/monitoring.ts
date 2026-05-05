@@ -3,17 +3,91 @@
  * Tracks error rates, memory usage, and system health
  */
 
-import { logger } from '../utils/logger.js';
 import os from 'os';
+import type { Server as SocketIOServer } from 'socket.io';
+import { logger } from '../utils/logger.js';
+
+export interface MonitoringOptions {
+  io?: SocketIOServer;
+  errorRateThreshold?: number;
+  memoryPercentThreshold?: number;
+  cpuPercentThreshold?: number;
+  watcherFailuresThreshold?: number;
+}
+
+interface AlertThresholds {
+  errorRate: number;
+  memoryPercent: number;
+  cpuPercent: number;
+  watcherFailures: number;
+}
+
+interface ErrorRecord {
+  timestamp: number;
+  message: string;
+  stack: string | undefined;
+  context: Record<string, unknown>;
+}
+
+interface WarningRecord {
+  timestamp: number;
+  message: string;
+  context: Record<string, unknown>;
+}
+
+interface MemorySample {
+  timestamp: number;
+  process: number;
+  system: number;
+}
+
+interface WatcherHealth {
+  failures: number;
+  lastFailure: number | null;
+}
+
+interface DbOperationCounts {
+  reads: number;
+  writes: number;
+  errors: number;
+}
+
+interface MonitoringMetricsInternal {
+  errors: ErrorRecord[];
+  warnings: WarningRecord[];
+  memory: MemorySample[];
+  cpu: number[];
+  watcherHealth: Map<string, WatcherHealth>;
+  websocketConnections: number;
+  dbOperations: DbOperationCounts;
+}
+
+export interface MonitoringSnapshot {
+  uptime: number;
+  errorCount: number;
+  recentErrorCount: number;
+  warningCount: number;
+  dbOperations: DbOperationCounts;
+  websocketConnections: number;
+  watcherHealth: Array<{ name: string } & WatcherHealth>;
+}
+
+export type DbOperationType = 'read' | 'write' | 'error';
 
 export class MonitoringService {
-  constructor(options = {}) {
+  io: SocketIOServer | undefined;
+  alertThresholds: AlertThresholds;
+  metrics: MonitoringMetricsInternal;
+  intervals: NodeJS.Timeout[];
+  startTime: number;
+
+  constructor(options: MonitoringOptions = {}) {
     this.io = options.io;
     this.alertThresholds = {
-      errorRate: options.errorRateThreshold || 10, // errors per minute
-      memoryPercent: options.memoryPercentThreshold || 85,
-      cpuPercent: options.cpuPercentThreshold || 80,
-      watcherFailures: options.watcherFailuresThreshold || 3
+      errorRate: options.errorRateThreshold ?? 10,
+      memoryPercent: options.memoryPercentThreshold ?? 85,
+      cpuPercent: options.cpuPercentThreshold ?? 80,
+      watcherFailures: options.watcherFailuresThreshold ?? 3
     };
 
     this.metrics = {
@@ -34,57 +108,43 @@ export class MonitoringService {
     this.startTime = Date.now();
   }
 
-  /**
-   * Start monitoring
-   */
-  start() {
+  start(): void {
     logger.info('Starting monitoring service');
 
-    // Monitor error rates
     const errorInterval = setInterval(() => {
       this.checkErrorRate();
-    }, 60000); // Every minute
+    }, 60000);
 
-    // Monitor memory/CPU
     const resourceInterval = setInterval(() => {
       this.checkResourceUsage();
-    }, 30000); // Every 30 seconds
+    }, 30000);
 
-    // Monitor watcher health
     const watcherInterval = setInterval(() => {
       this.checkWatcherHealth();
-    }, 120000); // Every 2 minutes
+    }, 120000);
 
     this.intervals.push(errorInterval, resourceInterval, watcherInterval);
   }
 
-  /**
-   * Stop monitoring
-   */
-  stop() {
+  stop(): void {
     logger.info('Stopping monitoring service');
     this.intervals.forEach(interval => clearInterval(interval));
     this.intervals = [];
   }
 
-  /**
-   * Record an error
-   */
-  recordError(error, context = {}) {
-    const errorRecord = {
+  recordError(error: Error | string | unknown, context: Record<string, unknown> = {}): void {
+    const errorRecord: ErrorRecord = {
       timestamp: Date.now(),
-      message: error.message || String(error),
-      stack: error.stack,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       context
     };
 
     this.metrics.errors.push(errorRecord);
 
-    // Keep only last hour of errors
     const oneHourAgo = Date.now() - 3600000;
     this.metrics.errors = this.metrics.errors.filter(e => e.timestamp > oneHourAgo);
 
-    // Emit to frontend if connected
     if (this.io) {
       this.io.emit('monitoring-error', {
         timestamp: errorRecord.timestamp,
@@ -94,11 +154,8 @@ export class MonitoringService {
     }
   }
 
-  /**
-   * Record a warning
-   */
-  recordWarning(message, context = {}) {
-    const warningRecord = {
+  recordWarning(message: string, context: Record<string, unknown> = {}): void {
+    const warningRecord: WarningRecord = {
       timestamp: Date.now(),
       message,
       context
@@ -106,15 +163,11 @@ export class MonitoringService {
 
     this.metrics.warnings.push(warningRecord);
 
-    // Keep only last hour of warnings
     const oneHourAgo = Date.now() - 3600000;
     this.metrics.warnings = this.metrics.warnings.filter(w => w.timestamp > oneHourAgo);
   }
 
-  /**
-   * Check error rate
-   */
-  checkErrorRate() {
+  checkErrorRate(): void {
     const oneMinuteAgo = Date.now() - 60000;
     const recentErrors = this.metrics.errors.filter(e => e.timestamp > oneMinuteAgo);
 
@@ -131,10 +184,7 @@ export class MonitoringService {
     }
   }
 
-  /**
-   * Check resource usage
-   */
-  checkResourceUsage() {
+  checkResourceUsage(): void {
     const memUsage = process.memoryUsage();
     const memPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
     const totalMem = os.totalmem();
@@ -147,12 +197,10 @@ export class MonitoringService {
       system: systemMemPercent
     });
 
-    // Keep only last 100 samples
     if (this.metrics.memory.length > 100) {
       this.metrics.memory.shift();
     }
 
-    // Alert on high memory
     if (systemMemPercent >= this.alertThresholds.memoryPercent) {
       logger.warn(`High memory usage: ${systemMemPercent.toFixed(2)}%`);
       if (this.io) {
@@ -166,10 +214,7 @@ export class MonitoringService {
     }
   }
 
-  /**
-   * Check watcher health
-   */
-  checkWatcherHealth() {
+  checkWatcherHealth(): void {
     let failedWatchers = 0;
     for (const [watcher, health] of this.metrics.watcherHealth.entries()) {
       if (health.failures >= this.alertThresholds.watcherFailures) {
@@ -188,10 +233,7 @@ export class MonitoringService {
     }
   }
 
-  /**
-   * Record watcher failure
-   */
-  recordWatcherFailure(watcherName) {
+  recordWatcherFailure(watcherName: string): void {
     const health = this.metrics.watcherHealth.get(watcherName) || {
       failures: 0,
       lastFailure: null
@@ -202,10 +244,7 @@ export class MonitoringService {
     this.metrics.watcherHealth.set(watcherName, health);
   }
 
-  /**
-   * Record watcher recovery
-   */
-  recordWatcherRecovery(watcherName) {
+  recordWatcherRecovery(watcherName: string): void {
     const health = this.metrics.watcherHealth.get(watcherName);
     if (health) {
       health.failures = 0;
@@ -213,12 +252,9 @@ export class MonitoringService {
     }
   }
 
-  /**
-   * Get current metrics
-   */
-  getMetrics() {
+  getMetrics(): MonitoringSnapshot {
     const uptime = Date.now() - this.startTime;
-    const recentErrors = this.metrics.errors.filter(e => e.timestamp > Date.now() - 300000); // Last 5 minutes
+    const recentErrors = this.metrics.errors.filter(e => e.timestamp > Date.now() - 300000);
 
     return {
       uptime,
@@ -234,10 +270,7 @@ export class MonitoringService {
     };
   }
 
-  /**
-   * Record database operation
-   */
-  recordDbOperation(type) {
+  recordDbOperation(type: DbOperationType): void {
     if (type === 'read') {
       this.metrics.dbOperations.reads++;
     } else if (type === 'write') {
@@ -247,10 +280,7 @@ export class MonitoringService {
     }
   }
 
-  /**
-   * Update WebSocket connection count
-   */
-  updateWebSocketCount(count) {
+  updateWebSocketCount(count: number): void {
     this.metrics.websocketConnections = count;
   }
 }
