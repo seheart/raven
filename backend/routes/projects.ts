@@ -96,20 +96,29 @@ export function createProjectsRouter({
   router.get('/', cacheMiddleware(5000), async (_req: Request, res: Response) => {
     try {
       const config = await projectsConfigService.load();
-      const projects = await Promise.all(
-        config.projects.map(async project => {
-          let eventCount = 0;
-          try {
-            const result = db.db
-              .prepare('SELECT COUNT(*) as count FROM events WHERE project_name = ?')
-              .get(project.name) as { count: number };
-            eventCount = result.count;
-          } catch {
-            /* table missing or query failed — leave as 0 */
-          }
-          return { ...project, eventCount };
-        })
-      );
+
+      // Single GROUP BY query instead of one COUNT(*) per project. With N
+      // projects this is O(N) → O(1) round-trips. Catch swallows the
+      // "table missing" case the same way the per-project version did.
+      const counts = new Map<string, number>();
+      try {
+        const rows = db.db
+          .prepare<unknown[], { project_name: string | null; count: number }>(
+            'SELECT project_name, COUNT(*) as count FROM events GROUP BY project_name'
+          )
+          .all();
+        for (const r of rows) {
+          if (r.project_name) counts.set(r.project_name, r.count);
+        }
+      } catch {
+        /* table missing or query failed — every count stays 0 */
+      }
+
+      const projects = config.projects.map(project => ({
+        ...project,
+        eventCount: counts.get(project.name) ?? 0
+      }));
+
       return res.json({ ...config, projects });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
