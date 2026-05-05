@@ -39,25 +39,29 @@ interface ModelLoadEvent {
   observedAt: string;
 }
 
-// Known local model endpoints and their detection methods
-const KNOWN_ENDPOINTS: ModelEndpoint[] = [
-  {
-    name: 'Ollama',
-    url: process.env.OLLAMA_URL || 'http://localhost:11434',
-    type: 'ollama',
-    modelsPath: join(os.homedir(), '.ollama', 'models')
-  },
-  {
-    name: 'LM Studio',
-    url: process.env.LM_STUDIO_URL || 'http://localhost:1234',
-    type: 'lm-studio'
-  },
-  {
-    name: 'llama.cpp',
-    url: process.env.LLAMA_CPP_URL || 'http://localhost:8080',
-    type: 'llamacpp'
-  }
-];
+// Known local model endpoints and their detection methods. URLs are read
+// lazily on each poll so the transparent-ollama-proxy fallback (which mutates
+// OLLAMA_URL after a port conflict) takes effect on the very next scan.
+function getKnownEndpoints(): ModelEndpoint[] {
+  return [
+    {
+      name: 'Ollama',
+      url: process.env.OLLAMA_URL || 'http://localhost:11434',
+      type: 'ollama',
+      modelsPath: join(os.homedir(), '.ollama', 'models')
+    },
+    {
+      name: 'LM Studio',
+      url: process.env.LM_STUDIO_URL || 'http://localhost:1234',
+      type: 'lm-studio'
+    },
+    {
+      name: 'llama.cpp',
+      url: process.env.LLAMA_CPP_URL || 'http://localhost:8080',
+      type: 'llamacpp'
+    }
+  ];
+}
 
 export class LocalModelWatcher {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -152,7 +156,7 @@ export class LocalModelWatcher {
   async scan(): Promise<DetectedModel[]> {
     const results: DetectedModel[] = [];
 
-    for (const endpoint of KNOWN_ENDPOINTS) {
+    for (const endpoint of getKnownEndpoints()) {
       try {
         const model = await this.checkEndpoint(endpoint);
         if (model) {
@@ -298,7 +302,7 @@ export class LocalModelWatcher {
    * Check for installed model files (Ollama models directory)
    */
   private async checkInstalledModels(): Promise<void> {
-    for (const endpoint of KNOWN_ENDPOINTS) {
+    for (const endpoint of getKnownEndpoints()) {
       if (endpoint.modelsPath) {
         try {
           await fs.access(endpoint.modelsPath);

@@ -57,8 +57,16 @@ export function startTransparentOllamaProxy(deps: TransparentOllamaDeps): HttpSe
   });
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
-      logger.error(
-        `Transparent Ollama proxy: port ${port} already in use. Move Ollama to a different port (set OLLAMA_HOST=127.0.0.1:11435 in its systemd override) before starting Raven.`
+      // Ollama is bound to the proxy port already (the user hasn't set
+      // OLLAMA_HOST=127.0.0.1:11435 in the systemd override). Without a
+      // fallback, Raven would keep polling OLLAMA_URL (11435) where nothing
+      // is listening and report Ollama as offline. Re-point OLLAMA_URL at the
+      // proxy port so detection still works, just without telemetry interception.
+      const fallbackUrl = `http://${bindHost}:${port}`;
+      process.env.OLLAMA_URL = fallbackUrl;
+      logger.warn(
+        `Transparent Ollama proxy: port ${port} already in use — falling back to direct queries against ${fallbackUrl}. ` +
+          `For full telemetry interception, set OLLAMA_HOST=127.0.0.1:11435 in /etc/systemd/system/ollama.service.d/override.conf and restart Ollama.`
       );
     } else {
       logger.error(`Transparent Ollama proxy: ${err.message}`);
