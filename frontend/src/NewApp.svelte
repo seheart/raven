@@ -8,6 +8,7 @@
   import { api } from './lib/apiClient.js';
   import Header from './lib/components/layout/Header.svelte';
   import VitalsStrip from './lib/components/layout/VitalsStrip.svelte';
+  import NebulaStrip from './lib/components/NebulaStrip.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
   // Eagerly import frequently visited pages, lazy-load the rest
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
@@ -152,6 +153,7 @@
     onLogoutClick={handleLogoutClick}
   />
   <VitalsStrip />
+  <NebulaStrip />
 
   <!-- Main Content -->
   <main class="pb-16">
