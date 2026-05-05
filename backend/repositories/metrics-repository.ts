@@ -165,7 +165,16 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
   `);
 
   return {
-    insertSystemMetrics(timestamp, cpu_percent, memory_percent, memory_used_mb, memory_total_mb, network_rx_bytes, network_tx_bytes, session_id) {
+    insertSystemMetrics(
+      timestamp,
+      cpu_percent,
+      memory_percent,
+      memory_used_mb,
+      memory_total_mb,
+      network_rx_bytes,
+      network_tx_bytes,
+      session_id
+    ) {
       const result = insertSystemStmt.run(
         timestamp,
         cpu_percent,
@@ -205,7 +214,23 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
       );
     },
 
-    insertProcessMetrics(timestamp, agent_name, pid, cpu_usage, memory_mb, virtual_memory_mb, disk_read_bytes, disk_write_bytes, status, session_id, network_connections = 0, api_connections = 0, thread_count = 0, fd_count = 0, activity_state = 'unknown') {
+    insertProcessMetrics(
+      timestamp,
+      agent_name,
+      pid,
+      cpu_usage,
+      memory_mb,
+      virtual_memory_mb,
+      disk_read_bytes,
+      disk_write_bytes,
+      status,
+      session_id,
+      network_connections = 0,
+      api_connections = 0,
+      thread_count = 0,
+      fd_count = 0,
+      activity_state = 'unknown'
+    ) {
       const result = insertProcessStmt.run(
         timestamp,
         agent_name,

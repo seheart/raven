@@ -15,7 +15,6 @@ import { logger } from './utils/logger.js';
 
 // ==================== Type Definitions ====================
 
-
 // ==================== Database Class ====================
 
 export class RavenDB {

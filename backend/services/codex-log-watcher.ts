@@ -104,7 +104,11 @@ export class CodexLogWatcher {
   private _currentIdle: boolean | undefined;
   private _idleSwitching: boolean | undefined;
 
-  constructor(eventCallback: CodexEventCallback, logger: MinimalLogger, options: CodexWatcherOptions = {}) {
+  constructor(
+    eventCallback: CodexEventCallback,
+    logger: MinimalLogger,
+    options: CodexWatcherOptions = {}
+  ) {
     this.eventCallback = eventCallback;
     this.logger = logger;
     this.codexSessionsDir = path.join(homedir(), '.codex', 'sessions');
@@ -187,7 +191,9 @@ export class CodexLogWatcher {
     this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
     this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
     this.logWatcher.on('error', error =>
-      this.logger.error(`❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`)
+      this.logger.error(
+        `❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`
+      )
     );
 
     this.logWatcher.on('ready', () => {
@@ -233,7 +239,9 @@ export class CodexLogWatcher {
       this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
       this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
       this.logWatcher.on('error', error =>
-        this.logger.error(`❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`)
+        this.logger.error(
+          `❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`
+        )
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

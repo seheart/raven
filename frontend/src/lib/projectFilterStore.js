@@ -62,4 +62,3 @@ availableProjects.subscribe(projects => {
     projectFilter.set(validatedFilter);
   }
 });
-

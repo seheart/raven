@@ -30,16 +30,36 @@ describe('LibraryCard', () => {
   it('renders models sorted by size (largest first)', async () => {
     mockApiGet.mockResolvedValue({
       models: [
-        { name: 'small', size: 1_000_000_000, parameter_size: '1B', quantization: 'Q4', family: 'llama' },
-        { name: 'huge', size: 70_000_000_000, parameter_size: '70B', quantization: 'Q4', family: 'llama' },
-        { name: 'medium', size: 14_000_000_000, parameter_size: '14B', quantization: 'Q4', family: 'qwen2' }
+        {
+          name: 'small',
+          size: 1_000_000_000,
+          parameter_size: '1B',
+          quantization: 'Q4',
+          family: 'llama'
+        },
+        {
+          name: 'huge',
+          size: 70_000_000_000,
+          parameter_size: '70B',
+          quantization: 'Q4',
+          family: 'llama'
+        },
+        {
+          name: 'medium',
+          size: 14_000_000_000,
+          parameter_size: '14B',
+          quantization: 'Q4',
+          family: 'qwen2'
+        }
       ],
       count: 3,
       ollama_status: 'online'
     });
     const { container } = render(LibraryCard);
     await screen.findByText('huge');
-    const rendered = Array.from(container.querySelectorAll('[title]')).map(el => el.getAttribute('title'));
+    const rendered = Array.from(container.querySelectorAll('[title]')).map(el =>
+      el.getAttribute('title')
+    );
     expect(rendered).toEqual(['huge', 'medium', 'small']);
   });
 

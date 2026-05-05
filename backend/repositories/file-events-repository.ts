@@ -81,7 +81,19 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
   `);
 
   return {
-    insert(timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name, agent_source) {
+    insert(
+      timestamp,
+      filepath,
+      change_type,
+      diff,
+      cpu,
+      mem,
+      session_id,
+      file_hash,
+      event_size,
+      project_name,
+      agent_source
+    ) {
       const result = insertStmt.run(
         timestamp,
         filepath,
@@ -103,9 +115,7 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
         ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name, agent_source'
         : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name, agent_source';
       return db.db
-        .prepare(
-          `SELECT ${fields} FROM events ORDER BY timestamp DESC LIMIT ?`
-        )
+        .prepare(`SELECT ${fields} FROM events ORDER BY timestamp DESC LIMIT ?`)
         .all(limit) as FileEventRow[];
     },
 

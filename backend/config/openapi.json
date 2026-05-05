@@ -55,11 +55,7 @@
     "schemas": {
       "TelemetryEvent": {
         "type": "object",
-        "required": [
-          "agent",
-          "event",
-          "message"
-        ],
+        "required": ["agent", "event", "message"],
         "properties": {
           "agent": {
             "type": "string",
@@ -185,9 +181,7 @@
   "paths": {
     "/telemetry": {
       "post": {
-        "tags": [
-          "Telemetry"
-        ],
+        "tags": ["Telemetry"],
         "summary": "Submit telemetry event",
         "description": "Submit a real-time telemetry event from Claude Code agent",
         "requestBody": {
@@ -226,9 +220,7 @@
     },
     "/api/dashboard-stats": {
       "get": {
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "summary": "Get aggregated dashboard statistics",
         "description": "Retrieve comprehensive statistics across all projects",
         "responses": {
@@ -247,9 +239,7 @@
     },
     "/api/projects": {
       "get": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "List all projects",
         "responses": {
           "200": {
@@ -270,9 +260,7 @@
     },
     "/api/projects/{name}": {
       "get": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Get project details",
         "parameters": [
           {
@@ -304,9 +292,7 @@
     },
     "/health": {
       "get": {
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "summary": "Health check endpoint",
         "description": "Get system health status and diagnostics",
         "responses": {
@@ -329,24 +315,15 @@
                       "properties": {
                         "database": {
                           "type": "string",
-                          "enum": [
-                            "healthy",
-                            "unhealthy"
-                          ]
+                          "enum": ["healthy", "unhealthy"]
                         },
                         "telemetry_bridge": {
                           "type": "string",
-                          "enum": [
-                            "healthy",
-                            "unhealthy"
-                          ]
+                          "enum": ["healthy", "unhealthy"]
                         },
                         "file_watcher": {
                           "type": "string",
-                          "enum": [
-                            "healthy",
-                            "unhealthy"
-                          ]
+                          "enum": ["healthy", "unhealthy"]
                         }
                       }
                     }

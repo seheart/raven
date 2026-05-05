@@ -40,9 +40,7 @@ export function createPatternWarningsRepository(db: RavenDB): PatternWarningsRep
     `SELECT * FROM pattern_warnings WHERE category = ? AND resolved = 0
      ORDER BY timestamp DESC LIMIT ?`
   );
-  const resolveByIdStmt = db.db.prepare(
-    `UPDATE pattern_warnings SET resolved = 1 WHERE id = ?`
-  );
+  const resolveByIdStmt = db.db.prepare(`UPDATE pattern_warnings SET resolved = 1 WHERE id = ?`);
   const resolveByFileStmt = db.db.prepare(
     `UPDATE pattern_warnings SET resolved = 1 WHERE filepath = ? AND resolved = 0`
   );
@@ -102,9 +100,7 @@ export function createPatternWarningsRepository(db: RavenDB): PatternWarningsRep
     resolveForRaven() {
       const result = resolveForRavenStmt.run();
       if (result.changes > 0) {
-        logger.info(
-          `Resolved ${result.changes} stale pattern warning(s) for Raven's own files`
-        );
+        logger.info(`Resolved ${result.changes} stale pattern warning(s) for Raven's own files`);
       }
     },
 

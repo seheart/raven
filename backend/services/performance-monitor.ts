@@ -158,7 +158,9 @@ export class PerformanceMonitor {
         });
       }
     } catch (error) {
-      logger.error('Error checking performance:', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error checking performance:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 

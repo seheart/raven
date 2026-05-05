@@ -103,9 +103,10 @@ export function createProjectsRouter({
       const counts = new Map<string, number>();
       try {
         const rows = db.db
-          .prepare<unknown[], { project_name: string | null; count: number }>(
-            'SELECT project_name, COUNT(*) as count FROM events GROUP BY project_name'
-          )
+          .prepare<
+            unknown[],
+            { project_name: string | null; count: number }
+          >('SELECT project_name, COUNT(*) as count FROM events GROUP BY project_name')
           .all();
         for (const r of rows) {
           if (r.project_name) counts.set(r.project_name, r.count);
@@ -130,7 +131,9 @@ export function createProjectsRouter({
   router.post('/', async (req: Request, res: Response) => {
     const parsed = CreateProjectSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid project payload', issues: parsed.error.issues });
+      return res
+        .status(400)
+        .json({ error: 'Invalid project payload', issues: parsed.error.issues });
     }
     try {
       const body = parsed.data;
@@ -271,7 +274,9 @@ export function createProjectsRouter({
   router.post('/discover', async (req: Request, res: Response) => {
     const parsed = DiscoverSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid discover payload', issues: parsed.error.issues });
+      return res
+        .status(400)
+        .json({ error: 'Invalid discover payload', issues: parsed.error.issues });
     }
     try {
       const config = await projectsConfigService.load();
@@ -364,16 +369,12 @@ export function createProjectsRouter({
       if (basePath !== undefined) {
         const resolvedBase = resolve(basePath);
         if (!isPathAllowed(resolvedBase, os.homedir())) {
-          return res
-            .status(400)
-            .json({ error: 'basePath must be under the user home directory' });
+          return res.status(400).json({ error: 'basePath must be under the user home directory' });
         }
         try {
           const stat = await fs.stat(resolvedBase);
           if (!stat.isDirectory()) {
-            return res
-              .status(400)
-              .json({ error: 'basePath must point to an existing directory' });
+            return res.status(400).json({ error: 'basePath must point to an existing directory' });
           }
         } catch {
           return res.status(400).json({ error: 'basePath must point to an existing directory' });

@@ -40,7 +40,16 @@ export interface SyntaxErrorsRepository {
 
 export function createSyntaxErrorsRepository(db: RavenDB): SyntaxErrorsRepository {
   return {
-    insert(timestamp, filepath, line_number, column_number, message, severity, language, session_id) {
+    insert(
+      timestamp,
+      filepath,
+      line_number,
+      column_number,
+      message,
+      severity,
+      language,
+      session_id
+    ) {
       const result = db.db
         .prepare(
           `INSERT INTO syntax_errors (timestamp, filepath, line_number, column_number, message, severity, language, session_id)
@@ -61,9 +70,7 @@ export function createSyntaxErrorsRepository(db: RavenDB): SyntaxErrorsRepositor
 
     list(limit = 100) {
       return db.db
-        .prepare(
-          `SELECT * FROM syntax_errors WHERE resolved = 0 ORDER BY timestamp DESC LIMIT ?`
-        )
+        .prepare(`SELECT * FROM syntax_errors WHERE resolved = 0 ORDER BY timestamp DESC LIMIT ?`)
         .all(limit) as SyntaxErrorRecord[];
     },
 

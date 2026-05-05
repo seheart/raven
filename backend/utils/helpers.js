@@ -295,4 +295,3 @@ export function cleanDescription(subject) {
     .replace(/^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+?\))?:\s*/i, '')
     .trim();
 }
-

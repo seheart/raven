@@ -50,4 +50,3 @@ export async function createPatch(
   const { createPatch: diffCreatePatch } = await import('diff');
   return diffCreatePatch(filename, oldText, newText, '', '');
 }
-

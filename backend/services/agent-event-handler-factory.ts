@@ -198,9 +198,7 @@ export function createAgentEventHandlerFactory({
                 );
             } catch (err) {
               const msg = err instanceof Error ? err.message : String(err);
-              logger.debug(
-                `Failed to update subagent token counts for ${event.agentId}: ${msg}`
-              );
+              logger.debug(`Failed to update subagent token counts for ${event.agentId}: ${msg}`);
             }
           }
 

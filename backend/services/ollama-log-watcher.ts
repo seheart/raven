@@ -101,7 +101,11 @@ export class OllamaLogWatcher {
   private starting: boolean;
   private stopped: boolean;
 
-  constructor(eventCallback: OllamaEventCallback, logger: MinimalLogger, options: OllamaWatcherOptions = {}) {
+  constructor(
+    eventCallback: OllamaEventCallback,
+    logger: MinimalLogger,
+    options: OllamaWatcherOptions = {}
+  ) {
     this.eventCallback = eventCallback;
     this.logger = logger;
     this.unit = options.unit || 'ollama';
@@ -127,9 +131,7 @@ export class OllamaLogWatcher {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `⚠️  Could not spawn journalctl — Ollama activity won't be tracked: ${msg}`
-      );
+      this.logger.warn(`⚠️  Could not spawn journalctl — Ollama activity won't be tracked: ${msg}`);
       this.proc = null;
       this.starting = false;
       return;

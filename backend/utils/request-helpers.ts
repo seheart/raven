@@ -101,4 +101,3 @@ export function buildTimeFilterQuery(
 
   return { query, params };
 }
-

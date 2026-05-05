@@ -104,7 +104,11 @@ export interface AgentEventsRepository {
   agentAttribution(): AgentAttributionRow[];
 
   /** Conversation rows (user/assistant/tool turns) for the conversations page. */
-  conversations(eventType: string | undefined, limit: number, offset: number): {
+  conversations(
+    eventType: string | undefined,
+    limit: number,
+    offset: number
+  ): {
     conversations: unknown[];
     total: number;
   };
@@ -243,7 +247,18 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
   );
 
   return {
-    insert(timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name) {
+    insert(
+      timestamp,
+      agent,
+      event_type,
+      file,
+      lines_changed,
+      duration_ms,
+      message,
+      metadata,
+      session_id,
+      project_name
+    ) {
       const result = insertStmt.run(
         timestamp,
         agent,

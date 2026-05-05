@@ -50,7 +50,14 @@ describe('Header', () => {
 
   it('renders the canonical top-level tabs', () => {
     render(Header, { props: { activeTab: 'overview', activeSubTab: '' } });
-    for (const label of ['Dashboard', 'Insights', 'Analysis', 'Code Changes', 'History', 'System']) {
+    for (const label of [
+      'Dashboard',
+      'Insights',
+      'Analysis',
+      'Code Changes',
+      'History',
+      'System'
+    ]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
   });

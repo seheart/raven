@@ -217,7 +217,9 @@ export class HealthChecker {
 
   async checkConversationFreshness(): Promise<void> {
     if (!this.db) {
-      const data = (await this.checkEndpoint('/api/conversations?limit=1')) as ConversationApiResponse;
+      const data = (await this.checkEndpoint(
+        '/api/conversations?limit=1'
+      )) as ConversationApiResponse;
       if (data.conversations && data.conversations.length > 0) {
         const mostRecent = data.conversations[0];
         const ts = mostRecent.timestamp || mostRecent.last_activity;

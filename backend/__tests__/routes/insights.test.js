@@ -117,24 +117,8 @@ describe('Insights Routes', () => {
   });
 
   test('GET /api/insights/diff-risk-scores respects limit', async () => {
-    diffRiskRepo.insert(
-      2,
-      '/a.js',
-      3,
-      'Low risk',
-      new Date().toISOString(),
-      'test-model',
-      'sess'
-    );
-    diffRiskRepo.insert(
-      3,
-      '/b.js',
-      8,
-      'High risk',
-      new Date().toISOString(),
-      'test-model',
-      'sess'
-    );
+    diffRiskRepo.insert(2, '/a.js', 3, 'Low risk', new Date().toISOString(), 'test-model', 'sess');
+    diffRiskRepo.insert(3, '/b.js', 8, 'High risk', new Date().toISOString(), 'test-model', 'sess');
 
     const res = await request(app).get('/api/insights/diff-risk-scores?limit=2');
     expect(res.status).toBe(200);

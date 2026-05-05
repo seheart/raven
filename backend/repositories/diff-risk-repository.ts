@@ -52,9 +52,11 @@ export function createDiffRiskRepository(db: RavenDB): DiffRiskRepository {
     },
 
     byEventId(eventId) {
-      return (db.db
-        .prepare(`SELECT * FROM diff_risk_scores WHERE event_id = ?`)
-        .get(eventId) as DiffRiskScoreRow) || null;
+      return (
+        (db.db
+          .prepare(`SELECT * FROM diff_risk_scores WHERE event_id = ?`)
+          .get(eventId) as DiffRiskScoreRow) || null
+      );
     }
   };
 }

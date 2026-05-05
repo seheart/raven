@@ -41,7 +41,19 @@ export interface TestResultsRepository {
 
 export function createTestResultsRepository(db: RavenDB): TestResultsRepository {
   return {
-    insert(timestamp, framework, passed, totalTests, passedTests, failedTests, skippedTests, duration, output, failures, sessionId) {
+    insert(
+      timestamp,
+      framework,
+      passed,
+      totalTests,
+      passedTests,
+      failedTests,
+      skippedTests,
+      duration,
+      output,
+      failures,
+      sessionId
+    ) {
       const result = db.db
         .prepare(
           `INSERT INTO test_results (timestamp, framework, passed, total_tests, passed_tests, failed_tests, skipped_tests, duration, output, failures, session_id)
@@ -70,9 +82,11 @@ export function createTestResultsRepository(db: RavenDB): TestResultsRepository 
     },
 
     latest() {
-      return (db.db
-        .prepare(`SELECT * FROM test_results ORDER BY timestamp DESC LIMIT 1`)
-        .get() as TestResultRow) || null;
+      return (
+        (db.db
+          .prepare(`SELECT * FROM test_results ORDER BY timestamp DESC LIMIT 1`)
+          .get() as TestResultRow) || null
+      );
     },
 
     byFramework(framework, limit = 20) {

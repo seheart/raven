@@ -15,7 +15,10 @@ import { EventBus, TelemetryEvent } from './modules/eventBus.js';
 import { telemetryCollector } from './modules/telemetry.js';
 import type { Server as SocketIOServer } from 'socket.io';
 import { logger } from './utils/logger.js';
-import { createMetricsRepository, type MetricsRepository } from './repositories/metrics-repository.js';
+import {
+  createMetricsRepository,
+  type MetricsRepository
+} from './repositories/metrics-repository.js';
 
 const dnsResolve4 = promisify(dns.resolve4);
 

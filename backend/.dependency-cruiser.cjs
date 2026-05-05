@@ -33,7 +33,7 @@ module.exports = {
     },
     {
       name: 'no-deprecated-core',
-      comment: 'Don\'t reach into Node\'s deprecated modules.',
+      comment: "Don't reach into Node's deprecated modules.",
       severity: 'warn',
       from: {},
       to: { dependencyTypes: ['core'], path: ['^punycode$', '^domain$', '^constants$'] }
@@ -107,7 +107,8 @@ module.exports = {
     exclude: {
       path: ['node_modules/', 'dist/', '__tests__/', 'tests/', 'test-shims/', 'logs/']
     },
-    includeOnly: '^(server\\.ts|db\\.ts|routes/|services/|modules/|middleware/|utils/|config/|database/|types/|scripts/|migrations/|run-migrations\\.js|healthcheck\\.js)',
+    includeOnly:
+      '^(server\\.ts|db\\.ts|routes/|services/|modules/|middleware/|utils/|config/|database/|types/|scripts/|migrations/|run-migrations\\.js|healthcheck\\.js)',
     tsPreCompilationDeps: true,
     tsConfig: { fileName: 'tsconfig.json' },
     enhancedResolveOptions: {

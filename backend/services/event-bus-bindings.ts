@@ -54,7 +54,11 @@ interface BindingsDeps {
   fileEventsRepo: FileEventsRepository;
 }
 
-async function saveSnapshot(snapshotsDir: string, filepath: string, content: string): Promise<void> {
+async function saveSnapshot(
+  snapshotsDir: string,
+  filepath: string,
+  content: string
+): Promise<void> {
   try {
     const timestamp = Date.now();
     const snapshotName = `${filepath.replace(/\//g, '_')}_${timestamp}`;

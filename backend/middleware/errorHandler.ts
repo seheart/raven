@@ -37,4 +37,3 @@ export function errorHandler(error: Error, req: Request, res: Response, _next: N
     res.status(500).json(formatErrorResponse(error));
   }
 }
-

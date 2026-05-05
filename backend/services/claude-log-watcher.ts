@@ -247,7 +247,9 @@ export class ClaudeLogWatcher {
     });
 
     this.logWatcher.on('error', error => {
-      this.logger.error(`❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`
+      );
     });
 
     this.logWatcher.on('ready', () => {
@@ -328,7 +330,9 @@ export class ClaudeLogWatcher {
       this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
       this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
       this.logWatcher.on('error', error =>
-        this.logger.error(`❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`)
+        this.logger.error(
+          `❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`
+        )
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -524,7 +528,8 @@ export class ClaudeLogWatcher {
     if (entry.type === 'assistant' && entry.message?.content) {
       const contentArr = Array.isArray(entry.message.content) ? entry.message.content : [];
       const agentToolUses = contentArr.filter(
-        (item): item is ToolUseContent => item.type === 'tool_use' && (item as ToolUseContent).name === 'Agent'
+        (item): item is ToolUseContent =>
+          item.type === 'tool_use' && (item as ToolUseContent).name === 'Agent'
       );
       for (const agentCall of agentToolUses) {
         await this.eventCallback({
@@ -532,8 +537,7 @@ export class ClaudeLogWatcher {
           type: 'subagent_spawn',
           eventCategory: 'subagent',
           agentId: entry.agentId,
-          description:
-            agentCall.input?.description || agentCall.input?.prompt?.slice(0, 200) || '',
+          description: agentCall.input?.description || agentCall.input?.prompt?.slice(0, 200) || '',
           subagentType: agentCall.input?.subagent_type || 'general-purpose',
           model: agentCall.input?.model || entry.message?.model,
           parentUuid: entry.parentUuid,

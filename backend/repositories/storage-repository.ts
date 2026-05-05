@@ -113,7 +113,11 @@ interface StorageDeps {
   snapshotsDir: string;
 }
 
-export function createStorageRepository({ db, ravenDir, snapshotsDir }: StorageDeps): StorageRepository {
+export function createStorageRepository({
+  db,
+  ravenDir,
+  snapshotsDir
+}: StorageDeps): StorageRepository {
   const dbDir = join(ravenDir, 'db');
 
   function validateDbName(name: string): void {
@@ -312,9 +316,7 @@ export function createStorageRepository({ db, ravenDir, snapshotsDir }: StorageD
       const deletedPerTable: Record<string, number> = {};
       try {
         const tables = conn
-          .prepare(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-          )
+          .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
           .all() as { name: string }[];
 
         for (const table of tables) {

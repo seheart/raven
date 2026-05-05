@@ -18,11 +18,7 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
-import {
-  join,
-  basename,
-  dirname
-} from 'path';
+import { join, basename, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 import os from 'os';
@@ -372,7 +368,6 @@ bindEventBusListeners({
   patternWarningsRepo: patternWarningsRepository,
   fileEventsRepo: fileEventsRepository
 });
-
 
 // ==================== REST API Endpoints ====================
 

@@ -30,12 +30,12 @@ export function createHealthProjectsRouter({ db, projectName }: HealthProjectsDe
            WHERE datetime(timestamp) >= datetime('now', '-24 hours')`
         )
         .get() as { count: number } | undefined;
-      const lastActivity = db.db
-        .prepare('SELECT MAX(timestamp) as timestamp FROM events')
-        .get() as { timestamp: string | null } | undefined;
-      const syntaxErrors = db.db
-        .prepare('SELECT COUNT(*) as count FROM syntax_errors')
-        .get() as { count: number } | undefined;
+      const lastActivity = db.db.prepare('SELECT MAX(timestamp) as timestamp FROM events').get() as
+        | { timestamp: string | null }
+        | undefined;
+      const syntaxErrors = db.db.prepare('SELECT COUNT(*) as count FROM syntax_errors').get() as
+        | { count: number }
+        | undefined;
 
       const recent = recentEvents?.count ?? 0;
       const errorCount = syntaxErrors?.count ?? 0;

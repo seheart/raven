@@ -207,9 +207,7 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
     },
 
     getTopModifiedFiles(project, limit) {
-      return project
-        ? topModifiedByProjectStmt.all(project, limit)
-        : topModifiedAllStmt.all(limit);
+      return project ? topModifiedByProjectStmt.all(project, limit) : topModifiedAllStmt.all(limit);
     },
 
     getMetricsDashboard() {
@@ -246,9 +244,7 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
         /* table missing */
       }
       const avgPerDay = avgPerDayStmt.get() as { avg: number } | undefined;
-      const busiestHour = busiestHourStmt.get() as
-        | { hour: number; count: number }
-        | undefined;
+      const busiestHour = busiestHourStmt.get() as { hour: number; count: number } | undefined;
 
       return {
         total_events: totalEvents?.count ?? 0,
@@ -344,13 +340,15 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
             SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
           FROM events ${whereClause}`
         )
-        .get(...params) as {
-        total_events: number;
-        total_files: number;
-        creates: number;
-        edits: number;
-        deletes: number;
-      } | undefined;
+        .get(...params) as
+        | {
+            total_events: number;
+            total_files: number;
+            creates: number;
+            edits: number;
+            deletes: number;
+          }
+        | undefined;
 
       const durationSql = projectFilter
         ? `SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM (
