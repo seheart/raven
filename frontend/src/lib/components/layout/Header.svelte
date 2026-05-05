@@ -1,5 +1,6 @@
 <script>
   import RavenLogo from '../ui/RavenLogo.svelte';
+  import HealthIndicator from '../HealthIndicator.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { api } from '../../apiClient.js';
@@ -184,6 +185,9 @@
         </select>
       </div>
     {/if}
+
+    <!-- Code Health indicator (chrome glyph for self-analysis status) -->
+    <HealthIndicator />
 
     <!-- Settings -->
     <button
