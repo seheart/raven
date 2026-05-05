@@ -17,6 +17,7 @@ const BASE_URL = API_CONFIG.BASE_URL;
  * @property {number} [ttl] - Time-to-live in milliseconds
  * @property {boolean} [forceRefresh] - Bypass cache
  * @property {Record<string, string|number>} [params] - URL query parameters
+ * @property {number} [timeout] - Per-request timeout in ms (forwarded to apiFetch)
  */
 
 /**
@@ -103,7 +104,7 @@ class DataService {
    * @throws {Error} Throws if HTTP response is not OK or network fails
    */
   async fetch(endpoint, options = {}) {
-    const { ttl = this.cacheTTL, forceRefresh = false, params = {} } = options;
+    const { ttl = this.cacheTTL, forceRefresh = false, params = {}, timeout } = options;
 
     // Build endpoint with query params (cache key)
     const endpointWithParams =
@@ -141,7 +142,8 @@ class DataService {
     // Make new request using apiFetch (includes auth, timeouts, error handling)
     logger.debug(`Fetching: ${endpoint}`);
 
-    const requestPromise = apiFetch(endpointWithParams)
+    const apiOptions = timeout != null ? { timeout } : {};
+    const requestPromise = apiFetch(endpointWithParams, apiOptions)
       .then(data => {
         // Evict oldest entry if cache is full (LRU)
         if (this.cache.size >= this.maxCacheSize) {

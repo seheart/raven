@@ -44,7 +44,7 @@
   async function refreshPs() {
     try {
       // Shared /ollama/ps cache via dataService (3s TTL == poll interval).
-      const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
+      const data = await dataService.fetch('/ollama/ps', { ttl: 3000, timeout: 5000 });
       ollamaOffline = data.ollama_status === 'offline';
       const seen = new Set();
       for (const m of data.models || []) { seen.add(m.name); ensure(m.name); }

@@ -99,7 +99,10 @@
       // Shared /ollama/ps cache via dataService (3s TTL == poll interval)
       // — CompactActiveModel + CombinedLlmCard + this card all share one
       // network round-trip when on screen together.
-      const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
+      // Backend upstream-fetches /api/ps with a 3s AbortSignal.timeout, so a
+      // 5s client timeout is enough headroom and surfaces failure 3× faster
+      // than the default 15s — important because three cards share this poll.
+      const data = await dataService.fetch('/ollama/ps', { ttl: 3000, timeout: 5000 });
       ollamaOffline = data.ollama_status === 'offline';
       offlineDetail = data.detail || '';
       const seenNames = new Set();

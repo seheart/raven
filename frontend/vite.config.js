@@ -5,16 +5,18 @@ export default defineConfig({
   plugins: [svelte()],
 
   server: {
-    port: 9000, // Raven monitoring dashboard - outside typical dev range
+    // Override RAVEN_FRONTEND_PORT/RAVEN_BACKEND_URL to run an isolated
+    // instance (e.g. e2e on 9001 → 9101) without disturbing the dev session.
+    port: parseInt(process.env.RAVEN_FRONTEND_PORT || '9000', 10),
     strictPort: true, // Fail if port is taken (don't auto-increment)
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:9100', // Backend monitoring service
+        target: process.env.RAVEN_BACKEND_URL || 'http://localhost:9100',
         changeOrigin: true
       },
       '/socket.io': {
-        target: 'http://localhost:9100',
+        target: process.env.RAVEN_BACKEND_URL || 'http://localhost:9100',
         changeOrigin: true,
         ws: true
       }

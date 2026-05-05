@@ -4,7 +4,7 @@
     ".": {
       "entry": ["scripts/**/*.{js,cjs}"],
       "ignore": ["e2e/**"],
-      "ignoreBinaries": ["prettier", "tsc"],
+      "ignoreBinaries": ["prettier"],
       "ignoreDependencies": ["better-sqlite3"]
     },
     "backend": {

@@ -116,9 +116,27 @@ async function getResidentModel(): Promise<{
       return { model: null, details: null };
     }
     const data = (await r.json()) as { models?: Array<Record<string, unknown>> };
-    const first = data.models?.[0];
-    const model = (first?.name as string | undefined) || null;
-    psCache = { ts: Date.now(), model, details: (first as Record<string, unknown>) || null };
+    // When multiple models are resident the journal line doesn't tell us
+    // which one was used, so pick the one whose keep-alive was most recently
+    // refreshed (largest expires_at). That's the model the request just
+    // touched. Falls back to models[0] if no expires_at is present.
+    const list = data.models || [];
+    let chosen: Record<string, unknown> | undefined;
+    if (list.length === 1) {
+      chosen = list[0];
+    } else if (list.length > 1) {
+      let bestTs = -Infinity;
+      for (const m of list) {
+        const t = Date.parse((m.expires_at as string) || '');
+        if (Number.isFinite(t) && t > bestTs) {
+          bestTs = t;
+          chosen = m;
+        }
+      }
+      if (!chosen) chosen = list[0];
+    }
+    const model = (chosen?.name as string | undefined) || null;
+    psCache = { ts: Date.now(), model, details: (chosen as Record<string, unknown>) || null };
     return { model, details: psCache.details };
   } catch {
     psCache = { ts: Date.now(), model: null, details: null };
