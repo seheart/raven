@@ -175,15 +175,23 @@
     tool_call: 'muted',
     tool_result: 'muted',
     inference: 'muted',
+    api_call: 'muted',
     user_message: 'accent',
     assistant_message: 'accent',
+    assistant_text: 'accent',
     assistant: 'accent',
     human: 'accent',
+    model_load: 'accent',
     file_edit: 'success',
     file_create: 'success',
     file_add: 'success',
     file_delete: 'error',
+    // Backend emits agent_events with event_type='tool_error' for failed tool
+    // calls (e.g. Ollama 5xx); 'error' is the catch-all alias used elsewhere.
+    tool_error: 'error',
+    syntax_error: 'error',
     error: 'error',
+    pattern_warning: 'warning',
     warning: 'warning'
   };
 
@@ -622,8 +630,26 @@
       }
     };
 
+    // Errors and warnings are first-class signal — without these the pulse
+    // never goes red even when the backend is detecting real problems.
+    const handleSyntaxError = data => {
+      const label = data?.filepath?.split('/').pop() || data?.error_type || 'syntax';
+      queueBurst('syntax_error', label);
+    };
+    const handleAppError = data => {
+      const label = data?.component || data?.error_type || 'error';
+      queueBurst('error', label);
+    };
+    const handlePatternWarning = data => {
+      const label = data?.filepath?.split('/').pop() || data?.warning_type || 'warning';
+      queueBurst('pattern_warning', label);
+    };
+
     websocketService.on('agent-event', handleAgentEvent);
     websocketService.on('file-changed', handleFileChange);
+    websocketService.on('syntax-error', handleSyntaxError);
+    websocketService.on('app-error', handleAppError);
+    websocketService.on('pattern-warning', handlePatternWarning);
 
     let themeDebounce;
     const themeObs = new MutationObserver(() => {
@@ -642,6 +668,9 @@
       pendingGroup.clear();
       websocketService.off('agent-event', handleAgentEvent);
       websocketService.off('file-changed', handleFileChange);
+      websocketService.off('syntax-error', handleSyntaxError);
+      websocketService.off('app-error', handleAppError);
+      websocketService.off('pattern-warning', handlePatternWarning);
       themeObs.disconnect();
       resizeObs.disconnect();
     };
