@@ -62,7 +62,7 @@ export function sanitizeProjectId(id: string): string {
     .substring(0, 50);
 }
 
-interface ProjectsConfigService {
+export interface ProjectsConfigService {
   load(): Promise<ProjectsConfig>;
   save(config: ProjectsConfig): Promise<void>;
   /** Returns the cached `[{ name, path }]` projects for fast lookups. */

@@ -31,66 +31,20 @@ import os from 'os';
 import { RavenDB } from './db.js';
 import { MetricsCollector } from './metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
-import { pauseManager } from './pause-manager.js';
 import { FileWatcher, GitMonitor } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { rateLimitStatus, apiLimiter, setupHelmet } from './middleware/security.js';
+import { apiLimiter, setupHelmet } from './middleware/security.js';
 import { performanceMonitoring } from './middleware/performance.js';
-import { createLiveSessionRouter } from './routes/live-session.js';
-import { createEventsRouter } from './routes/events.js';
-import { createAgentsRouter } from './routes/agents.js';
 import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
 import { CodexLogWatcher } from './services/codex-log-watcher.js';
 import { OllamaLogWatcher } from './services/ollama-log-watcher.js';
 import { HealthMonitor } from './services/health-monitor.js';
-import { createHealthMonitoringRouter } from './routes/health-monitoring.js';
 import { ProjectManager } from './services/project-manager.js';
 import { LocalModelWatcher } from './services/local-model-watcher.js';
 import { InsightsService } from './services/insights-service.js';
-import { createInsightsRouter } from './routes/insights.js';
-import { createErrorsRouter } from './routes/errors.js';
-import { createErrorsRepository } from './repositories/errors-repository.js';
-import { createOllamaDetailRouter } from './routes/ollama.js';
-import { createAgentEventsRepository } from './repositories/agent-events-repository.js';
-import { createSyntaxErrorsRouter } from './routes/syntax-errors.js';
-import { createFilesRouter } from './routes/files.js';
-import { createFileEventsRepository } from './repositories/file-events-repository.js';
-import { createNotificationsRouter } from './routes/notifications.js';
-import { createNotificationsRepository } from './repositories/notifications-repository.js';
-import { createLocalModelsRouter } from './routes/local-models.js';
-import { createDevRouter } from './routes/dev.js';
-import { createSearchRouter } from './routes/search.js';
-import { createSearchRepository } from './repositories/search-repository.js';
-import { createDashboardRouter } from './routes/dashboard.js';
-import { createDashboardRepository } from './repositories/dashboard-repository.js';
-import { createModelsRouter } from './routes/models.js';
-import { createSessionsRouter } from './routes/sessions.js';
-import { createSessionsRepository } from './repositories/sessions-repository.js';
-import { createStorageRouter } from './routes/storage.js';
-import { createStorageRepository } from './repositories/storage-repository.js';
-import { createPatternWarningsRouter } from './routes/pattern-warnings.js';
-import { createTrendsRouter } from './routes/trends.js';
-import { createPublicHealthRouter, createSystemInfoRouter } from './routes/system-info.js';
-import { createAgentEventsRoutesRouter } from './routes/agent-events-routes.js';
-import { createProjectsRouter } from './routes/projects.js';
-import { createProjectsConfigService } from './services/projects-config.js';
-import { createPauseRouter } from './routes/pause.js';
-import { createAlertsRouter } from './routes/alerts.js';
-import { createConversationsRouter } from './routes/conversations.js';
-import { createMetricsOverviewRouter } from './routes/metrics-overview.js';
-import { createTelemetryRouter } from './routes/telemetry.js';
-import { createHealthProjectsRouter } from './routes/health-projects.js';
-import { createCostsRouter } from './routes/costs.js';
-import { createSubagentsRouter } from './routes/subagents.js';
 import { SelfAnalysisService } from './services/self-analysis.js';
-import { createSelfAnalysisRouter } from './routes/self-analysis.js';
-import { createSessionActivityRouter } from './routes/session-activity.js';
-import { createGitRouter } from './routes/git.js';
-import { createMetricsRouter } from './routes/metrics.js';
-import { createTriggersRouter } from './routes/triggers.js';
-import { createOllamaProxyRouter } from './routes/ollama-proxy.js';
-import { createSystemRouter } from './routes/system.js';
+import { createProjectsConfigService } from './services/projects-config.js';
 import { createAgentEventHandlerFactory } from './services/agent-event-handler-factory.js';
 import { bindEventBusListeners } from './services/event-bus-bindings.js';
 import { startRetentionCleanup, scheduleDaily } from './services/retention-cleanup.js';
@@ -98,11 +52,17 @@ import { installGracefulShutdown } from './services/graceful-shutdown.js';
 import { startTransparentOllamaProxy } from './services/transparent-ollama-proxy.js';
 import { createLocalModelCallbacks } from './services/local-model-callbacks.js';
 import { startIdleDetection } from './services/idle-detection.js';
+import { createErrorsRepository } from './repositories/errors-repository.js';
+import { createNotificationsRepository } from './repositories/notifications-repository.js';
+import { createAgentEventsRepository } from './repositories/agent-events-repository.js';
+import { createFileEventsRepository } from './repositories/file-events-repository.js';
+import { createDashboardRepository } from './repositories/dashboard-repository.js';
 import { createApiLatencyRepository } from './repositories/api-latency-repository.js';
 import { createSyntaxErrorsRepository } from './repositories/syntax-errors-repository.js';
 import { createPatternWarningsRepository } from './repositories/pattern-warnings-repository.js';
 import { createMetricsRepository } from './repositories/metrics-repository.js';
 import { createDiffRiskRepository } from './repositories/diff-risk-repository.js';
+import { wireRoutes } from './routes/index.js';
 
 // ==================== Configuration ====================
 
@@ -416,137 +376,47 @@ bindEventBusListeners({
 
 // ==================== REST API Endpoints ====================
 
-// ==================== Mount Modular Routes ====================
-const systemInfoDeps = {
+// All route mounting now lives in routes/index.ts. Repositories and the
+// projects-config service that need to be visible to other code paths in
+// this file (transparent ollama proxy, local-model callbacks, periodic
+// project refresh) are constructed here and threaded through.
+const errorsRepository = createErrorsRepository(db);
+const notificationsRepository = createNotificationsRepository(db);
+const projectsConfigService = createProjectsConfigService(RAVEN_DIR);
+
+wireRoutes(app, {
   db,
+  io,
   sessionId: SESSION_ID,
+  ravenDir: RAVEN_DIR,
   dbPath: DB_PATH,
   port: PORT,
-  agentRegistry,
+  projectName: PROJECT_NAME,
+  snapshotsDir: SNAPSHOTS_DIR,
+  metricsCollector,
+  triggerEngine,
+  healthMonitor,
+  insightsService,
+  selfAnalysisService,
+  localModelWatcher,
+  projectManager,
+  projectsConfigService,
   fileWatcher,
   gitMonitor,
-  metricsCollector,
-  projectManager,
-  localModelWatcher,
-  rateLimitStatus
-};
-app.use('/health', createPublicHealthRouter(systemInfoDeps));
-app.use('/api', createSystemInfoRouter(systemInfoDeps));
-app.use('/api', createAgentEventsRoutesRouter(agentEventsRepository, fileEventsRepository));
-const projectsConfigService = createProjectsConfigService(RAVEN_DIR);
-app.use(
-  '/api/projects',
-  createProjectsRouter({ db, ravenDir: RAVEN_DIR, projectsConfigService, projectManager })
-);
-app.use('/api', createPauseRouter(pauseManager, io));
-app.use(
-  '/api/alerts',
-  createAlertsRouter({ templatesPath: join(process.cwd(), 'alert-templates.json') })
-);
-
-// Mount live session routes
-app.use('/api/session', createLiveSessionRouter(db));
-
-// Mount events routes
-app.use('/api', createEventsRouter(db, fileEventsRepository, dashboardRepository));
-
-// Mount agents routes
-app.use('/api', createAgentsRouter(db, agentRegistry, agentEventsRepository));
-
-// Mount health monitoring routes
-app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
-
-// Mount insights routes (LLM-powered analysis)
-app.use('/api/insights', createInsightsRouter(insightsService, db, diffRiskRepository));
-const errorsRepository = createErrorsRepository(db);
-app.use('/api/errors', createErrorsRouter(errorsRepository, io));
-app.use('/api', createOllamaDetailRouter(agentEventsRepository));
-app.use('/api/conversations', createConversationsRouter(agentEventsRepository));
-app.use('/api/syntax-errors', createSyntaxErrorsRouter(syntaxErrorsRepository));
-app.use(
-  '/api',
-  createFilesRouter({ db, fileEventsRepo: fileEventsRepository, snapshotsDir: SNAPSHOTS_DIR })
-);
-const notificationsRepository = createNotificationsRepository(db);
-app.use('/api/notifications', createNotificationsRouter(notificationsRepository));
-app.use('/api/local-models', createLocalModelsRouter(localModelWatcher));
-app.use('/api/dev', createDevRouter(io));
-app.use('/api/search', createSearchRouter(createSearchRepository(db)));
-app.use(
-  '/api/models',
-  createModelsRouter({ agentEventsRepo: agentEventsRepository, agentRegistry })
-);
-app.use(
-  '/api/sessions',
-  createSessionsRouter({ repo: createSessionsRepository(db), snapshotsDir: SNAPSHOTS_DIR })
-);
-app.use(
-  '/api/storage',
-  createStorageRouter({
-    repo: createStorageRepository({ db, ravenDir: RAVEN_DIR, snapshotsDir: SNAPSHOTS_DIR }),
-    expensiveOpLimiter
-  })
-);
-app.use('/api/pattern-warnings', createPatternWarningsRouter(patternWarningsRepository));
-app.use('/api/trends', createTrendsRouter(dashboardRepository));
-app.use('/api/metrics', createMetricsOverviewRouter(dashboardRepository));
-app.use(
-  '/telemetry',
-  createTelemetryRouter({
-    db,
-    io,
-    sessionId: SESSION_ID,
-    agentRegistry,
-    triggerEngine,
-    scheduleAgentStatsBroadcast,
-    agentEventsRepo: agentEventsRepository
-  })
-);
-app.use('/api/health', createHealthProjectsRouter({ db, projectName: PROJECT_NAME }));
-app.use(
-  '/api',
-  createDashboardRouter({
-    errorsRepo: errorsRepository,
-    dashboardRepo: dashboardRepository,
-    apiLatencyRepo: apiLatencyRepository,
-    metricsRepo: metricsRepository,
-    agentRegistry,
-    sessionId: SESSION_ID
-  })
-);
-
-// Mount costs routes (token usage & cost tracking)
-app.use('/api/costs', createCostsRouter(db));
-
-// Mount sub-agent routes (agent tree visualization)
-app.use('/api/subagents', createSubagentsRouter(db));
-
-// Mount self-analysis routes (code health)
-app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
-
-// Mount session activity routes (conversation timeline)
-app.use('/api/session-activity', createSessionActivityRouter());
-
-// Extracted route modules
-app.use('/api/git', createGitRouter(gitMonitor));
-app.use('/api', createMetricsRouter(apiLatencyRepository, metricsRepository, dashboardRepository));
-app.use('/api', createTriggersRouter(triggerEngine));
-app.use(
-  '/ollama',
-  createOllamaProxyRouter({
-    db,
-    io,
-    logger,
-    sessionId: SESSION_ID,
-    agentRegistry,
-    getProjects: () => projectsConfigService.getKnownProjects(),
-    agentEventsRepo: agentEventsRepository
-  })
-);
-app.use('/api/system', createSystemRouter({ db, agentRegistry }));
-
-// Let the self-analysis service introspect mounted routes for the contract-drift check.
-selfAnalysisService.setExpressApp(app);
+  agentRegistry,
+  expensiveOpLimiter,
+  scheduleAgentStatsBroadcast,
+  apiLatencyRepository,
+  agentEventsRepository,
+  fileEventsRepository,
+  metricsRepository,
+  dashboardRepository,
+  diffRiskRepository,
+  syntaxErrorsRepository,
+  patternWarningsRepository,
+  errorsRepository,
+  notificationsRepository
+});
 
 // Serve built frontend in production/npx mode (when frontend/dist exists)
 const frontendDistPath = join(dirname(fileURLToPath(import.meta.url)), '../../frontend/dist');
