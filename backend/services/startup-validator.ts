@@ -12,15 +12,58 @@
  * if everything is working or if there are issues.
  */
 
+import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
-import { HealthChecker } from './health-checker.js';
+
+export interface StartupValidatorDeps {
+  backendUrl?: string;
+  frontendUrl?: string;
+  db?: RavenDB;
+}
+
+interface CheckDefinition {
+  name: string;
+  fn: () => Promise<void>;
+}
+
+export interface ValidationResult {
+  name: string;
+  status: 'passed' | 'failed';
+  duration: number;
+  error: string | null;
+}
+
+type Phase = 'backend' | 'frontend' | 'integration' | 'components' | 'userFlows';
+
+interface PhaseResults {
+  backend: ValidationResult[];
+  frontend: ValidationResult[];
+  integration: ValidationResult[];
+  components: ValidationResult[];
+  userFlows: ValidationResult[];
+}
+
+export interface ValidationSummary {
+  healthy: boolean;
+  passed: number;
+  failed: number;
+  total: number;
+  duration: number;
+  details: PhaseResults;
+}
 
 export class StartupValidator {
-  constructor(deps = {}) {
+  private backendUrl: string;
+  private frontendUrl: string;
+  private db: RavenDB | undefined;
+  private results: PhaseResults;
+  private startTime: number | null;
+  private totalDuration: number;
+
+  constructor(deps: StartupValidatorDeps = {}) {
     this.backendUrl = deps.backendUrl || 'http://localhost:9100';
     this.frontendUrl = deps.frontendUrl || 'http://localhost:9000';
     this.db = deps.db;
-    this.healthChecker = new HealthChecker(this.backendUrl, this.db);
 
     this.results = {
       backend: [],
@@ -34,17 +77,10 @@ export class StartupValidator {
     this.totalDuration = 0;
   }
 
-  /**
-   * Run all startup validation checks
-   * @returns {Object} validation results
-   */
-  async runAll() {
+  async runAll(): Promise<ValidationSummary> {
     this.startTime = Date.now();
-
-    // Beautiful startup banner
     this.printBanner();
 
-    // Run all validation phases
     await this.runBackendChecks();
     await this.runFrontendChecks();
     await this.runIntegrationChecks();
@@ -52,52 +88,36 @@ export class StartupValidator {
     await this.runUserFlowChecks();
 
     this.totalDuration = Date.now() - this.startTime;
-
-    // Print final summary
     this.printSummary();
 
     return this.getResults();
   }
 
-  /**
-   * Phase 1: Backend Health Checks
-   */
-  async runBackendChecks() {
+  async runBackendChecks(): Promise<void> {
     this.printPhaseHeader('Backend Health');
-
-    const checks = [
+    const checks: CheckDefinition[] = [
       { name: 'Server responding', fn: () => this.checkBackendServer() },
       { name: 'Database accessible', fn: () => this.checkDatabase() },
       { name: 'API endpoints healthy', fn: () => this.checkAPIEndpoints() },
       { name: 'WebSocket connected', fn: () => this.checkWebSocket() },
       { name: 'File watcher active', fn: () => this.checkFileWatcher() }
     ];
-
     await this.runChecks('backend', checks);
   }
 
-  /**
-   * Phase 2: Frontend Health Checks
-   */
-  async runFrontendChecks() {
+  async runFrontendChecks(): Promise<void> {
     this.printPhaseHeader('Frontend Health');
-
-    const checks = [
+    const checks: CheckDefinition[] = [
       { name: 'Vite server responding', fn: () => this.checkFrontendServer() },
       { name: 'Assets loaded', fn: () => this.checkAssets() },
       { name: 'Critical pages rendering', fn: () => this.checkPages() }
     ];
-
     await this.runChecks('frontend', checks);
   }
 
-  /**
-   * Phase 3: Integration Health Checks
-   */
-  async runIntegrationChecks() {
+  async runIntegrationChecks(): Promise<void> {
     this.printPhaseHeader('Integration Health');
-
-    const checks = [
+    const checks: CheckDefinition[] = [
       { name: 'Activity Log data flow', fn: () => this.checkDataFlow('/api/activity-log') },
       {
         name: 'Anomaly Alerts data flow',
@@ -113,47 +133,33 @@ export class StartupValidator {
       { name: 'Server Sync panel', fn: () => this.checkDataFlow('/api/projects') },
       { name: 'File Browser tree', fn: () => this.checkDataFlow('/api/tracked-files') }
     ];
-
     await this.runChecks('integration', checks);
   }
 
-  /**
-   * Phase 4: Component Rendering Checks
-   */
-  async runComponentChecks() {
+  async runComponentChecks(): Promise<void> {
     this.printPhaseHeader('Component Health');
-
-    const checks = [
+    const checks: CheckDefinition[] = [
       { name: 'Dashboard panels', fn: () => this.checkDashboardPanels() },
       { name: 'Charts rendering', fn: () => this.checkCharts() },
       { name: 'Tables rendering', fn: () => this.checkTables() },
       { name: 'Forms functional', fn: () => this.checkForms() }
     ];
-
     await this.runChecks('components', checks);
   }
 
-  /**
-   * Phase 5: User Flow Checks
-   */
-  async runUserFlowChecks() {
+  async runUserFlowChecks(): Promise<void> {
     this.printPhaseHeader('User Flow Health');
-
-    const checks = [
+    const checks: CheckDefinition[] = [
       { name: 'Project switching', fn: () => this.checkProjectSwitching() },
       { name: 'Historical data access', fn: () => this.checkHistoricalData() },
       { name: 'Data export', fn: () => this.checkDataExport() },
       { name: 'Filtering/search', fn: () => this.checkFiltering() },
       { name: 'Real-time updates', fn: () => this.checkRealTimeUpdates() }
     ];
-
     await this.runChecks('userFlows', checks);
   }
 
-  /**
-   * Generic check runner
-   */
-  async runChecks(phase, checks) {
+  async runChecks(phase: Phase, checks: CheckDefinition[]): Promise<void> {
     for (const check of checks) {
       const startTime = Date.now();
       try {
@@ -168,13 +174,14 @@ export class StartupValidator {
         logger.debug(`  ✅ ${check.name} (${duration}ms)`);
       } catch (error) {
         const duration = Date.now() - startTime;
+        const message = error instanceof Error ? error.message : String(error);
         this.results[phase].push({
           name: check.name,
           status: 'failed',
           duration,
-          error: error.message
+          error: message
         });
-        logger.debug(`  ❌ ${check.name} - ${error.message}`);
+        logger.debug(`  ❌ ${check.name} - ${message}`);
       }
     }
     logger.debug('');
@@ -182,7 +189,7 @@ export class StartupValidator {
 
   // ==================== Backend Checks ====================
 
-  async checkBackendServer() {
+  async checkBackendServer(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/health`, {
       signal: AbortSignal.timeout(5000)
     });
@@ -191,47 +198,43 @@ export class StartupValidator {
     }
   }
 
-  async checkDatabase() {
+  async checkDatabase(): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
-    // Quick query to verify database is accessible
-    const result = this.db.db.prepare('SELECT COUNT(*) as count FROM events').get();
-    if (typeof result.count !== 'number') {
+    const result = this.db.db
+      .prepare<unknown[], { count: number }>('SELECT COUNT(*) as count FROM events')
+      .get();
+    if (!result || typeof result.count !== 'number') {
       throw new Error('Database query failed');
     }
   }
 
-  async checkAPIEndpoints() {
+  async checkAPIEndpoints(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/endpoints`);
     if (!response.ok) {
       throw new Error(`Endpoints discovery failed: HTTP ${response.status}`);
     }
-    const data = await response.json();
+    const data = (await response.json()) as { total?: number };
     const total = data.total || 0;
     if (total < 100) {
       throw new Error(`Only ${total} endpoints found (expected 150+)`);
     }
-    // Update the check name to show count
     const lastCheck = this.results.backend[this.results.backend.length - 1];
     if (lastCheck) {
       lastCheck.name = `API endpoints: ${total}/${total} healthy`;
     }
   }
 
-  async checkWebSocket() {
+  async checkWebSocket(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/health`);
-    const data = await response.json();
-    // WebSocket is considered healthy if server is running
-    // More detailed check would require actual WS connection
+    const data = (await response.json()) as { status?: string };
     if (!data.status) {
       throw new Error('Health check returned no status');
     }
   }
 
-  async checkFileWatcher() {
-    // File watcher is considered healthy if backend is running
-    // More detailed check would verify watcher is actually monitoring files
+  async checkFileWatcher(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/health`);
     if (!response.ok) {
       throw new Error('File watcher check failed');
@@ -240,7 +243,7 @@ export class StartupValidator {
 
   // ==================== Frontend Checks ====================
 
-  async checkFrontendServer() {
+  async checkFrontendServer(): Promise<void> {
     try {
       const response = await fetch(this.frontendUrl, {
         signal: AbortSignal.timeout(5000)
@@ -253,34 +256,26 @@ export class StartupValidator {
         throw new Error('Invalid HTML response');
       }
     } catch (error) {
-      if (error.name === 'TimeoutError') {
+      if (error instanceof Error && error.name === 'TimeoutError') {
         throw new Error('Server timeout');
       }
       throw error;
     }
   }
 
-  async checkAssets() {
-    // Check if main HTML loads
+  async checkAssets(): Promise<void> {
     const response = await fetch(this.frontendUrl);
     const html = await response.text();
-
-    // Look for Vite assets
     if (!html.includes('type="module"') && !html.includes('vite')) {
       throw new Error('Vite assets not found in HTML');
     }
   }
 
-  async checkPages() {
-    // Since we can't easily check SPA routes from server-side,
-    // we verify the main app loads which means all routes are available
+  async checkPages(): Promise<void> {
     const response = await fetch(this.frontendUrl);
     if (!response.ok) {
       throw new Error(`Frontend not accessible: HTTP ${response.status}`);
     }
-
-    // Count: Dashboard, Activity, Anomaly Alerts, Server Sync, Notifications,
-    // Errors, API Health, File Browser, Performance, Settings
     const criticalPageCount = 10;
     const lastCheck = this.results.frontend[this.results.frontend.length - 1];
     if (lastCheck) {
@@ -290,7 +285,7 @@ export class StartupValidator {
 
   // ==================== Integration Checks ====================
 
-  async checkDataFlow(endpoint) {
+  async checkDataFlow(endpoint: string): Promise<void> {
     const response = await fetch(`${this.backendUrl}${endpoint}`, {
       signal: AbortSignal.timeout(5000)
     });
@@ -304,36 +299,20 @@ export class StartupValidator {
       throw new Error('Invalid content-type (expected JSON)');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, unknown> | unknown[];
 
-    // Verify response is not an error
-    if (data.error) {
-      throw new Error(data.error);
+    if (!Array.isArray(data) && (data as { error?: string }).error) {
+      throw new Error((data as { error: string }).error);
     }
 
-    // For array responses, verify we got data
     if (Array.isArray(data) && data.length === 0) {
-      // Empty arrays are OK for new installations
-      return;
-    }
-
-    // For object responses with data arrays
-    if (
-      data.events !== undefined ||
-      data.anomalies !== undefined ||
-      data.errors !== undefined ||
-      data.endpoints !== undefined ||
-      data.notifications !== undefined
-    ) {
-      // Has expected structure
       return;
     }
   }
 
   // ==================== Component Checks ====================
 
-  async checkDashboardPanels() {
-    // Verify dashboard endpoints return data
+  async checkDashboardPanels(): Promise<void> {
     const endpoints = ['/api/dashboard-stats', '/api/agents-status', '/api/projects'];
 
     for (const endpoint of endpoints) {
@@ -349,24 +328,21 @@ export class StartupValidator {
     }
   }
 
-  async checkCharts() {
-    // Verify metrics endpoints that feed charts
+  async checkCharts(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/metrics?limit=10`);
     if (!response.ok) {
       throw new Error(`Metrics endpoint failed: HTTP ${response.status}`);
     }
   }
 
-  async checkTables() {
-    // Verify endpoints that populate tables
+  async checkTables(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/activity-log?limit=10`);
     if (!response.ok) {
       throw new Error(`Activity log failed: HTTP ${response.status}`);
     }
   }
 
-  async checkForms() {
-    // Verify settings/preferences endpoints
+  async checkForms(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/preferences`);
     if (!response.ok && response.status !== 404) {
       throw new Error(`Preferences endpoint failed: HTTP ${response.status}`);
@@ -375,49 +351,43 @@ export class StartupValidator {
 
   // ==================== User Flow Checks ====================
 
-  async checkProjectSwitching() {
+  async checkProjectSwitching(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/projects`);
     if (!response.ok) {
       throw new Error(`Projects endpoint failed: HTTP ${response.status}`);
     }
-    const data = await response.json();
-    // Projects endpoint returns {autoDiscover, basePath, projects: [...]}
+    const data = (await response.json()) as { projects?: unknown };
     if (!data.projects || !Array.isArray(data.projects)) {
       throw new Error('Projects endpoint returned invalid data structure');
     }
   }
 
-  async checkHistoricalData() {
-    // Verify we can query historical events
+  async checkHistoricalData(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/activity-log?limit=10`);
     if (!response.ok) {
       throw new Error(`Historical data query failed: HTTP ${response.status}`);
     }
-    const data = await response.json();
+    const data = (await response.json()) as { total?: number };
     if (data.total === undefined) {
       throw new Error('Activity log missing total count');
     }
   }
 
-  async checkDataExport() {
-    // Verify export endpoints exist (checking CSV/JSON export capability)
-    // Most panels handle export client-side, so we verify data is available
+  async checkDataExport(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/activity-log?limit=1000`);
     if (!response.ok) {
       throw new Error(`Export data query failed: HTTP ${response.status}`);
     }
   }
 
-  async checkFiltering() {
-    // Verify filtering works on activity log
+  async checkFiltering(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/activity-log?search=test&limit=10`);
     if (!response.ok) {
       throw new Error(`Filtered query failed: HTTP ${response.status}`);
     }
   }
 
-  async checkRealTimeUpdates() {
-    // Verify WebSocket endpoint exists for real-time updates
+  async checkRealTimeUpdates(): Promise<void> {
     const response = await fetch(`${this.backendUrl}/api/health`);
     if (!response.ok) {
       throw new Error('Real-time update infrastructure check failed');
@@ -426,25 +396,18 @@ export class StartupValidator {
 
   // ==================== UI Output ====================
 
-  printBanner() {
+  printBanner(): void {
     logger.debug('');
     logger.debug('🏥 Running Startup Health Validation...');
     logger.debug('');
   }
 
-  printPhaseHeader(name) {
+  printPhaseHeader(name: string): void {
     logger.debug(`\x1b[1m${name}:\x1b[0m`);
   }
 
-  printSummary() {
-    const allResults = [
-      ...this.results.backend,
-      ...this.results.frontend,
-      ...this.results.integration,
-      ...this.results.components,
-      ...this.results.userFlows
-    ];
-
+  printSummary(): void {
+    const allResults = this.allResults();
     const passed = allResults.filter(r => r.status === 'passed').length;
     const failed = allResults.filter(r => r.status === 'failed').length;
     const total = allResults.length;
@@ -475,18 +438,18 @@ export class StartupValidator {
     logger.debug('');
   }
 
-  /**
-   * Get all results
-   */
-  getResults() {
-    const allResults = [
+  private allResults(): ValidationResult[] {
+    return [
       ...this.results.backend,
       ...this.results.frontend,
       ...this.results.integration,
       ...this.results.components,
       ...this.results.userFlows
     ];
+  }
 
+  getResults(): ValidationSummary {
+    const allResults = this.allResults();
     const passed = allResults.filter(r => r.status === 'passed').length;
     const failed = allResults.filter(r => r.status === 'failed').length;
 
@@ -503,10 +466,8 @@ export class StartupValidator {
   /**
    * Quick health check (for 'raven check' command)
    */
-  async quickCheck() {
+  async quickCheck(): Promise<ValidationSummary> {
     logger.debug('🏥 Running quick health check...\n');
-
-    // Just check backend and integration
     await this.runBackendChecks();
     await this.runIntegrationChecks();
 
