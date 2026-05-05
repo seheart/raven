@@ -16,15 +16,19 @@
  * hosts, macOS, etc.). The watcher just stays inert and logs a warning.
  */
 
-import { spawn } from 'child_process';
-import readline from 'readline';
+import { spawn, type ChildProcess } from 'child_process';
+import readline, { type Interface as ReadlineInterface } from 'readline';
+
+interface MinimalLogger {
+  debug: (msg: string, meta?: object) => void;
+  info: (msg: string, meta?: object) => void;
+  warn: (msg: string, meta?: object) => void;
+  error: (msg: string, meta?: object) => void;
+}
 
 const GIN_LINE =
   /\[GIN\]\s+\S+\s+-\s+\S+\s+\|\s+(\d+)\s+\|\s+([^|]+)\s+\|\s+(\S+)\s+\|\s+(\S+)\s+"([^"]+)"/;
 
-// Endpoints that represent actual inference work — what we want on the
-// activity chart. Status/health endpoints are filtered out so polling
-// doesn't masquerade as user activity.
 const INFERENCE_ENDPOINTS = [
   '/api/generate',
   '/api/chat',
@@ -35,10 +39,9 @@ const INFERENCE_ENDPOINTS = [
   '/v1/embeddings'
 ];
 
-// Anything matching these is a status/health probe — never emit.
 const IGNORED_ENDPOINTS = new Set(['/api/tags', '/api/ps', '/api/version', '/api/show', '/']);
 
-function isInferenceEndpoint(path) {
+function isInferenceEndpoint(path: string): boolean {
   if (IGNORED_ENDPOINTS.has(path)) return false;
   return INFERENCE_ENDPOINTS.some(p => path === p || path.startsWith(`${p}?`));
 }
@@ -47,7 +50,7 @@ function isInferenceEndpoint(path) {
  * Parse a gin duration token like "6.65726063s", "1.214937ms", "750µs".
  * Returns milliseconds (number) or null if unrecognised.
  */
-function parseDurationMs(token) {
+function parseDurationMs(token: string | undefined): number | null {
   if (!token) return null;
   const t = token.trim();
   const m = /^([\d.]+)(ms|µs|us|s|m|h)$/.exec(t);
@@ -71,8 +74,34 @@ function parseDurationMs(token) {
   }
 }
 
+export interface OllamaWatcherOptions {
+  unit?: string;
+  since?: string;
+}
+
+export interface OllamaInferenceEvent {
+  type: 'tool_call' | 'tool_error';
+  tool: string;
+  file: string;
+  duration_ms: number | null;
+  timestamp: string;
+  source: 'ollama';
+  eventCategory: 'agent_event';
+}
+
+export type OllamaEventCallback = (event: OllamaInferenceEvent) => Promise<void> | void;
+
 export class OllamaLogWatcher {
-  constructor(eventCallback, logger, options = {}) {
+  private eventCallback: OllamaEventCallback;
+  private logger: MinimalLogger;
+  private unit: string;
+  private since: string;
+  private proc: ChildProcess | null;
+  private rl: ReadlineInterface | null;
+  private starting: boolean;
+  private stopped: boolean;
+
+  constructor(eventCallback: OllamaEventCallback, logger: MinimalLogger, options: OllamaWatcherOptions = {}) {
     this.eventCallback = eventCallback;
     this.logger = logger;
     this.unit = options.unit || 'ollama';
@@ -83,34 +112,37 @@ export class OllamaLogWatcher {
     this.stopped = false;
   }
 
-  async start() {
+  async start(): Promise<void> {
     if (this.proc) return;
     this.starting = true;
     this.stopped = false;
     this.logger.info('🔍 Starting Ollama Log Watcher (journalctl)...');
 
+    let proc: ChildProcess;
     try {
-      this.proc = spawn(
+      proc = spawn(
         'journalctl',
         ['-u', this.unit, '-f', '--no-pager', '--output=short-iso', '--since', this.since],
         { stdio: ['ignore', 'pipe', 'pipe'] }
       );
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `⚠️  Could not spawn journalctl — Ollama activity won't be tracked: ${err.message}`
+        `⚠️  Could not spawn journalctl — Ollama activity won't be tracked: ${msg}`
       );
       this.proc = null;
       this.starting = false;
       return;
     }
+    this.proc = proc;
 
-    this.proc.on('error', err => {
+    proc.on('error', err => {
       this.logger.warn(`⚠️  journalctl failed (${err.message}) — Ollama tracking disabled.`);
       this.proc = null;
     });
 
     let exitedEarly = false;
-    this.proc.on('exit', (code, signal) => {
+    proc.on('exit', (code, signal) => {
       // If journalctl exits before we've seen any output, the unit
       // probably doesn't exist on this host. Don't try to restart.
       if (this.starting) {
@@ -127,21 +159,27 @@ export class OllamaLogWatcher {
       this.proc = null;
     });
 
-    // stderr lines — don't crash, just log them at debug.
-    this.proc.stderr.on('data', chunk => {
+    proc.stderr?.on('data', chunk => {
       const text = chunk.toString().trim();
       if (text) this.logger.debug(`journalctl stderr: ${text}`);
     });
 
+    if (!proc.stdout) {
+      this.logger.warn('journalctl stdout is missing — Ollama tracking disabled');
+      this.proc = null;
+      return;
+    }
+
     this.rl = readline.createInterface({
-      input: this.proc.stdout,
+      input: proc.stdout,
       crlfDelay: Infinity
     });
 
     this.rl.on('line', line => {
       this.starting = false;
       this.handleLine(line).catch(err => {
-        this.logger.error(`Error handling Ollama log line: ${err.message}`);
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Error handling Ollama log line: ${msg}`);
       });
     });
 
@@ -150,7 +188,6 @@ export class OllamaLogWatcher {
     });
 
     // Give the process a beat to either die (bad unit) or start streaming.
-    // 1.5s is enough for journalctl to fail-fast without delaying real startup.
     await new Promise(resolve => setTimeout(resolve, 1500));
     if (exitedEarly) {
       return;
@@ -158,7 +195,7 @@ export class OllamaLogWatcher {
     this.logger.info(`✅ Ollama Log Watcher started (unit=${this.unit})`);
   }
 
-  async stop() {
+  async stop(): Promise<void> {
     this.stopped = true;
     if (this.rl) {
       this.rl.close();
@@ -175,25 +212,23 @@ export class OllamaLogWatcher {
    * Idle/active modes are no-ops for this watcher — journalctl is push-based,
    * not polling, so there's nothing to throttle.
    */
-  async setIdle(_idle) {
+  async setIdle(_idle: boolean): Promise<void> {
     // intentionally empty
   }
 
-  async handleLine(line) {
+  async handleLine(line: string): Promise<void> {
     const m = GIN_LINE.exec(line);
     if (!m) return;
 
-    const [, statusStr, durationToken, _ip, method, rawPath] = m;
+    const [, statusStr, durationToken, , method, rawPath] = m;
     const status = parseInt(statusStr, 10);
-    const path = rawPath.split('?')[0]; // drop query string for matching
+    const path = rawPath.split('?')[0];
 
     if (!isInferenceEndpoint(path)) return;
 
     const durationMs = parseDurationMs(durationToken);
     const timestamp = new Date().toISOString();
 
-    // Mark non-2xx responses as errors — useful signal but still goes
-    // through the same activity stream so they show on the rate chart.
     const isError = !Number.isFinite(status) || status >= 400;
 
     await this.eventCallback({
