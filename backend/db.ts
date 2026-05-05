@@ -121,6 +121,28 @@ export class RavenDB {
       )
     `);
 
+    // GPU metrics history (one snapshot per collection cycle, multi-GPU rows
+    // share a timestamp). Only nvidia-smi is queried today. Retention is
+    // managed by retention-cleanup like the other metrics tables.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS gpu_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        gpu_index INTEGER NOT NULL DEFAULT 0,
+        name TEXT,
+        vram_used_mib INTEGER,
+        vram_total_mib INTEGER,
+        vram_pct REAL,
+        gpu_util_pct INTEGER,
+        mem_util_pct INTEGER,
+        temp_c INTEGER,
+        power_draw_w REAL,
+        power_limit_w REAL,
+        session_id TEXT
+      )
+    `);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_gpu_metrics_timestamp ON gpu_metrics(timestamp DESC)`);
+
     // Migrate existing databases: add network/activity columns to process_metrics
     const pmCols = this.db.prepare('PRAGMA table_info(process_metrics)').all() as Array<{
       name: string;

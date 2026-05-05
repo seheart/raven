@@ -10,6 +10,7 @@
 
   let models = $state([]);
   let now = $state(Date.now());
+  let ollamaOffline = $state(false);
   const modelState = $state({});
 
   function ensure(name) {
@@ -59,6 +60,7 @@
     try {
       // Shared /ollama/ps cache via dataService (3s TTL == poll interval).
       const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
+      ollamaOffline = data.ollama_status === 'offline';
       const seen = new Set();
       for (const m of data.models || []) { seen.add(m.name); ensure(m.name); }
       for (const k of Object.keys(modelState)) if (!seen.has(k)) delete modelState[k];
@@ -87,7 +89,9 @@
     <span class="text-[9px] text-[var(--muted)] font-mono">{models.length}</span>
   </div>
 
-  {#if models.length === 0}
+  {#if ollamaOffline}
+    <div class="text-[11px] text-[var(--warning)] py-3 text-center font-semibold">Ollama not reachable</div>
+  {:else if models.length === 0}
     <div class="text-[11px] text-[var(--muted)] italic py-3 text-center">No models in VRAM</div>
   {:else}
     <div class="space-y-2">

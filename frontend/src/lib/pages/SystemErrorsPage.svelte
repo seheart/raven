@@ -70,16 +70,20 @@
     }, 300);
   }
 
-  const onErrorLogged = () => loadErrors();
+  // Backend emits 'app-error' (and 'errors-cleared'), not 'error-logged'.
+  // Listening for 'error-logged' was effectively a no-op.
+  const onErrorEvent = () => loadErrors();
 
   onMount(() => {
     loadErrors();
-    websocketService.on('error-logged', onErrorLogged);
+    websocketService.on('app-error', onErrorEvent);
+    websocketService.on('errors-cleared', onErrorEvent);
   });
 
   onDestroy(() => {
     abortRequests();
-    websocketService.off('error-logged', onErrorLogged);
+    websocketService.off('app-error', onErrorEvent);
+    websocketService.off('errors-cleared', onErrorEvent);
     clearTimeout(searchTimeout);
   });
 </script>

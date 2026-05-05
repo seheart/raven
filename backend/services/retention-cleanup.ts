@@ -49,6 +49,7 @@ function runRetentionCleanup(
     { name: 'api_latency', days: eventDays },
     { name: 'raven_metrics', days: metricsDays },
     { name: 'process_metrics', days: metricsDays },
+    { name: 'gpu_metrics', days: metricsDays },
     { name: 'token_usage', days: metricsDays },
     { name: 'insights', days: metricsDays },
     { name: 'test_results', days: metricsDays },

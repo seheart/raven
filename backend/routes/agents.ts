@@ -109,25 +109,42 @@ export function createAgentsRouter(
         )
         .get(cutoff) as any;
 
-      const toolBreakdown = db.db
+      // Per-agent tool breakdown. Earlier this was a single global GROUP BY,
+      // so every agent in the response showed the same top-10 list — every
+      // page reading agent_stats was rendering identical (and wrong) tool
+      // breakdowns. Now group by (agent, message) and assemble per agent.
+      const toolBreakdownRows = db.db
         .prepare(
-          `
-        SELECT message, COUNT(*) as count FROM agent_events
-        WHERE event_type = 'tool_call'
-        GROUP BY message ORDER BY count DESC LIMIT 10
-      `
+          `SELECT agent, message, COUNT(*) as count
+           FROM agent_events
+           WHERE event_type = 'tool_call' AND agent IS NOT NULL
+           GROUP BY agent, message
+           ORDER BY agent, count DESC`
         )
-        .all();
+        .all() as Array<{ agent: string; message: string; count: number }>;
+
+      const toolBreakdownByAgent = new Map<string, Array<{ message: string; count: number }>>();
+      for (const row of toolBreakdownRows) {
+        let list = toolBreakdownByAgent.get(row.agent);
+        if (!list) {
+          list = [];
+          toolBreakdownByAgent.set(row.agent, list);
+        }
+        if (list.length < 10) list.push({ message: row.message, count: row.count });
+      }
 
       // The events table has no agent attribution, so we can't split fileStats
       // per-agent. Attach the global figures only to a synthetic "_aggregate"
       // entry; do NOT spread them into every agent (was misleading every row
       // with identical counts).
-      const enriched: any[] = agentEvents.map((agent: any) => ({
-        ...agent,
-        agent_name: agent.agent_name || agent.agent,
-        tool_breakdown: toolBreakdown || []
-      }));
+      const enriched: any[] = agentEvents.map((agent: any) => {
+        const name = agent.agent_name || agent.agent;
+        return {
+          ...agent,
+          agent_name: name,
+          tool_breakdown: toolBreakdownByAgent.get(name) || []
+        };
+      });
 
       // Merge in detected agents from registry that have no events yet (e.g., local models)
       const existingNames = new Set(enriched.map((a: any) => a.agent_name || a.agent));

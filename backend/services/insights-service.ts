@@ -29,7 +29,14 @@ interface InsightSummary {
 
 export class InsightsService {
   private db: RavenDB;
-  private ollamaUrl: string;
+  // Holds the constructor argument when explicitly provided. When null, the
+  // url is resolved lazily on each call so the transparent-proxy EADDRINUSE
+  // fallback (which mutates process.env.OLLAMA_URL) takes effect without a
+  // restart. Same pattern as routes/ollama.ts and local-model-watcher.ts.
+  private ollamaUrlOverride: string | null;
+  private get ollamaUrl(): string {
+    return this.ollamaUrlOverride || process.env.OLLAMA_URL || 'http://localhost:11434';
+  }
   private model: string;
   private generating: Set<string> = new Set();
   private lastAnomalyCallTime = 0;
@@ -78,11 +85,12 @@ export class InsightsService {
 
   constructor(
     db: RavenDB,
-    ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434',
+    ollamaUrl?: string,
     model?: string
   ) {
     this.db = db;
-    this.ollamaUrl = ollamaUrl;
+    // Only treat explicitly-passed url as override; otherwise read env lazily.
+    this.ollamaUrlOverride = ollamaUrl ?? null;
     // Explicit arg or env var pins the model. Empty → resolved lazily on first call.
     this.model = model ?? process.env.OLLAMA_MODEL ?? '';
 

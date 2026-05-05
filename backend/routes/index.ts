@@ -200,7 +200,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
 
   app.use('/api/insights', createInsightsRouter(insightsService, db, diffRiskRepository));
   app.use('/api/errors', createErrorsRouter(errorsRepository, io));
-  app.use('/api', createOllamaDetailRouter(agentEventsRepository));
+  app.use('/api', createOllamaDetailRouter(agentEventsRepository, db));
   app.use('/api/conversations', createConversationsRouter(agentEventsRepository));
   app.use('/api/syntax-errors', createSyntaxErrorsRouter(syntaxErrorsRepository));
   app.use('/api', createFilesRouter({ db, fileEventsRepo: fileEventsRepository, snapshotsDir }));
@@ -259,7 +259,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/git', createGitRouter(gitMonitor));
   app.use(
     '/api',
-    createMetricsRouter(apiLatencyRepository, metricsRepository, dashboardRepository)
+    createMetricsRouter(apiLatencyRepository, metricsRepository, dashboardRepository, db)
   );
   app.use('/api', createTriggersRouter(triggerEngine));
   app.use(

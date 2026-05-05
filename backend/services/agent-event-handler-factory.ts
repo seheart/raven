@@ -59,6 +59,16 @@ interface AgentLogEvent {
   description?: string;
   // api_latency
   latency_ms?: number;
+  duration_ms?: number | null;
+  // Optional per-event JSON. Populated by the Ollama watcher with model
+  // name + endpoint so the frontend's pulse / sparkline cards can light up
+  // even when the transparent proxy isn't capturing the request body.
+  metadata?: Record<string, unknown>;
+  // Per-event agent name override. The Ollama watcher uses this to attribute
+  // events to the resident model (e.g. 'gemma3:12b') instead of the generic
+  // 'Ollama' parent agent — that's how ActiveModelCard's pulse animation
+  // matches WS events to the resident-model row.
+  agentNameOverride?: string;
 }
 
 export function createAgentEventHandlerFactory({
@@ -74,16 +84,24 @@ export function createAgentEventHandlerFactory({
     return (event: AgentLogEvent) => {
       const timestamp = event.timestamp || new Date().toISOString();
       const category = event.eventCategory || 'file_change';
+      // Per-event override lets the Ollama watcher attribute inferences to the
+      // specific resident model rather than the generic 'Ollama' parent.
+      const effectiveAgentName = event.agentNameOverride || agentName;
+      const effectiveAgentType = event.agentNameOverride
+        ? event.model
+          ? 'ollama-model'
+          : agentType
+        : agentType;
 
       // Register/update agent in registry
-      if (!agentRegistry.has(agentName)) {
+      if (!agentRegistry.has(effectiveAgentName)) {
         if (agentRegistry.size >= 100) {
           const oldestKey = agentRegistry.keys().next().value;
           if (oldestKey) agentRegistry.delete(oldestKey);
         }
-        agentRegistry.set(agentName, {
-          agent_name: agentName,
-          agent_type: agentType,
+        agentRegistry.set(effectiveAgentName, {
+          agent_name: effectiveAgentName,
+          agent_type: effectiveAgentType,
           is_running: true,
           last_seen: timestamp,
           models_available: [],
@@ -91,10 +109,10 @@ export function createAgentEventHandlerFactory({
           errors: 0,
           color: getAgentColor(colorKey)
         });
-        logger.info(`✅ ${agentName} registered in agent registry`);
+        logger.info(`✅ ${effectiveAgentName} registered in agent registry`);
       }
 
-      const status = agentRegistry.get(agentName);
+      const status = agentRegistry.get(effectiveAgentName);
       if (!status) return;
       if (!status.last_seen || new Date(timestamp) > new Date(status.last_seen)) {
         status.last_seen = timestamp;
@@ -102,22 +120,26 @@ export function createAgentEventHandlerFactory({
       status.requests_handled++;
       status.is_running = true;
 
-      // agent_event — tool calls, tool results
+      const metadataJson = event.metadata ? JSON.stringify(event.metadata) : null;
+
+      // agent_event — tool calls, tool results, inferences
       if (category === 'agent_event') {
         try {
           db.db
             .prepare(
-              `INSERT INTO agent_events (timestamp, agent, event_type, file, message, session_id, project_name)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`
+              `INSERT INTO agent_events (timestamp, agent, event_type, file, message, session_id, project_name, metadata, duration_ms)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
             )
             .run(
               timestamp,
-              agentName,
+              effectiveAgentName,
               event.type,
               event.file || event.path || null,
               event.tool ? `${event.tool} call` : event.type,
               event.sessionId || sessionId,
-              event.projectName || null
+              event.projectName || null,
+              metadataJson,
+              event.duration_ms ?? null
             );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -283,17 +305,26 @@ export function createAgentEventHandlerFactory({
         }
       }
 
-      // Realtime fan-out for the AI Pulse UI.
+      // Realtime fan-out for the AI Pulse UI + LLM lab cards.
       // tool/message let the UI render readable labels (e.g. "Read · file.ts").
+      // model + duration_ms + metadata.gen_tps drive the resident-model pulse +
+      // sparkline in ActiveModelCard.
+      const meta = event.metadata || {};
       io.emit('agent-event', {
         type: event.type,
-        agent_name: agentName,
+        agent_name: effectiveAgentName,
         file: event.file || event.path,
         tool: event.tool || null,
         message: event.tool ? `${event.tool} call` : event.type,
         content: event.content ? String(event.content).slice(0, 200) : null,
         timestamp: timestamp,
-        event_type: event.type
+        event_type: event.type,
+        model: event.model ?? null,
+        duration_ms: event.duration_ms ?? null,
+        project: event.projectName ?? null,
+        gen_tps: typeof meta.gen_tps === 'number' ? meta.gen_tps : null,
+        prompt_tokens: typeof meta.prompt_tokens === 'number' ? meta.prompt_tokens : null,
+        gen_tokens: typeof meta.gen_tokens === 'number' ? meta.gen_tokens : null
       });
     };
   };

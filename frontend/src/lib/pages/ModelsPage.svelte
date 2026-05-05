@@ -7,6 +7,7 @@
   import { RefreshButton, EmptyState } from '../components/ui/index.js';
 
   let models = $state([]);
+  let latencyByModel = $state([]);
   let loading = $state(true);
 
   const totalEvents = $derived(models.reduce((sum, m) => sum + m.total_events, 0));
@@ -35,8 +36,12 @@
   async function loadData(force = false) {
     try {
       loading = true;
-      const data = await dataService.fetch('/models', { ttl: 5000, forceRefresh: force });
+      const [data, latency] = await Promise.all([
+        dataService.fetch('/models', { ttl: 5000, forceRefresh: force }),
+        dataService.fetch('/latency-by-model?minutes=60', { ttl: 5000, forceRefresh: force }).catch(() => ({ models: [] }))
+      ]);
       models = Array.isArray(data) ? data : [];
+      latencyByModel = latency?.models || [];
     } catch (err) {
       logger.error('Failed to load models:', err);
     } finally {
@@ -98,6 +103,31 @@
           <div class="text-sm font-mono text-body">{formatNumber(totalInferences)}</div>
         </div>
       </div>
+
+      <!-- Per-model latency distribution (last hour). Combines Claude API
+           latency from api_latency with Ollama duration_ms from agent_events
+           so every observed model shows up in one panel. -->
+      {#if latencyByModel.length > 0}
+        <div class="bg-surface border border-border rounded-lg p-4 mb-6">
+          <div class="flex items-baseline justify-between mb-3">
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
+              Latency · last 60min
+            </h3>
+            <span class="text-[10px] text-muted font-mono">p50 / p95 / max (ms)</span>
+          </div>
+          <div class="space-y-1">
+            {#each latencyByModel as l (l.model)}
+              <div class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 text-[11px] font-mono py-1 border-b border-border last:border-b-0">
+                <span class="text-body truncate" title={l.model}>{l.model}</span>
+                <span class="text-muted text-right">{l.count}×</span>
+                <span class="text-body text-right tabular-nums">{l.p50_ms}</span>
+                <span class="text-warning text-right tabular-nums">{l.p95_ms}</span>
+                <span class="text-error text-right tabular-nums">{l.max_ms}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
       <!-- Model Cards -->
       {#if models.length === 0}

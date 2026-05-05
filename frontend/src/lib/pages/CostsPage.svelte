@@ -203,7 +203,15 @@
     websocketService.connect();
     loadData();
 
-    const onTokenUsage = () => loadData();
+    // Debounce so an inference burst doesn't trigger N full-page reloads.
+    let tokenUsageTimer = null;
+    const onTokenUsage = () => {
+      if (tokenUsageTimer) clearTimeout(tokenUsageTimer);
+      tokenUsageTimer = setTimeout(() => {
+        tokenUsageTimer = null;
+        loadData();
+      }, 1500);
+    };
     websocketService.on('token-usage', onTokenUsage);
 
     themeObserver = createThemeObserver(() => updateCharts());
@@ -274,6 +282,41 @@
           <div class="text-2xl font-bold text-body font-mono">{formatTokens(summary.total_output_tokens)}</div>
         </div>
       </div>
+
+      <!-- Prompt cache panel: hit ratio + estimated savings vs uncached input.
+           Anthropic charges cache reads at 0.1× input rate, so 1 cached token
+           saves 90% of the input cost. Cache writes cost 1.25× input — netted in. -->
+      {#if isApi && (summary.total_cache_read_tokens || summary.total_cache_creation_tokens)}
+        {@const cIn = summary.total_input_tokens || 0}
+        {@const cCreate = summary.total_cache_creation_tokens || 0}
+        {@const cRead = summary.total_cache_read_tokens || 0}
+        {@const totalEffectiveInput = cIn + cCreate + cRead}
+        {@const hitRatio = totalEffectiveInput > 0 ? (cRead / totalEffectiveInput) * 100 : 0}
+        {@const ratioColor = hitRatio >= 60 ? 'text-success' : hitRatio >= 30 ? 'text-warning' : 'text-muted'}
+        {@const totalCost = summary.total_cost_usd || 0}
+        {@const totalInputCharge =
+          totalCost > 0 && totalEffectiveInput > 0
+            ? totalCost * (cIn + cCreate * 1.25 + cRead * 0.1) / (cIn + cCreate * 1.25 + cRead * 0.1 + (summary.total_output_tokens || 0) * 5)
+            : 0}
+        {@const savedTokenEquivalent = cRead * 0.9}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          <div class="bg-surface border border-border rounded p-4">
+            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Cache Hit Ratio</div>
+            <div class="text-2xl font-bold {ratioColor} font-mono">{hitRatio.toFixed(1)}%</div>
+            <div class="text-xs text-muted mt-1">{formatTokens(cRead)} of {formatTokens(totalEffectiveInput)} input tokens served from cache</div>
+          </div>
+          <div class="bg-surface border border-border rounded p-4">
+            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Cache Writes</div>
+            <div class="text-2xl font-bold text-warning font-mono">{formatTokens(cCreate)}</div>
+            <div class="text-xs text-muted mt-1">First-time prompt caching (1.25× input rate)</div>
+          </div>
+          <div class="bg-surface border border-border rounded p-4">
+            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Equivalent Tokens Saved</div>
+            <div class="text-2xl font-bold text-success font-mono">{formatTokens(savedTokenEquivalent)}</div>
+            <div class="text-xs text-muted mt-1">vs. {formatTokens(cRead)} reads at full input rate</div>
+          </div>
+        </div>
+      {/if}
 
       <!-- Charts Row -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

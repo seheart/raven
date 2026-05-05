@@ -708,9 +708,26 @@
     websocketService.on('errors-cleared', handleErrorsCleared);
     websocketService.on('diff-risk-score', handleDiffRiskScore);
     websocketService.on('anomaly-insight', handleAnomalyInsight);
-    const handleTokenUsage = () => {
-      const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      api.get(`/costs/summary?start=${encodeURIComponent(todayStart)}`).then(d => { if (d) sessionCosts = d; }).catch(err => logger.debug('Costs refresh failed:', err));
+    // The token-usage WS payload already contains everything we need to
+    // increment the running today-total — no need for a fresh /costs/summary
+    // round-trip on every event (was doing one HTTP call per inference).
+    const handleTokenUsage = (data) => {
+      if (!data) return;
+      // Filter to today only — the dashboard shows "today's session" cost.
+      const ts = data.timestamp ? new Date(data.timestamp) : new Date();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (ts < todayStart) return;
+      sessionCosts = {
+        total_requests: (sessionCosts.total_requests || 0) + 1,
+        total_input_tokens: (sessionCosts.total_input_tokens || 0) + (data.input_tokens || 0),
+        total_output_tokens: (sessionCosts.total_output_tokens || 0) + (data.output_tokens || 0),
+        total_cache_creation_tokens:
+          (sessionCosts.total_cache_creation_tokens || 0) + (data.cache_creation_tokens || 0),
+        total_cache_read_tokens:
+          (sessionCosts.total_cache_read_tokens || 0) + (data.cache_read_tokens || 0),
+        total_cost_usd: (sessionCosts.total_cost_usd || 0) + (data.estimated_cost_usd || 0)
+      };
     };
     const handleSubagentSpawn = () => {
       api.get('/subagents/recent?limit=8').then(d => { if (Array.isArray(d)) recentSubagents = d; }).catch(err => logger.debug('Subagents refresh failed:', err));

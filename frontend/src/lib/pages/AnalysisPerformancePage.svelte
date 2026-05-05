@@ -170,10 +170,6 @@
     systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
   }
 
-  function handleProjectSwitched(_data) {
-    fetchAllData();
-  }
-
   // Export functions
   function exportToJSON() {
     const data = {
@@ -247,12 +243,10 @@
 
     websocketService.connect();
     websocketService.on('system-metrics', handleSystemMetrics);
-    websocketService.on('project-switched', handleProjectSwitched);
 
     return () => {
       abortRequests();
       websocketService.off('system-metrics', handleSystemMetrics);
-      websocketService.off('project-switched', handleProjectSwitched);
     };
   });
 </script>

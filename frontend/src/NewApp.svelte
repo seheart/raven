@@ -19,6 +19,7 @@
   import { dataService } from './lib/dataService.js';
   import { settings } from './lib/stores/settingsStore.js';
   import { websocketService } from './lib/services/websocket.js';
+  import { toasts } from './lib/toastStore.js';
 
   // State
   let sessionId = $state('Loading...');
@@ -79,6 +80,15 @@
       loadSessionId();
       dataService.prefetchAll();
     });
+
+    // Surface model loads as toasts so the user notices when a new local
+    // model becomes resident. Backend's local-model-callbacks emits 'model-loaded'.
+    const onModelLoaded = (data) => {
+      const model = data?.model || data?.name || 'unknown';
+      const project = data?.project || data?.cwd?.split('/').pop();
+      toasts.info(project ? `Model loaded: ${model} (by ${project})` : `Model loaded: ${model}`);
+    };
+    websocketService.on('model-loaded', onModelLoaded);
 
     // Apply saved theme on load. Class lives on <html> — see settingsStore.
     const savedTheme = settings.getValue().ui.theme;

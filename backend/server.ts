@@ -26,6 +26,7 @@ import os from 'os';
 // Import TypeScript modules
 import { RavenDB } from './db.js';
 import { MetricsCollector } from './metrics-collector.js';
+import { GpuMetricsCollector } from './services/gpu-metrics-collector.js';
 import { TriggerEngine } from './trigger-engine.js';
 import { FileWatcher, GitMonitor } from './modules/index.js';
 import { logger } from './utils/logger.js';
@@ -182,6 +183,7 @@ app.use('/api/', apiLimiter);
 
 const db = new RavenDB(DB_PATH);
 const metricsCollector = new MetricsCollector(db, SESSION_ID, io);
+const gpuMetricsCollector = new GpuMetricsCollector(db, SESSION_ID);
 const triggerEngine = new TriggerEngine(RAVEN_DIR, io);
 // Initialize health monitoring system
 const healthMonitor = new HealthMonitor(db);
@@ -566,6 +568,7 @@ httpServer.listen(PORT, BIND_HOST, async () => {
   // Start metrics collector
   logger.info('📊 Starting metrics collector...');
   metricsCollector.start();
+  gpuMetricsCollector.start();
 
   // Start comprehensive health monitoring
   logger.info('🏥 Starting comprehensive health monitoring...');
@@ -630,6 +633,7 @@ installGracefulShutdown({
   gitMonitor,
   localModelWatcher,
   metricsCollector,
+  gpuMetricsCollector,
   healthMonitor,
   insightsService,
   selfAnalysisService,

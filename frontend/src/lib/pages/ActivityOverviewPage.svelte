@@ -730,11 +730,6 @@
     }
   };
 
-  const handleProjectSwitched = async () => {
-    offset = 0;
-    await loadActivities();
-  };
-
   // Effects for Svelte 5
   $effect(() => {
     if (sortBy) {
@@ -759,7 +754,6 @@
 
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
-    websocketService.on('project-switched', handleProjectSwitched);
 
     window.addEventListener('keydown', handleKeydown);
 
@@ -779,7 +773,6 @@
     return () => {
       abortRequests();
       websocketService.off('file-changed', handleFileChanged);
-      websocketService.off('project-switched', handleProjectSwitched);
       window.removeEventListener('keydown', handleKeydown);
       if (themeObserver) {
         themeObserver.disconnect();

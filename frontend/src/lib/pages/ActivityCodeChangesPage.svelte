@@ -91,11 +91,6 @@
     debouncedLoadEvents();
   };
 
-  const handleProjectSwitched = data => {
-    logger.debug(' Project switched, reloading data:', data?.project);
-    loadEvents();
-  };
-
   async function loadEvents() {
     try {
       loading = true;
@@ -186,17 +181,15 @@
     // Connect to WebSocket for real-time updates
     websocketService.connect();
 
-    // Listen for file change events
+    // Listen for file change events ('project-switched' had no backend emit)
     websocketService.on('file-changed', handleFileChanged);
     websocketService.on('agent-event', handleAgentEvent);
-    websocketService.on('project-switched', handleProjectSwitched);
 
     // Cleanup
     return () => {
       abortRequests();
       websocketService.off('file-changed', handleFileChanged);
       websocketService.off('agent-event', handleAgentEvent);
-      websocketService.off('project-switched', handleProjectSwitched);
 
       if (debouncedTimeoutId) {
         clearTimeout(debouncedTimeoutId);

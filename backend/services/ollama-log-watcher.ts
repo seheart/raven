@@ -80,16 +80,51 @@ interface OllamaWatcherOptions {
 }
 
 interface OllamaInferenceEvent {
-  type: 'tool_call' | 'tool_error';
+  type: 'inference' | 'tool_call' | 'tool_error';
   tool: string;
   file: string;
   duration_ms: number | null;
   timestamp: string;
   source: 'ollama';
   eventCategory: 'agent_event';
+  // Populated when /api/ps returns the resident model. The factory uses these
+  // to pulse ActiveModelCard for the right resident-model row.
+  model?: string;
+  agentNameOverride?: string;
+  metadata?: Record<string, unknown>;
 }
 
 type OllamaEventCallback = (event: OllamaInferenceEvent) => Promise<void> | void;
+
+// Resident-model lookup. Cached because /api/chat lines arrive in bursts
+// and re-querying Ollama for each one would amplify load. 5s lines up with
+// the proxy/api-cache TTL elsewhere in the codebase.
+let psCache: { ts: number; model: string | null; details: Record<string, unknown> | null } | null =
+  null;
+async function getResidentModel(): Promise<{
+  model: string | null;
+  details: Record<string, unknown> | null;
+}> {
+  if (psCache && Date.now() - psCache.ts < 5000) {
+    return { model: psCache.model, details: psCache.details };
+  }
+  const url = `${process.env.OLLAMA_URL || 'http://localhost:11434'}/api/ps`;
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    if (!r.ok) {
+      psCache = { ts: Date.now(), model: null, details: null };
+      return { model: null, details: null };
+    }
+    const data = (await r.json()) as { models?: Array<Record<string, unknown>> };
+    const first = data.models?.[0];
+    const model = (first?.name as string | undefined) || null;
+    psCache = { ts: Date.now(), model, details: (first as Record<string, unknown>) || null };
+    return { model, details: psCache.details };
+  } catch {
+    psCache = { ts: Date.now(), model: null, details: null };
+    return { model: null, details: null };
+  }
+}
 
 export class OllamaLogWatcher {
   private eventCallback: OllamaEventCallback;
@@ -233,14 +268,41 @@ export class OllamaLogWatcher {
 
     const isError = !Number.isFinite(status) || status >= 400;
 
+    // Resolve the resident model so the event attributes to the right row in
+    // ActiveModelCard. The journal line only has endpoint + duration; /api/ps
+    // gives us the model that just served the request (cached 5s).
+    const { model, details } = isError
+      ? { model: null, details: null }
+      : await getResidentModel();
+
+    const metadata: Record<string, unknown> = {
+      endpoint: path,
+      method,
+      status_code: status,
+      duration_ms: durationMs,
+      source: 'journalctl'
+    };
+    if (model) metadata.model = model;
+    if (details) {
+      metadata.parameter_size = details.parameter_size;
+      metadata.quantization_level = details.quantization_level;
+      metadata.family = details.family;
+    }
+
     await this.eventCallback({
-      type: isError ? 'tool_error' : 'tool_call',
+      // Promote successful chat/generate/embed calls to 'inference' so the
+      // rest of Raven's reporting (RecentInferencesCard, ActiveModelCard pulse,
+      // /api/agent-stats counts) sees them as first-class inference events.
+      type: isError ? 'tool_error' : 'inference',
       tool: method,
       file: path,
       duration_ms: durationMs,
       timestamp,
       source: 'ollama',
-      eventCategory: 'agent_event'
+      eventCategory: 'agent_event',
+      model: model ?? undefined,
+      agentNameOverride: model ?? undefined,
+      metadata
     });
   }
 }

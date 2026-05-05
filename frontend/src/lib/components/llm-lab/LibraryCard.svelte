@@ -8,6 +8,8 @@
 
   let models = $state([]);
   let error = $state(null);
+  let ollamaOffline = $state(false);
+  let offlineDetail = $state('');
 
   function formatSize(b) {
     const gb = b / 1e9;
@@ -29,6 +31,8 @@
   async function refresh() {
     try {
       const data = await api.get('/ollama/library');
+      ollamaOffline = data.ollama_status === 'offline';
+      offlineDetail = data.detail || '';
       models = (data.models || []).sort((a, b) => b.size - a.size);
       error = null;
     } catch (e) {
@@ -51,6 +55,13 @@
 
   {#if error}
     <div class="text-xs text-[var(--error)] font-mono">{error}</div>
+  {:else if ollamaOffline}
+    <div class="text-xs text-[var(--warning)] py-6 text-center">
+      <div class="font-semibold">Ollama not reachable</div>
+      {#if offlineDetail}
+        <div class="text-[10px] text-[var(--muted)] font-mono mt-1">{offlineDetail}</div>
+      {/if}
+    </div>
   {:else if models.length === 0}
     <div class="text-xs text-[var(--muted)] italic py-6 text-center">No models installed</div>
   {:else}

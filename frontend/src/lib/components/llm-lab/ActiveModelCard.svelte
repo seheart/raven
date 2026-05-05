@@ -13,6 +13,8 @@
   let models = $state([]);
   let lastFetch = $state(null);
   let error = $state(null);
+  let ollamaOffline = $state(false);
+  let offlineDetail = $state('');
   let now = $state(Date.now());
 
   // Per-model state, keyed by model name.
@@ -98,6 +100,8 @@
       // — CompactActiveModel + CombinedLlmCard + this card all share one
       // network round-trip when on screen together.
       const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
+      ollamaOffline = data.ollama_status === 'offline';
+      offlineDetail = data.detail || '';
       const seenNames = new Set();
       for (const m of data.models || []) {
         seenNames.add(m.name);
@@ -150,11 +154,25 @@
 <div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3">
   <div class="flex items-baseline justify-between mb-2">
     <h3 class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Active Models</h3>
-    <span class="text-[10px] text-[var(--muted)] font-mono">/api/ps</span>
+    <span class="text-[10px] text-[var(--muted)] font-mono" title="/api/ps">
+      {#if lastFetch}
+        {@const ageS = Math.max(0, Math.floor((now - lastFetch) / 1000))}
+        Updated {ageS}s ago
+      {:else}
+        /api/ps
+      {/if}
+    </span>
   </div>
 
   {#if error}
     <div class="text-xs text-[var(--error)] font-mono">{error}</div>
+  {:else if ollamaOffline}
+    <div class="text-xs text-[var(--warning)] py-4 text-center">
+      <div class="font-semibold">Ollama not reachable</div>
+      {#if offlineDetail}
+        <div class="text-[10px] text-[var(--muted)] font-mono mt-1">{offlineDetail}</div>
+      {/if}
+    </div>
   {:else if models.length === 0}
     <div class="text-xs text-[var(--muted)] italic py-4 text-center">
       No models resident in VRAM

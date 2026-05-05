@@ -345,13 +345,21 @@
   }
 
   function setupWebSocket() {
-    // Listen for new conversation events
-    conversationHandler = () => {
-      if (autoRefresh) {
-        loadConversations();
-      }
+    // Backend never emits a 'conversation' event — conversation rows arrive
+    // as 'agent-event' WS messages with type ∈ {user_message, assistant_text,
+    // tool_call, tool_result}. Filter on those to refresh the page live.
+    const CONVERSATION_TYPES = new Set([
+      'user_message',
+      'assistant_text',
+      'tool_call',
+      'tool_result'
+    ]);
+    conversationHandler = (event) => {
+      if (!autoRefresh) return;
+      const t = event?.type || event?.event_type;
+      if (t && CONVERSATION_TYPES.has(t)) loadConversations();
     };
-    websocketService.on('conversation', conversationHandler);
+    websocketService.on('agent-event', conversationHandler);
 
     // NOTE: Removed file-changed listener - it caused feedback loops
     // since Raven's own log writes trigger file-changed events
@@ -529,7 +537,7 @@
     return () => {
       abortRequests();
       // Clean up WebSocket listeners
-      if (conversationHandler) websocketService.off('conversation', conversationHandler);
+      if (conversationHandler) websocketService.off('agent-event', conversationHandler);
 
       // Disconnect theme observer
       if (themeObserver) {

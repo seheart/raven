@@ -12,6 +12,8 @@
   let gpu = $state(null);
   let now = $state(Date.now());
   let modelState = $state({});
+  let ollamaOffline = $state(false);
+  let gpuMissing = $state(false);
 
   function ensure(name) {
     if (!modelState[name]) modelState[name] = { flashId: 0, tps: [] };
@@ -43,6 +45,7 @@
     try {
       // Shared /ollama/ps cache via dataService (3s TTL == poll interval).
       const data = await dataService.fetch('/ollama/ps', { ttl: 3000 });
+      ollamaOffline = data.ollama_status === 'offline';
       const seen = new Set();
       for (const m of data.models || []) { seen.add(m.name); ensure(m.name); }
       for (const k of Object.keys(modelState)) if (!seen.has(k)) delete modelState[k];
@@ -55,6 +58,7 @@
       // Shared /gpu cache via dataService (2s TTL == poll interval).
       const data = await dataService.fetch('/gpu', { ttl: 2000 });
       gpu = data.gpus?.[0] || null;
+      gpuMissing = !gpu;
       if (gpu) utilHistory = [...utilHistory, gpu.gpu_util_pct].slice(-30);
     } catch {}
   }
@@ -84,7 +88,9 @@
   </div>
 
   <!-- Model section -->
-  {#if models.length === 0}
+  {#if ollamaOffline}
+    <div class="text-[11px] text-[var(--warning)] py-2 text-center font-semibold">Ollama not reachable</div>
+  {:else if models.length === 0}
     <div class="text-[11px] text-[var(--muted)] italic py-2 text-center">No models in VRAM</div>
   {:else}
     {#each models as m (m.name)}

@@ -313,14 +313,8 @@
     // Load initial data
     loadTrends();
 
-    // WebSocket event handlers
-    const handleProjectSwitched = async () => {
-      await loadTrends();
-    };
-
-    // Connect to WebSocket
+    // 'project-switched' was a listener-with-no-emit; removed.
     websocketService.connect();
-    websocketService.on('project-switched', handleProjectSwitched);
 
     // Create theme observer
     const themeObserver = createThemeObserver(() => {
@@ -331,8 +325,6 @@
     // Cleanup function
     return () => {
       abortRequests();
-      // Clean up WebSocket listeners
-      websocketService.off('project-switched', handleProjectSwitched);
 
       // Disconnect theme observer
       if (themeObserver) {

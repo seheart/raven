@@ -39,6 +39,7 @@ interface ShutdownDeps {
   gitMonitor: Stoppable;
   localModelWatcher: Stoppable;
   metricsCollector: Stoppable;
+  gpuMetricsCollector?: Stoppable;
   healthMonitor: MonitorStoppable;
   insightsService?: Stoppable;
   selfAnalysisService?: SelfAnalysisLike;
@@ -88,6 +89,9 @@ export function installGracefulShutdown(deps: ShutdownDeps): {
 
       logger.info('🛑 Stopping metrics collector...');
       deps.metricsCollector.stop();
+      if (deps.gpuMetricsCollector) {
+        deps.gpuMetricsCollector.stop();
+      }
 
       logger.info('🛑 Stopping health monitor...');
       deps.healthMonitor.stopMonitoring();

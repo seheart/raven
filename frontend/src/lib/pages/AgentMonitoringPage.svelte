@@ -321,11 +321,6 @@
     setTimeout(createCharts, 100);
   };
 
-  const handleAgentStatus = _status => {
-    // Update agent status in real-time
-    loadMonitoringData();
-  };
-
   async function loadMonitoringData() {
     try {
       error = null;
@@ -393,10 +388,10 @@
     // Initial load
     loadMonitoringData();
 
-    // Connect to WebSocket for real-time updates
+    // Connect to WebSocket for real-time updates. ('agent-status' previously
+    // listened-but-no-emit; removed — the 30s safety-net poll covers it.)
     websocketService.connect();
     websocketService.on('agent-event', handleAgentEvent);
-    websocketService.on('agent-status', handleAgentStatus);
 
     // Watch for theme changes
     themeObserver = createThemeObserver(() => {
@@ -407,7 +402,6 @@
     return () => {
       abortRequests();
       websocketService.off('agent-event', handleAgentEvent);
-      websocketService.off('agent-status', handleAgentStatus);
 
       if (themeObserver) {
         themeObserver.disconnect();
