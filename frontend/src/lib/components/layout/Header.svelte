@@ -30,6 +30,7 @@
   }
 
   const tabs = [
+    { id: 'today', label: 'Today', path: '/today' },
     { id: 'overview', label: 'Dashboard', path: '/overview' },
     { id: 'insights', label: 'Insights', path: '/insights' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },

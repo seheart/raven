@@ -51,6 +51,7 @@ import { createConversationsRouter } from './conversations.js';
 import { createCostsRouter } from './costs.js';
 import { createDashboardRouter } from './dashboard.js';
 import { createDevRouter } from './dev.js';
+import { createDigestRouter } from './digest.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -256,6 +257,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   );
 
   app.use('/api/costs', createCostsRouter(db));
+  app.use('/api/digest', createDigestRouter({ db, projectsConfigService }));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());

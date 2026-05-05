@@ -44,9 +44,11 @@
 
   // Initialize route on mount
   $effect(() => {
-    // If on root path, redirect to dashboard
+    // If on root path, land on the new sentence-shaped digest. The old
+    // engineering Overview lives at /overview and is one click away
+    // via the "Engineering view" link on the Today page.
     if (currentPath === '/') {
-      navigate('/overview');
+      navigate('/today');
     }
   });
 
@@ -186,7 +188,15 @@
           </div>
         </div>
       {/snippet}
-      {#if activeTab === 'live'}
+      {#if activeTab === 'today'}
+        {#await import('./lib/pages/TodayPage.svelte')}
+          <PlaceholderPage title="Today" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Today" description="Failed to load" />
+        {/await}
+      {:else if activeTab === 'live'}
         {#await import('./lib/pages/LivePage.svelte')}
           <PlaceholderPage title="Live Monitor" description="Loading..." />
         {:then { default: Component }}
