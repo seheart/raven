@@ -6,41 +6,112 @@
  * - Code quality trends within sessions
  * - Fatigue indicators (increasing rollbacks, larger changes, etc.)
  * - Peak productivity hours
+ *
+ * NOTE: this module is currently unwired in server.ts — only its own test
+ * file imports it. Kept as a parked feature; remove if the experiment is
+ * abandoned.
  */
 
+import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
 
+interface SessionChange {
+  timestamp: number;
+  changeType: string | undefined;
+  diffSize: number;
+  filepath: string | undefined;
+  agent: string | undefined;
+  riskScore: number;
+}
+
+interface ActiveSession {
+  id: number | bigint | null;
+  projectName: string;
+  startTime: number;
+  lastActivity: number;
+  changesCount: number;
+  rollbacksCount: number;
+  breaksMinutes: number;
+  qualityScore: number;
+  recentChanges: SessionChange[];
+  hourlyStats: Map<number, number>;
+}
+
+export interface RecordActivityEvent {
+  change_type?: string;
+  diff?: string;
+  filepath?: string;
+  agent?: string;
+  risk_score?: number;
+}
+
+export interface QualityFactor {
+  type: 'high_rollback_rate' | 'long_session' | 'increasing_change_size' | 'high_risk_changes';
+  severity: number;
+  message: string;
+}
+
+export interface QualityRecommendation {
+  level: 'critical' | 'warning';
+  message: string;
+  actions: string[];
+}
+
+export interface SessionQuality {
+  score: number;
+  factors: QualityFactor[];
+  recommendation: QualityRecommendation | null;
+  sessionDuration?: number;
+  rollbackRate?: number;
+}
+
+interface SessionRow {
+  id: number;
+  start_time: string;
+  end_time: string | null;
+  changes_count: number;
+  rollbacks_count: number;
+  break_minutes: number;
+  quality_score: number;
+  duration_hours: number;
+}
+
+export interface SessionStats {
+  totalSessions: number;
+  avgDuration: string | number;
+  avgQuality: number;
+  avgRollbackRate: string | number;
+  peakHours: Array<{ hour: number; sessions: number; avgChanges: number }>;
+  recentSessions?: SessionRow[];
+}
+
 export class SessionTracker {
-  constructor(projectDatabases) {
+  private projectDatabases: Map<string, RavenDB>;
+  private activeSessions: Map<string, ActiveSession>;
+  private sessionTimeout: number;
+
+  constructor(projectDatabases: Map<string, RavenDB>) {
     this.projectDatabases = projectDatabases;
-    this.activeSessions = new Map(); // projectName -> session object
-    this.sessionTimeout = 30 * 60 * 1000; // 30 minutes of inactivity = session end
+    this.activeSessions = new Map();
+    this.sessionTimeout = 30 * 60 * 1000;
   }
 
-  /**
-   * Record a file change event (called on every file change)
-   * Automatically starts/continues/ends sessions
-   */
-  recordActivity(projectName, eventData) {
+  recordActivity(projectName: string, eventData: RecordActivityEvent): ActiveSession {
     const now = Date.now();
     let session = this.activeSessions.get(projectName);
 
-    // Check if we need to end previous session (30min inactivity)
     if (session && now - session.lastActivity > this.sessionTimeout) {
       this.endSession(projectName);
-      session = null;
+      session = undefined;
     }
 
-    // Start new session if needed
     if (!session) {
       session = this.startSession(projectName);
     }
 
-    // Update session metrics
     session.changesCount++;
     session.lastActivity = now;
 
-    // Track change details for quality analysis
     session.recentChanges.push({
       timestamp: now,
       changeType: eventData.change_type,
@@ -50,12 +121,10 @@ export class SessionTracker {
       riskScore: eventData.risk_score || 0
     });
 
-    // Keep only last 20 changes for quality analysis
     if (session.recentChanges.length > 20) {
       session.recentChanges.shift();
     }
 
-    // Update session in database every 10 changes
     if (session.changesCount % 10 === 0) {
       this.updateSessionInDB(projectName, session);
     }
@@ -64,51 +133,45 @@ export class SessionTracker {
     return session;
   }
 
-  /**
-   * Start a new coding session
-   */
-  startSession(projectName) {
+  startSession(projectName: string): ActiveSession {
     const now = Date.now();
-    const session = {
-      id: null, // Will be set after DB insert
+    const session: ActiveSession = {
+      id: null,
       projectName,
       startTime: now,
       lastActivity: now,
       changesCount: 0,
       rollbacksCount: 0,
       breaksMinutes: 0,
-      qualityScore: 100, // Starts at 100
+      qualityScore: 100,
       recentChanges: [],
-      hourlyStats: new Map() // hour -> change count
+      hourlyStats: new Map()
     };
 
-    // Insert into database
     const db = this.projectDatabases.get(projectName);
     if (db) {
       try {
         const result = db.db
           .prepare(
-            `
-          INSERT INTO sessions (project_name, start_time, changes_count, rollbacks_count, break_minutes, quality_score)
-          VALUES (?, datetime('now'), 0, 0, 0, 100.0)
-        `
+            `INSERT INTO sessions (project_name, start_time, changes_count, rollbacks_count, break_minutes, quality_score)
+             VALUES (?, datetime('now'), 0, 0, 0, 100.0)`
           )
           .run(projectName);
 
         session.id = result.lastInsertRowid;
         logger.info('Started session', { sessionId: session.id, projectName });
       } catch (e) {
-        logger.error('Error starting session', { error: e, projectName });
+        logger.error('Error starting session', {
+          error: e instanceof Error ? e.message : String(e),
+          projectName
+        });
       }
     }
 
     return session;
   }
 
-  /**
-   * End a coding session
-   */
-  endSession(projectName) {
+  endSession(projectName: string): void {
     const session = this.activeSessions.get(projectName);
     if (!session) return;
 
@@ -117,14 +180,12 @@ export class SessionTracker {
       try {
         db.db
           .prepare(
-            `
-          UPDATE sessions SET
-            end_time = datetime('now'),
-            changes_count = ?,
-            rollbacks_count = ?,
-            quality_score = ?
-          WHERE id = ?
-        `
+            `UPDATE sessions SET
+               end_time = datetime('now'),
+               changes_count = ?,
+               rollbacks_count = ?,
+               quality_score = ?
+             WHERE id = ?`
           )
           .run(session.changesCount, session.rollbacksCount, session.qualityScore, session.id);
 
@@ -135,17 +196,17 @@ export class SessionTracker {
           qualityScore: session.qualityScore.toFixed(0)
         });
       } catch (e) {
-        logger.error('Error ending session', { error: e, projectName });
+        logger.error('Error ending session', {
+          error: e instanceof Error ? e.message : String(e),
+          projectName
+        });
       }
     }
 
     this.activeSessions.delete(projectName);
   }
 
-  /**
-   * Update session in database
-   */
-  updateSessionInDB(projectName, session) {
+  updateSessionInDB(projectName: string, session: ActiveSession): void {
     if (!session.id) return;
 
     const db = this.projectDatabases.get(projectName);
@@ -154,47 +215,36 @@ export class SessionTracker {
     try {
       db.db
         .prepare(
-          `
-        UPDATE sessions SET
-          changes_count = ?,
-          rollbacks_count = ?,
-          quality_score = ?
-        WHERE id = ?
-      `
+          `UPDATE sessions SET
+             changes_count = ?,
+             rollbacks_count = ?,
+             quality_score = ?
+           WHERE id = ?`
         )
         .run(session.changesCount, session.rollbacksCount, session.qualityScore, session.id);
     } catch (e) {
-      logger.error('Error updating session', { error: e, projectName, sessionId: session.id });
+      logger.error('Error updating session', {
+        error: e instanceof Error ? e.message : String(e),
+        projectName,
+        sessionId: session.id
+      });
     }
   }
 
-  /**
-   * Track a rollback in the current session
-   */
-  trackRollback(projectName) {
+  trackRollback(projectName: string): void {
     const session = this.activeSessions.get(projectName);
     if (session) {
       session.rollbacksCount++;
-
-      // Rollbacks decrease quality score
       session.qualityScore = Math.max(0, session.qualityScore - 5);
-
       this.updateSessionInDB(projectName, session);
     }
   }
 
-  /**
-   * Get current active session for a project
-   */
-  getActiveSession(projectName) {
+  getActiveSession(projectName: string): ActiveSession | null {
     return this.activeSessions.get(projectName) || null;
   }
 
-  /**
-   * Calculate session quality metrics (0-100)
-   * Lower score = fatigue/quality degradation
-   */
-  calculateSessionQuality(projectName) {
+  calculateSessionQuality(projectName: string): SessionQuality {
     const session = this.activeSessions.get(projectName);
     if (!session || session.recentChanges.length < 5) {
       return {
@@ -204,10 +254,9 @@ export class SessionTracker {
       };
     }
 
-    const factors = [];
+    const factors: QualityFactor[] = [];
     let qualityScore = 100;
 
-    // Factor 1: Rollback rate in this session
     const rollbackRate =
       session.changesCount > 0 ? session.rollbacksCount / session.changesCount : 0;
 
@@ -221,7 +270,6 @@ export class SessionTracker {
       });
     }
 
-    // Factor 2: Session duration (long sessions = fatigue)
     const durationHours = (Date.now() - session.startTime) / (1000 * 60 * 60);
 
     if (durationHours > 4) {
@@ -229,12 +277,11 @@ export class SessionTracker {
       qualityScore -= penalty;
       factors.push({
         type: 'long_session',
-        severity: durationHours / 6, // Normalize to 0-1
+        severity: durationHours / 6,
         message: `Long session: ${durationHours.toFixed(1)} hours (recommend breaks after 2-3 hours)`
       });
     }
 
-    // Factor 3: Change size trending up (cognitive load indicator)
     const recent5 = session.recentChanges.slice(-5);
     const older5 = session.recentChanges.slice(-10, -5);
 
@@ -253,7 +300,6 @@ export class SessionTracker {
       }
     }
 
-    // Factor 4: High-risk changes recently
     const recentHighRisk = recent5.filter(c => c.riskScore > 70).length;
     if (recentHighRisk >= 2) {
       const penalty = 10;
@@ -265,8 +311,7 @@ export class SessionTracker {
       });
     }
 
-    // Determine recommendation
-    let recommendation = null;
+    let recommendation: QualityRecommendation | null = null;
     if (qualityScore < 50) {
       recommendation = {
         level: 'critical',
@@ -285,7 +330,6 @@ export class SessionTracker {
       };
     }
 
-    // Update session quality score
     session.qualityScore = qualityScore;
 
     return {
@@ -297,34 +341,28 @@ export class SessionTracker {
     };
   }
 
-  /**
-   * Get session statistics for a project
-   */
-  getSessionStats(projectName, days = 30) {
+  getSessionStats(projectName: string, days = 30): SessionStats | null {
     const db = this.projectDatabases.get(projectName);
     if (!db) return null;
 
     try {
       const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-      // Get all sessions in time period
       const sessions = db.db
-        .prepare(
-          `
-        SELECT
-          id,
-          start_time,
-          end_time,
-          changes_count,
-          rollbacks_count,
-          break_minutes,
-          quality_score,
-          (JULIANDAY(COALESCE(end_time, datetime('now'))) - JULIANDAY(start_time)) * 24 as duration_hours
-        FROM sessions
-        WHERE project_name = ?
-        AND start_time >= ?
-        ORDER BY start_time DESC
-      `
+        .prepare<unknown[], SessionRow>(
+          `SELECT
+            id,
+            start_time,
+            end_time,
+            changes_count,
+            rollbacks_count,
+            break_minutes,
+            quality_score,
+            (JULIANDAY(COALESCE(end_time, datetime('now'))) - JULIANDAY(start_time)) * 24 as duration_hours
+           FROM sessions
+           WHERE project_name = ?
+           AND start_time >= ?
+           ORDER BY start_time DESC`
         )
         .all(projectName, cutoffDate);
 
@@ -338,7 +376,6 @@ export class SessionTracker {
         };
       }
 
-      // Calculate averages
       const avgDuration = sessions.reduce((sum, s) => sum + s.duration_hours, 0) / sessions.length;
       const avgQuality = sessions.reduce((sum, s) => sum + s.quality_score, 0) / sessions.length;
       const avgRollbackRate =
@@ -346,8 +383,7 @@ export class SessionTracker {
           return sum + (s.changes_count > 0 ? s.rollbacks_count / s.changes_count : 0);
         }, 0) / sessions.length;
 
-      // Find peak productivity hours
-      const hourlyActivity = new Map();
+      const hourlyActivity = new Map<number, { count: number; totalChanges: number }>();
       for (const session of sessions) {
         const hour = new Date(session.start_time).getHours();
         const current = hourlyActivity.get(hour) || { count: 0, totalChanges: 0 };
@@ -374,22 +410,21 @@ export class SessionTracker {
         recentSessions: sessions.slice(0, 10)
       };
     } catch (e) {
-      logger.error('Error getting session stats', { error: e, projectName });
+      logger.error('Error getting session stats', {
+        error: e instanceof Error ? e.message : String(e),
+        projectName
+      });
       return null;
     }
   }
 
-  /**
-   * End all active sessions (called on server shutdown)
-   */
-  endAllSessions() {
+  endAllSessions(): void {
     for (const projectName of this.activeSessions.keys()) {
       this.endSession(projectName);
     }
   }
 }
 
-// Export factory
-export function createSessionTracker(projectDatabases) {
+export function createSessionTracker(projectDatabases: Map<string, RavenDB>): SessionTracker {
   return new SessionTracker(projectDatabases);
 }
