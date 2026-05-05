@@ -1,6 +1,5 @@
 <script>
   import RavenLogo from '../ui/RavenLogo.svelte';
-  import HealthIndicator from '../HealthIndicator.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { api } from '../../apiClient.js';
@@ -30,7 +29,6 @@
   }
 
   const tabs = [
-    { id: 'today', label: 'Today', path: '/today' },
     { id: 'overview', label: 'Dashboard', path: '/overview' },
     { id: 'insights', label: 'Insights', path: '/insights' },
     { id: 'analysis', label: 'Analysis', path: '/analysis' },
@@ -108,12 +106,9 @@
   async function loadProjects() {
     try {
       const data = await api.get('/projects');
-      // Keep the full project objects locally so the dropdown can show
-      // displayName when set; the global store stays as just names since
-      // other components consume it as a string array.
-      const enabled = (data.projects || []).filter(p => p.enabled);
-      projects = enabled;
-      availableProjects.set(enabled.map(p => p.name));
+      const names = (data.projects || []).filter(p => p.enabled).map(p => p.name);
+      projects = names;
+      availableProjects.set(names);
     } catch {
       // Silent fail
     }
@@ -179,19 +174,16 @@
         <select
           value={currentFilter}
           onchange={e => setProjectFilter(e.target.value)}
-          class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
+          class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs font-mono text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
           aria-label="Filter by project"
         >
           <option value="all">All Projects</option>
-          {#each projects as proj (proj.name)}
-            <option value={proj.name}>{proj.displayName || proj.name}</option>
+          {#each projects as proj (proj)}
+            <option value={proj}>{proj}</option>
           {/each}
         </select>
       </div>
     {/if}
-
-    <!-- Code Health indicator (chrome glyph for self-analysis status) -->
-    <HealthIndicator />
 
     <!-- Settings -->
     <button

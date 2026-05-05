@@ -15,8 +15,6 @@
   let editingProject = $state(null); // null = list view, 'new' = add, or project object = edit
   let formData = $state({
     name: '',
-    displayName: '',
-    mission: '',
     path: '',
     enabled: true,
     ignorePatterns: ['node_modules', '.git', 'dist', 'build']
@@ -57,8 +55,6 @@
     editingProject = project;
     formData = {
       name: project.name,
-      displayName: project.displayName || '',
-      mission: project.mission || '',
       path: project.path,
       enabled: project.enabled,
       ignorePatterns: project.ignorePatterns || ['node_modules', '.git', 'dist', 'build']
@@ -69,8 +65,6 @@
     editingProject = 'new';
     formData = {
       name: '',
-      displayName: '',
-      mission: '',
       path: '',
       enabled: true,
       ignorePatterns: ['node_modules', '.git', 'dist', 'build']
@@ -83,16 +77,10 @@
 
   async function saveProject() {
     try {
-      // Strip empty optional fields so the backend doesn't store empty strings —
-      // displayName/mission both reasonably default to undefined when blank.
-      const payload = { ...formData };
-      if (!payload.displayName?.trim()) delete payload.displayName;
-      if (!payload.mission?.trim()) delete payload.mission;
-
       if (editingProject === 'new') {
-        await api.post('/projects', payload);
+        await api.post('/projects', formData);
       } else {
-        await api.put(`/projects/${editingProject.id || editingProject.name}`, payload);
+        await api.put(`/projects/${editingProject.id || editingProject.name}`, formData);
       }
       editingProject = null;
       await loadConfig();
@@ -158,38 +146,12 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm text-muted mb-1">
-              Project Name <span class="text-[10px] text-muted">(repo / directory — used as a key)</span>
+              Project Name
               <input
                 type="text"
                 bind:value={formData.name}
                 placeholder="my-project"
                 class="w-full px-3 py-1.5 mt-1 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-              />
-            </label>
-          </div>
-
-          <div>
-            <label class="block text-sm text-muted mb-1">
-              Display Name <span class="text-[10px] text-muted">(optional — what humans call it)</span>
-              <input
-                type="text"
-                bind:value={formData.displayName}
-                placeholder="Mom's UK Trip Planner"
-                maxlength="120"
-                class="w-full px-3 py-1.5 mt-1 bg-canvas border border-border rounded text-sm text-body focus:outline-none focus:border-accent"
-              />
-            </label>
-          </div>
-
-          <div>
-            <label class="block text-sm text-muted mb-1">
-              Mission <span class="text-[10px] text-muted">(optional — one-line purpose)</span>
-              <input
-                type="text"
-                bind:value={formData.mission}
-                placeholder="Plan a 10-day birthday trip with Mom"
-                maxlength="280"
-                class="w-full px-3 py-1.5 mt-1 bg-canvas border border-border rounded text-sm text-body focus:outline-none focus:border-accent"
               />
             </label>
           </div>
@@ -280,16 +242,10 @@
                     : 'bg-muted'}"
                 ></span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-semibold text-body flex items-baseline gap-2">
-                    <span>{project.displayName || project.name}</span>
-                    {#if project.displayName && project.displayName !== project.name}
-                      <span class="text-[10px] font-mono text-muted">{project.name}</span>
-                    {/if}
+                  <div class="text-sm font-mono font-semibold text-body">
+                    {project.name}
                   </div>
-                  {#if project.mission}
-                    <div class="text-xs text-body italic truncate">{project.mission}</div>
-                  {/if}
-                  <div class="text-xs text-muted truncate font-mono">{project.path}</div>
+                  <div class="text-xs text-muted truncate">{project.path}</div>
                 </div>
                 <div class="text-xs text-muted font-mono flex-shrink-0">
                   {project.eventCount || project.event_count || 0} events

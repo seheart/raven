@@ -8,7 +8,6 @@
   import { api } from './lib/apiClient.js';
   import Header from './lib/components/layout/Header.svelte';
   import VitalsStrip from './lib/components/layout/VitalsStrip.svelte';
-  import NebulaStrip from './lib/components/NebulaStrip.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
   // Eagerly import frequently visited pages, lazy-load the rest
   import AnalysisPage from './lib/pages/AnalysisPage.svelte';
@@ -44,11 +43,9 @@
 
   // Initialize route on mount
   $effect(() => {
-    // If on root path, land on the new sentence-shaped digest. The old
-    // engineering Overview lives at /overview and is one click away
-    // via the "Engineering view" link on the Today page.
+    // If on root path, redirect to dashboard
     if (currentPath === '/') {
-      navigate('/today');
+      navigate('/overview');
     }
   });
 
@@ -155,7 +152,6 @@
     onLogoutClick={handleLogoutClick}
   />
   <VitalsStrip />
-  <NebulaStrip />
 
   <!-- Main Content -->
   <main class="pb-16">
@@ -188,15 +184,7 @@
           </div>
         </div>
       {/snippet}
-      {#if activeTab === 'today'}
-        {#await import('./lib/pages/TodayPage.svelte')}
-          <PlaceholderPage title="Today" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Today" description="Failed to load" />
-        {/await}
-      {:else if activeTab === 'live'}
+      {#if activeTab === 'live'}
         {#await import('./lib/pages/LivePage.svelte')}
           <PlaceholderPage title="Live Monitor" description="Loading..." />
         {:then { default: Component }}

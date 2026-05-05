@@ -17,28 +17,6 @@
   let memTotal = $state(0);
   let gpu = $state(null);
   let gpuError = $state(false);
-  let costToday = $state(0);
-  let costRequests = $state(0);
-  let costInputTokens = $state(0);
-  let costOutputTokens = $state(0);
-
-  function todayStartIso() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  }
-
-  function fmtCost(usd) {
-    if (usd >= 100) return `$${usd.toFixed(0)}`;
-    if (usd >= 10) return `$${usd.toFixed(1)}`;
-    return `$${usd.toFixed(2)}`;
-  }
-
-  function fmtTokens(n) {
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-    return String(n);
-  }
 
   function barColor(pct) {
     if (pct >= 95) return 'var(--error)';
@@ -75,31 +53,10 @@
     }
   }
 
-  // Cost data refreshes less often than vitals — token usage events
-  // arrive via the agent log watchers, not in real time, and the bill
-  // doesn't change every 2 seconds.
-  async function refreshCosts() {
-    try {
-      const start = todayStartIso();
-      const summary = await api.get(`/costs/summary?start=${encodeURIComponent(start)}`).catch(() => null);
-      if (summary) {
-        costToday = summary.total_cost_usd || 0;
-        costRequests = summary.total_requests || 0;
-        costInputTokens = summary.total_input_tokens || 0;
-        costOutputTokens = summary.total_output_tokens || 0;
-      }
-    } catch {}
-  }
-
   onMount(() => {
     refresh();
-    refreshCosts();
     const t = setInterval(refresh, 2000);
-    const c = setInterval(refreshCosts, 15000);
-    return () => {
-      clearInterval(t);
-      clearInterval(c);
-    };
+    return () => clearInterval(t);
   });
 </script>
 
@@ -170,19 +127,4 @@
     <span class="text-[var(--border)]">|</span>
     <span class="text-[10px] text-[var(--muted)] italic">no GPU</span>
   {/if}
-
-  <span class="text-[var(--border)]">|</span>
-
-  <!-- Today's API cost — running tally of Claude API spend since midnight.
-       Always present so the bill is never out of sight. -->
-  <div
-    class="flex items-center gap-1.5"
-    title="Today: {costRequests} requests · {fmtTokens(costInputTokens)} in · {fmtTokens(costOutputTokens)} out · ${costToday.toFixed(4)}"
-  >
-    <span class="text-[var(--muted)] uppercase tracking-wide text-[10px]">$ today</span>
-    <span class="font-semibold text-[var(--text)] tabular-nums">{fmtCost(costToday)}</span>
-    {#if costRequests > 0}
-      <span class="text-[var(--muted)] text-[10px]">({costRequests})</span>
-    {/if}
-  </div>
 </div>
