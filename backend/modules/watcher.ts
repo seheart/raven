@@ -261,8 +261,7 @@ export class FileWatcher {
       // Emit to EventBus
       EventBus.emitFileEvent(event);
 
-      // Log
-      logger.info('File event', {
+      logger.debug('File event', {
         eventType,
         path: relPath,
         size

@@ -213,10 +213,14 @@ selfAnalysisService.onProgress(progress => {
   io.emit('analysis-progress', progress);
 });
 
-// Database retention: clean old data on startup and nightly at 3 AM
+// Database retention: clean old data on startup and nightly at 3 AM.
+// Also prunes snapshot files (rollback backups) past their retention window —
+// they were previously unbounded.
 startRetentionCleanup(db, {
   eventDays: parseInt(process.env.RETENTION_EVENT_DAYS || '7', 10),
-  metricsDays: parseInt(process.env.RETENTION_METRICS_DAYS || '30', 10)
+  metricsDays: parseInt(process.env.RETENTION_METRICS_DAYS || '30', 10),
+  snapshotDays: parseInt(process.env.RETENTION_SNAPSHOT_DAYS || '7', 10),
+  snapshotsDir: SNAPSHOTS_DIR
 });
 
 // Set up health alert handler to emit via WebSocket
@@ -603,11 +607,12 @@ httpServer.listen(PORT, BIND_HOST, async () => {
   });
 
   // Seed + periodically refresh the project cache used for inference
-  // attribution. 30s is plenty: project additions/removals are rare.
+  // attribution. 5 min is plenty: project additions/removals are rare,
+  // and explicit add/remove flows refresh the cache on demand.
   await projectsConfigService.refreshKnownProjects();
   setInterval(() => {
     projectsConfigService.refreshKnownProjects().catch(() => {});
-  }, 30_000).unref();
+  }, 300_000).unref();
 
   logger.info('✅ All services started successfully');
 });

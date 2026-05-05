@@ -80,6 +80,15 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
     ORDER BY filepath
   `);
 
+  // Diffs above this cap are stored truncated with a sentinel suffix. Without
+  // this, a single 60 KB diff bloats the events table at 16 KB/row average.
+  const DIFF_MAX_BYTES = 4096;
+  const truncateDiff = (diff: string | null | undefined): string | null => {
+    if (!diff) return diff ?? null;
+    if (diff.length <= DIFF_MAX_BYTES) return diff;
+    return diff.slice(0, DIFF_MAX_BYTES) + `\n…[truncated ${diff.length - DIFF_MAX_BYTES} chars]`;
+  };
+
   return {
     insert(
       timestamp,
@@ -98,7 +107,7 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
         timestamp,
         filepath,
         change_type,
-        diff,
+        truncateDiff(diff),
         cpu,
         mem,
         session_id || null,

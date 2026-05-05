@@ -9,9 +9,8 @@
   import Header from './lib/components/layout/Header.svelte';
   import VitalsStrip from './lib/components/layout/VitalsStrip.svelte';
   import Footer from './lib/components/layout/Footer.svelte';
-  // Eagerly import frequently visited pages, lazy-load the rest
-  import AnalysisPage from './lib/pages/AnalysisPage.svelte';
-  import ModelsPage from './lib/pages/ModelsPage.svelte';
+  // All pages lazy-loaded; eagerly importing AnalysisPage dragged chart.js
+  // into the entry chunk (~150KB shell weight).
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
@@ -273,7 +272,13 @@
         {/if}
       {:else if activeTab === 'analysis'}
         {#if !activeSubTab}
-          <AnalysisPage />
+          {#await import('./lib/pages/AnalysisPage.svelte')}
+            <PlaceholderPage title="Analysis" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Analysis" description="Failed to load" />
+          {/await}
         {:else if activeSubTab === 'costs'}
           {#await import('./lib/pages/CostsPage.svelte')}
             <PlaceholderPage title="Costs" description="Loading..." />
@@ -291,7 +296,13 @@
             <PlaceholderPage title="Sub-Agents" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'models'}
-          <ModelsPage />
+          {#await import('./lib/pages/ModelsPage.svelte')}
+            <PlaceholderPage title="Models" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Models" description="Failed to load" />
+          {/await}
         {:else if activeSubTab === 'performance'}
           {#await import('./lib/pages/AnalysisPerformancePage.svelte')}
             <PlaceholderPage title="Performance" description="Loading..." />

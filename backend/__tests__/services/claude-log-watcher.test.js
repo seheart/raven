@@ -696,11 +696,12 @@ describe('ClaudeLogWatcher', () => {
       fs.writeFileSync(testFile, 'content');
       watcher.filePositions.set(testFile, 0);
 
+      // The change handler should invoke handleLogFileChanged. We assert via
+      // the debug log that handler emits (info-level "Log file change detected"
+      // was duplicate spam and was removed).
+      const spy = jest.spyOn(watcher, 'handleLogFileChanged');
       changeHandler(testFile);
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Log file change detected')
-      );
+      expect(spy).toHaveBeenCalledWith(testFile);
     });
 
     test('should trigger error handler on watcher error', async () => {

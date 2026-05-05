@@ -7,13 +7,18 @@
 
 import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
+import { promises as fs } from 'fs';
+import { join } from 'path';
 
 const DEFAULT_EVENT_DAYS = 7;
 const DEFAULT_METRICS_DAYS = 30;
+const DEFAULT_SNAPSHOT_DAYS = 7;
 
 interface RetentionConfig {
   eventDays?: number;
   metricsDays?: number;
+  snapshotDays?: number;
+  snapshotsDir?: string;
 }
 
 /**
@@ -31,31 +36,47 @@ function runRetentionCleanup(
 ): Record<string, number> {
   const results: Record<string, number> = {};
 
-  const tables: Array<{ name: string; days: number }> = [
+  // Most tables share the standard `timestamp` column. A few diverge —
+  // those use a custom `column` so retention actually fires (the previous
+  // implementation silently no-op'd on subagent_tree/analysis_checks).
+  const tables: Array<{ name: string; days: number; column?: string; via?: string }> = [
     { name: 'events', days: eventDays },
     { name: 'agent_events', days: eventDays },
     { name: 'syntax_errors', days: eventDays },
     { name: 'pattern_warnings', days: eventDays },
     { name: 'diff_risk_scores', days: eventDays },
     { name: 'app_errors', days: eventDays },
+    { name: 'api_latency', days: eventDays },
     { name: 'raven_metrics', days: metricsDays },
     { name: 'process_metrics', days: metricsDays },
     { name: 'token_usage', days: metricsDays },
     { name: 'insights', days: metricsDays },
     { name: 'test_results', days: metricsDays },
-    { name: 'subagent_tree', days: metricsDays },
     { name: 'analysis_runs', days: metricsDays },
-    { name: 'analysis_checks', days: metricsDays }
+    { name: 'subagent_tree', days: metricsDays, column: 'started_at' },
+    // analysis_checks lacks a timestamp; cascade from analysis_runs via run_id.
+    {
+      name: 'analysis_checks',
+      days: metricsDays,
+      via:
+        'DELETE FROM analysis_checks WHERE run_id IN (SELECT id FROM analysis_runs WHERE timestamp < ?)'
+    }
   ];
 
-  for (const { name, days } of tables) {
+  for (const { name, days, column = 'timestamp', via } of tables) {
     try {
-      const result = db.db
-        .prepare(`DELETE FROM ${name} WHERE timestamp < datetime('now', '-${days} days')`)
-        .run();
+      const cutoff = `datetime('now', '-${days} days')`;
+      const sql = via
+        ? via.replace('?', cutoff)
+        : `DELETE FROM ${name} WHERE ${column} < ${cutoff}`;
+      const result = db.db.prepare(sql).run();
       if (result.changes > 0) results[name] = result.changes;
-    } catch {
-      // Table may not exist yet — skip silently
+    } catch (err) {
+      // Table may not exist yet — log at debug rather than silently no-op'ing
+      // (the silent path masked a real bug for months).
+      logger.debug(
+        `Retention skip on ${name}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -70,15 +91,61 @@ function runRetentionCleanup(
   return results;
 }
 
+/**
+ * Prune snapshot files older than `days`. Snapshots are pre-edit backups for
+ * the rollback feature; without retention they accumulate indefinitely (we
+ * found 28k+ files / 13 GB in the wild before this hook landed).
+ */
+async function runSnapshotCleanup(snapshotsDir: string, days: number): Promise<number> {
+  const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
+  let entries: string[];
+  try {
+    entries = await fs.readdir(snapshotsDir);
+  } catch {
+    return 0;
+  }
+  let deleted = 0;
+  await Promise.all(
+    entries.map(async name => {
+      const filepath = join(snapshotsDir, name);
+      try {
+        const stat = await fs.stat(filepath);
+        if (stat.isFile() && stat.mtimeMs < cutoffMs) {
+          await fs.unlink(filepath);
+          deleted++;
+        }
+      } catch {
+        // Snapshot may have been removed between readdir and stat; ignore.
+      }
+    })
+  );
+  return deleted;
+}
+
 export function startRetentionCleanup(db: RavenDB, config: RetentionConfig = {}): void {
   const eventDays = config.eventDays ?? DEFAULT_EVENT_DAYS;
   const metricsDays = config.metricsDays ?? DEFAULT_METRICS_DAYS;
+  const snapshotDays = config.snapshotDays ?? DEFAULT_SNAPSHOT_DAYS;
+  const snapshotsDir = config.snapshotsDir;
 
-  const run = () => {
+  const run = async () => {
     const results = runRetentionCleanup(db, eventDays, metricsDays);
     const total = Object.values(results).reduce((s, n) => s + n, 0);
     if (total > 0) {
       logger.info(`🧹 Retention cleanup: deleted ${total} old rows`, results);
+    }
+    if (snapshotsDir) {
+      try {
+        const deleted = await runSnapshotCleanup(snapshotsDir, snapshotDays);
+        if (deleted > 0) {
+          logger.info(`🧹 Snapshot cleanup: deleted ${deleted} files older than ${snapshotDays}d`);
+        }
+      } catch (err) {
+        logger.error(
+          'Snapshot cleanup failed:',
+          err instanceof Error ? err : new Error(String(err))
+        );
+      }
     }
   };
 

@@ -242,7 +242,8 @@ export class ClaudeLogWatcher {
     });
 
     this.logWatcher.on('change', (filepath: string) => {
-      this.logger.info(`🔄 Log file change detected: ${path.basename(filepath)}`);
+      // handleLogFileChanged already emits a debug log; logging here too was
+      // double-spam — every chokidar tick produced two info lines.
       this.handleLogFileChanged(filepath);
     });
 
@@ -417,7 +418,7 @@ export class ClaudeLogWatcher {
 
   async handleLogFileChanged(filepath: string): Promise<void> {
     try {
-      this.logger.info(`📄 Log file changed: ${path.basename(filepath)}`);
+      this.logger.debug(`📄 Log file changed: ${path.basename(filepath)}`);
       const stats = await fs.promises.stat(filepath);
       const lastPosition = this.filePositions.get(filepath) || 0;
 

@@ -65,7 +65,7 @@ async function saveSnapshot(
     const snapshotPath = join(snapshotsDir, snapshotName);
     await fs.mkdir(snapshotsDir, { recursive: true });
     await fs.writeFile(snapshotPath, content, 'utf8');
-    logger.info(`💾 Snapshot saved: ${snapshotName}`);
+    logger.debug(`💾 Snapshot saved: ${snapshotName}`);
   } catch (error) {
     logger.error('❌ Snapshot save error:', error as Error);
   }
@@ -177,7 +177,7 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
         await saveSnapshot(snapshotsDir, storedPath, event.content);
       }
 
-      logger.info(`📁 File ${event.type}: ${storedPath} (ID: ${eventId})`);
+      logger.debug(`📁 File ${event.type}: ${storedPath} (ID: ${eventId})`);
 
       io.emit('file-changed', {
         id: eventId,

@@ -107,10 +107,7 @@ class SimpleCache {
 const cache = new SimpleCache(500);
 
 const cacheCleanupInterval = setInterval(() => {
-  const cleaned = cache.cleanup();
-  if (cleaned > 0) {
-    console.log('[Cache] Cleaned up ' + cleaned + ' expired entries'); // eslint-disable-line no-console
-  }
+  cache.cleanup();
 }, 60000);
 cacheCleanupInterval.unref();
 

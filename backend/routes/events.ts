@@ -113,12 +113,15 @@ export function createEventsRouter(
         res.status(400).json({ error: 'Invalid event ID' });
         return;
       }
+      // diff text averages ~16 KB/row; gate it behind ?diff=1 like the list
+      // endpoint does. Callers that need the diff (rollback preview, file
+      // browser) explicitly opt in.
+      const includeDiff = req.query.diff === '1' || req.query.diff === 'true';
+      const cols = includeDiff
+        ? 'id, timestamp, filepath, change_type, diff, cpu, mem, session_id'
+        : 'id, timestamp, filepath, change_type, cpu, mem, session_id';
       const event = db.db
-        .prepare(
-          `SELECT id, timestamp, filepath, change_type, diff, cpu, mem, session_id
-           FROM events
-           WHERE id = ?`
-        )
+        .prepare(`SELECT ${cols} FROM events WHERE id = ?`)
         .get(eventId);
 
       if (!event) {

@@ -42,8 +42,8 @@ export class MetricsCollector {
   private processInterval: NodeJS.Timeout | null = null;
   private dnsRefreshInterval: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
-  private processCollectionInterval: number = 5000; // 5 seconds for process metrics
-  private idleProcessInterval: number = 30000; // 30 seconds when idle
+  private processCollectionInterval: number = 10000; // 10 seconds for process metrics
+  private idleProcessInterval: number = 60000; // 60 seconds when idle
   private isIdle: boolean = false;
 
   /** Resolved IP addresses for known AI API endpoints */
@@ -98,7 +98,7 @@ export class MetricsCollector {
         this.sessionId
       );
 
-      logger.info(
+      logger.debug(
         `📊 System metrics: CPU ${event.cpu.toFixed(1)}% | RAM ${event.mem.toFixed(1)}% (${memory_used_mb}MB/${memory_total_mb}MB)`
       );
 
@@ -268,7 +268,7 @@ export class MetricsCollector {
           activityState
         );
 
-        logger.info(
+        logger.debug(
           `🤖 Process metrics: ${name} (PID ${proc.pid}) - CPU ${cpu_usage.toFixed(1)}% | RAM ${memory_mb}MB | Net ${net.totalConnections} (${net.apiConnections} API) | ${activityState}`
         );
 

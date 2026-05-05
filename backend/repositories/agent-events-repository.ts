@@ -217,13 +217,18 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
     LIMIT 100
   `);
 
+  // Project to a small column set + truncate `message` for list responses.
+  // `SELECT *` would balloon payloads on chatty sessions where assistant_text
+  // messages can be tens of KB. Detail endpoints can fetch full text by id.
+  const CONVERSATION_COLS = `id, timestamp, agent, event_type, file, lines_changed, duration_ms,
+    SUBSTR(message, 1, 500) as message, metadata, session_id, project_name`;
   const conversationsAllStmt = db.db.prepare(
-    `SELECT * FROM agent_events
+    `SELECT ${CONVERSATION_COLS} FROM agent_events
      WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')
      ORDER BY timestamp DESC LIMIT ? OFFSET ?`
   );
   const conversationsByTypeStmt = db.db.prepare(
-    `SELECT * FROM agent_events
+    `SELECT ${CONVERSATION_COLS} FROM agent_events
      WHERE event_type = ?
      ORDER BY timestamp DESC LIMIT ? OFFSET ?`
   );
