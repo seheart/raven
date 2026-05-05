@@ -16,19 +16,149 @@
 
 import fs from 'fs';
 import path from 'path';
-import chokidar from 'chokidar';
+import chokidar, { type FSWatcher } from 'chokidar';
 import { homedir } from 'os';
 
+interface MinimalLogger {
+  debug: (msg: string, meta?: object) => void;
+  info: (msg: string, meta?: object) => void;
+  warn: (msg: string, meta?: object) => void;
+  error: (msg: string, meta?: object) => void;
+}
+
+interface ProjectInfo {
+  projectPath: string;
+  projectName: string;
+  sessionId: string;
+}
+
+interface PendingRequest {
+  startTime: string;
+  type: string;
+}
+
+interface BaseEvent {
+  projectName: string;
+  projectPath: string;
+  sessionId: string;
+  timestamp: string;
+  source: 'claude-code';
+}
+
+export interface ClaudeEvent extends Partial<BaseEvent> {
+  type: string;
+  eventCategory:
+    | 'token_usage'
+    | 'api_latency'
+    | 'subagent'
+    | 'file_change'
+    | 'agent_event'
+    | 'conversation';
+  // token_usage
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  requestId?: string;
+  agentId?: string;
+  isSidechain?: boolean;
+  parentUuid?: string;
+  uuid?: string;
+  // api_latency
+  latency_ms?: number;
+  // file_change / agent_event
+  path?: string;
+  tool?: string;
+  file?: string;
+  // conversation
+  content?: string;
+  // subagent
+  description?: string;
+  subagentType?: string;
+}
+
+export type ClaudeEventCallback = (event: ClaudeEvent) => Promise<void> | void;
+
+export interface ClaudeWatcherOptions {
+  positionsFile?: string | null;
+}
+
+interface MessageUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
+interface ToolUseContent {
+  type: 'tool_use';
+  name?: string;
+  input?: {
+    file_path?: string;
+    command?: string;
+    description?: string;
+    prompt?: string;
+    subagent_type?: string;
+    model?: string;
+  };
+}
+
+interface TextContent {
+  type: 'text';
+  text?: string;
+}
+
+interface ToolResultContent {
+  type: 'tool_result';
+  tool_use_id?: string;
+}
+
+type MessageContent = ToolUseContent | TextContent | ToolResultContent | { type: string };
+
+interface ClaudeMessage {
+  model?: string;
+  usage?: MessageUsage;
+  content?: MessageContent[];
+}
+
+interface ClaudeLogEntry {
+  type?: string;
+  timestamp?: string;
+  message?: ClaudeMessage;
+  requestId?: string;
+  agentId?: string;
+  isSidechain?: boolean;
+  parentUuid?: string;
+  uuid?: string;
+}
+
 export class ClaudeLogWatcher {
-  constructor(eventCallback, logger, options = {}) {
-    this.eventCallback = eventCallback; // Called with file change events
+  private eventCallback: ClaudeEventCallback;
+  private logger: MinimalLogger;
+  private claudeProjectsDir: string;
+  private logWatcher: FSWatcher | null;
+  private filePositions: Map<string, number>;
+  private activeProjects: Map<string, string>;
+  private pendingRequests: Map<string, PendingRequest>;
+  private positionsFile: string | null;
+  private positionsSaveTimer: NodeJS.Timeout | null;
+  private _currentIdle: boolean | undefined;
+  private _idleSwitching: boolean | undefined;
+
+  constructor(
+    eventCallback: ClaudeEventCallback,
+    logger: MinimalLogger,
+    options: ClaudeWatcherOptions = {}
+  ) {
+    this.eventCallback = eventCallback;
     this.logger = logger;
     this.claudeProjectsDir = path.join(homedir(), '.claude', 'projects');
     this.logWatcher = null;
-    this.filePositions = new Map(); // Track read positions in log files
-    this.activeProjects = new Map(); // projectPath -> sessionId
-    this.pendingRequests = new Map(); // sessionId -> { startTime, type } for API latency tracking
-    this.positionsFile = options.positionsFile || null; // Optional persisted-positions JSON path
+    this.filePositions = new Map();
+    this.activeProjects = new Map();
+    this.pendingRequests = new Map();
+    this.positionsFile = options.positionsFile || null;
     this.positionsSaveTimer = null;
   }
 
@@ -36,13 +166,13 @@ export class ClaudeLogWatcher {
    * Restore filePositions from disk so we resume mid-file across restarts.
    * Safe to call before start(); silently does nothing if the file is missing.
    */
-  async loadPositions() {
+  async loadPositions(): Promise<void> {
     if (!this.positionsFile) return;
     try {
       const raw = await fs.promises.readFile(this.positionsFile, 'utf8');
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(raw) as unknown;
       if (parsed && typeof parsed === 'object') {
-        for (const [filepath, position] of Object.entries(parsed)) {
+        for (const [filepath, position] of Object.entries(parsed as Record<string, unknown>)) {
           if (typeof position === 'number' && position >= 0) {
             this.filePositions.set(filepath, position);
           }
@@ -52,96 +182,89 @@ export class ClaudeLogWatcher {
         );
       }
     } catch (err) {
-      if (err.code !== 'ENOENT') {
-        this.logger.warn(`Could not load Claude log positions: ${err.message}`);
+      const e = err as NodeJS.ErrnoException;
+      if (e.code !== 'ENOENT') {
+        this.logger.warn(`Could not load Claude log positions: ${e.message}`);
       }
     }
   }
 
-  async savePositions() {
+  async savePositions(): Promise<void> {
     if (!this.positionsFile) return;
     try {
       const payload = Object.fromEntries(this.filePositions);
       await fs.promises.mkdir(path.dirname(this.positionsFile), { recursive: true });
       await fs.promises.writeFile(this.positionsFile, JSON.stringify(payload), 'utf8');
     } catch (err) {
-      this.logger.warn(`Could not save Claude log positions: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Could not save Claude log positions: ${msg}`);
     }
   }
 
-  /**
-   * Start watching Claude's log files
-   */
-  async start() {
+  async start(): Promise<void> {
     this.logger.info('🔍 Starting Claude Log Watcher...');
     this.logger.info(`   Watching: ${this.claudeProjectsDir}`);
 
-    // Ensure Claude projects directory exists
     if (!fs.existsSync(this.claudeProjectsDir)) {
       this.logger.warn('⚠️  Claude projects directory not found. Creating it...');
       fs.mkdirSync(this.claudeProjectsDir, { recursive: true });
     }
 
-    // Load any previously persisted file positions so we resume mid-file
-    // across restarts instead of re-importing every line.
     await this.loadPositions();
     this.positionsSaveTimer = setInterval(() => {
       this.savePositions().catch(() => {});
     }, 30000);
     this.positionsSaveTimer.unref?.();
 
-    // Watch the projects directory and subdirectories
-    // Note: We watch directories, not a glob pattern, because polling mode doesn't handle ** well
     this.logger.info(`   Watch directory: ${this.claudeProjectsDir}`);
 
     this.logWatcher = chokidar.watch(this.claudeProjectsDir, {
       persistent: true,
-      ignoreInitial: false, // DO watch existing files (we handle history in handleLogFileAdded)
-      usePolling: true, // Use polling for log files (more reliable for appends)
-      interval: 100, // Poll every 100ms for near-real-time detection
-      binaryInterval: 100, // Poll binary files every 100ms
+      ignoreInitial: false,
+      usePolling: true,
+      interval: 100,
+      binaryInterval: 100,
       awaitWriteFinish: false,
       ignorePermissionErrors: true,
-      alwaysStat: true, // Always get file stats
-      depth: 2, // projects/project-name/session.jsonl = depth 2
-      ignored: (path, stats) => {
-        // Only watch .jsonl files
+      alwaysStat: true,
+      depth: 2,
+      ignored: (watchPath: string, stats?: fs.Stats) => {
         if (stats?.isFile()) {
-          return !path.endsWith('.jsonl');
+          return !watchPath.endsWith('.jsonl');
         }
-        return false; // Don't ignore directories
+        return false;
       }
     });
 
-    this.logWatcher.on('add', filepath => {
+    this.logWatcher.on('add', (filepath: string) => {
       this.logger.info(`🆕 New log file: ${path.basename(filepath)}`);
       this.handleLogFileAdded(filepath);
     });
 
-    this.logWatcher.on('change', filepath => {
+    this.logWatcher.on('change', (filepath: string) => {
       this.logger.info(`🔄 Log file change detected: ${path.basename(filepath)}`);
       this.handleLogFileChanged(filepath);
     });
 
     this.logWatcher.on('error', error => {
-      this.logger.error(`❌ Watcher error: ${error.message}`);
+      this.logger.error(`❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`);
     });
 
     this.logWatcher.on('ready', () => {
       this.logger.info('📡 Chokidar ready event fired');
 
-      // Check watched files after a delay (polling takes time to discover files)
       setTimeout(() => {
-        // Check if watcher still exists (may have been stopped during tests)
         if (!this.logWatcher) {
           return;
         }
         const watched = this.logWatcher.getWatched();
-        const fileCount = Object.values(watched).reduce((sum, files) => sum + files.length, 0);
+        const fileCount = Object.values(watched).reduce(
+          (sum: number, files: string[]) => sum + files.length,
+          0
+        );
         this.logger.info(`📡 Actually watching ${fileCount} files after discovery`);
 
-        // Log a sample of watched files
-        const watchedFiles = [];
+        const watchedFiles: string[] = [];
         for (const [dir, files] of Object.entries(watched)) {
           for (const file of files) {
             watchedFiles.push(path.join(dir, file));
@@ -171,10 +294,10 @@ export class ClaudeLogWatcher {
    * Switch between active (100ms) and idle (5s) polling.
    * Reduces filesystem wake-ups when no agents are running.
    */
-  async setIdle(idle) {
+  async setIdle(idle: boolean): Promise<void> {
     if (!this.logWatcher) return;
     if (this._currentIdle === idle) return;
-    if (this._idleSwitching) return; // Prevent concurrent switches
+    if (this._idleSwitching) return;
     this._idleSwitching = true;
 
     const newInterval = idle ? 5000 : 100;
@@ -195,27 +318,27 @@ export class ClaudeLogWatcher {
         ignorePermissionErrors: true,
         alwaysStat: true,
         depth: 2,
-        ignored: (watchPath, stats) => {
+        ignored: (watchPath: string, stats?: fs.Stats) => {
           if (stats?.isFile()) {
             return !watchPath.endsWith('.jsonl');
           }
           return false;
         }
       });
-      this.logWatcher.on('add', filepath => this.handleLogFileAdded(filepath));
-      this.logWatcher.on('change', filepath => this.handleLogFileChanged(filepath));
-      this.logWatcher.on('error', error => this.logger.error(`❌ Watcher error: ${error.message}`));
+      this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
+      this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
+      this.logWatcher.on('error', error =>
+        this.logger.error(`❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`)
+      );
     } catch (err) {
-      this.logger.error(`Failed to switch idle mode: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to switch idle mode: ${msg}`);
     } finally {
       this._idleSwitching = false;
     }
   }
 
-  /**
-   * Stop watching
-   */
-  async stop() {
+  async stop(): Promise<void> {
     if (this.positionsSaveTimer) {
       clearInterval(this.positionsSaveTimer);
       this.positionsSaveTimer = null;
@@ -228,24 +351,17 @@ export class ClaudeLogWatcher {
     }
   }
 
-  /**
-   * Handle new log file discovered. If we already have a saved position
-   * for this file (from a prior run), only ingest content past that point.
-   */
-  async handleLogFileAdded(filepath) {
+  async handleLogFileAdded(filepath: string): Promise<void> {
     this.logger.info(`📄 Claude session log: ${path.basename(filepath)}`);
 
     try {
       const stats = await fs.promises.stat(filepath);
       const startPosition = this.filePositions.get(filepath) || 0;
 
-      // File shrunk (or was rotated) since we last saw it — restart from 0.
       const effectiveStart = stats.size < startPosition ? 0 : startPosition;
 
       if (effectiveStart >= stats.size) {
-        // Nothing new to ingest, but make sure we record the position.
         this.filePositions.set(filepath, stats.size);
-        // Still extract project info so getActiveProjects() reflects this file.
         const projectInfo = this.extractProjectFromPath(filepath);
         if (projectInfo) {
           this.activeProjects.set(projectInfo.projectPath, projectInfo.sessionId);
@@ -268,7 +384,7 @@ export class ClaudeLogWatcher {
       let processed = 0;
       for (const line of lines) {
         try {
-          const entry = JSON.parse(line);
+          const entry = JSON.parse(line) as ClaudeLogEntry;
           await this.processLogEntry(entry, filepath);
           processed++;
         } catch (_err) {
@@ -283,12 +399,11 @@ export class ClaudeLogWatcher {
         );
       }
     } catch (error) {
-      this.logger.error(`Error processing file ${filepath}:`, error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error processing file ${filepath}: ${msg}`);
       return;
     }
 
-    // Extract project info from path
-    // Format: ~/.claude/projects/-home-seth-Projects-raven/session-id.jsonl
     const projectInfo = this.extractProjectFromPath(filepath);
     if (projectInfo) {
       this.activeProjects.set(projectInfo.projectPath, projectInfo.sessionId);
@@ -296,34 +411,29 @@ export class ClaudeLogWatcher {
     }
   }
 
-  /**
-   * Handle changes to existing log file (new operations logged)
-   */
-  async handleLogFileChanged(filepath) {
+  async handleLogFileChanged(filepath: string): Promise<void> {
     try {
       this.logger.info(`📄 Log file changed: ${path.basename(filepath)}`);
       const stats = await fs.promises.stat(filepath);
       const lastPosition = this.filePositions.get(filepath) || 0;
 
-      // If file shrunk, it was probably recreated - start from beginning
       if (stats.size < lastPosition) {
         this.filePositions.set(filepath, 0);
         return;
       }
 
-      // If no new data, skip
       if (stats.size === lastPosition) {
         return;
       }
 
-      // Read only the new data
       const bytesToRead = stats.size - lastPosition;
       const buffer = Buffer.alloc(bytesToRead);
-      let fd;
+      let fd: number;
       try {
         fd = fs.openSync(filepath, 'r');
       } catch (openErr) {
-        this.logger.error(`Failed to open log file ${filepath}: ${openErr.message}`);
+        const msg = openErr instanceof Error ? openErr.message : String(openErr);
+        this.logger.error(`Failed to open log file ${filepath}: ${msg}`);
         return;
       }
       try {
@@ -332,52 +442,44 @@ export class ClaudeLogWatcher {
         fs.closeSync(fd);
       }
 
-      // Parse new lines. Only consider complete lines (terminated by '\n'); any
-      // trailing unterminated bytes are an in-flight write and will be re-read
-      // on the next change event.
-      const lastNewline = buffer.lastIndexOf(0x0a); // '\n'
+      const lastNewline = buffer.lastIndexOf(0x0a);
       if (lastNewline === -1) {
-        // No complete line yet — wait for more data
         return;
       }
-      const completeSlice = buffer.slice(0, lastNewline + 1);
+      const completeSlice = buffer.subarray(0, lastNewline + 1);
       const completeBytes = completeSlice.length;
       const lines = completeSlice.toString('utf8').split('\n');
-      // Last element is '' after the final '\n' — ignore it.
       lines.pop();
 
       for (const line of lines) {
         if (!line.trim()) continue;
-        let entry;
+        let entry: ClaudeLogEntry;
         try {
-          entry = JSON.parse(line);
+          entry = JSON.parse(line) as ClaudeLogEntry;
         } catch (_err) {
-          // Corrupt/partial line in the middle of completed lines — skip it
-          // rather than stalling. Position still advances past all complete bytes.
           continue;
         }
         try {
           await this.processLogEntry(entry, filepath);
         } catch (err) {
-          this.logger.error(`Error processing log entry: ${err.message}`);
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.error(`Error processing log entry: ${msg}`);
         }
       }
 
       this.filePositions.set(filepath, lastPosition + completeBytes);
     } catch (err) {
-      this.logger.error(`Error processing log file ${filepath}: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Error processing log file ${filepath}: ${msg}`);
     }
   }
 
-  /**
-   * Process a single log entry and extract file operations + conversations
-   */
-  async processLogEntry(entry, logFilePath) {
+  async processLogEntry(entry: ClaudeLogEntry, logFilePath: string): Promise<void> {
     const projectInfo = this.extractProjectFromPath(logFilePath);
     if (!projectInfo) return;
 
     const timestamp = entry.timestamp || new Date().toISOString();
-    const baseEvent = {
+    const baseEvent: BaseEvent = {
       projectName: projectInfo.projectName,
       projectPath: projectInfo.projectPath,
       sessionId: projectInfo.sessionId,
@@ -385,7 +487,6 @@ export class ClaudeLogWatcher {
       source: 'claude-code'
     };
 
-    // Emit token usage for any assistant message with usage data
     if (entry.type === 'assistant' && entry.message?.usage) {
       const usage = entry.message.usage;
       await this.eventCallback({
@@ -397,19 +498,17 @@ export class ClaudeLogWatcher {
         outputTokens: usage.output_tokens || 0,
         cacheCreationTokens: usage.cache_creation_input_tokens || 0,
         cacheReadTokens: usage.cache_read_input_tokens || 0,
-        requestId: entry.requestId || null,
-        agentId: entry.agentId || null,
+        requestId: entry.requestId,
+        agentId: entry.agentId,
         isSidechain: entry.isSidechain || false,
-        parentUuid: entry.parentUuid || null,
-        uuid: entry.uuid || null
+        parentUuid: entry.parentUuid,
+        uuid: entry.uuid
       });
 
-      // Compute API latency from pending request
       const pending = this.pendingRequests.get(projectInfo.sessionId);
       if (pending) {
         const latencyMs = new Date(timestamp).getTime() - new Date(pending.startTime).getTime();
         if (latencyMs > 0 && latencyMs < 600000) {
-          // Sanity: under 10 minutes
           await this.eventCallback({
             ...baseEvent,
             type: 'api_latency',
@@ -422,37 +521,35 @@ export class ClaudeLogWatcher {
       }
     }
 
-    // Detect sub-agent spawning (tool_use with name "Agent")
     if (entry.type === 'assistant' && entry.message?.content) {
       const contentArr = Array.isArray(entry.message.content) ? entry.message.content : [];
       const agentToolUses = contentArr.filter(
-        item => item.type === 'tool_use' && item.name === 'Agent'
+        (item): item is ToolUseContent => item.type === 'tool_use' && (item as ToolUseContent).name === 'Agent'
       );
       for (const agentCall of agentToolUses) {
         await this.eventCallback({
           ...baseEvent,
           type: 'subagent_spawn',
           eventCategory: 'subagent',
-          agentId: entry.agentId || null,
-          description: agentCall.input?.description || agentCall.input?.prompt?.slice(0, 200) || '',
+          agentId: entry.agentId,
+          description:
+            agentCall.input?.description || agentCall.input?.prompt?.slice(0, 200) || '',
           subagentType: agentCall.input?.subagent_type || 'general-purpose',
-          model: agentCall.input?.model || entry.message?.model || null,
-          parentUuid: entry.parentUuid || null,
-          uuid: entry.uuid || null
+          model: agentCall.input?.model || entry.message?.model,
+          parentUuid: entry.parentUuid,
+          uuid: entry.uuid
         });
       }
     }
 
-    // Process assistant messages with tool use
     if (entry.type === 'assistant' && entry.message?.content) {
       const content = Array.isArray(entry.message.content) ? entry.message.content : [];
 
-      // Extract tool uses
-      const toolUses = content.filter(item => item.type === 'tool_use');
+      const toolUses = content.filter((item): item is ToolUseContent => item.type === 'tool_use');
       for (const toolUse of toolUses) {
-        const { name, input } = toolUse;
+        const name = toolUse.name || '';
+        const input = toolUse.input;
 
-        // File change events
         if (name === 'Write' || name === 'Edit') {
           const filePath = input?.file_path;
           if (filePath) {
@@ -467,24 +564,22 @@ export class ClaudeLogWatcher {
           }
         }
 
-        // All tool uses as agent events
         await this.eventCallback({
           ...baseEvent,
           type: 'tool_call',
           tool: name,
-          file: input?.file_path || input?.command?.slice(0, 100) || null,
+          file: input?.file_path || input?.command?.slice(0, 100) || undefined,
           eventCategory: 'agent_event'
         });
       }
 
-      // Assistant text responses
-      const textBlocks = content.filter(item => item.type === 'text');
+      const textBlocks = content.filter((item): item is TextContent => item.type === 'text');
       if (textBlocks.length > 0) {
         await this.eventCallback({
           ...baseEvent,
           type: 'assistant_text',
           content: textBlocks
-            .map(b => b.text)
+            .map(b => b.text || '')
             .join('\n')
             .slice(0, 500),
           eventCategory: 'conversation'
@@ -492,23 +587,23 @@ export class ClaudeLogWatcher {
       }
     }
 
-    // Process user messages
     if (entry.type === 'user' && entry.message?.content) {
       const content = Array.isArray(entry.message.content) ? entry.message.content : [];
-      const textBlocks = content.filter(item => item.type === 'text');
-      const toolResults = content.filter(item => item.type === 'tool_result');
+      const textBlocks = content.filter((item): item is TextContent => item.type === 'text');
+      const toolResults = content.filter(
+        (item): item is ToolResultContent => item.type === 'tool_result'
+      );
 
       if (textBlocks.length > 0) {
         await this.eventCallback({
           ...baseEvent,
           type: 'user_message',
           content: textBlocks
-            .map(b => b.text)
+            .map(b => b.text || '')
             .join('\n')
             .slice(0, 500),
           eventCategory: 'conversation'
         });
-        // Track request start time for API latency measurement
         this.pendingRequests.set(projectInfo.sessionId, {
           startTime: timestamp,
           type: 'user_message'
@@ -519,7 +614,7 @@ export class ClaudeLogWatcher {
         await this.eventCallback({
           ...baseEvent,
           type: 'tool_result',
-          tool: toolResults[0]?.tool_use_id || null,
+          tool: toolResults[0]?.tool_use_id,
           eventCategory: 'agent_event'
         });
       }
@@ -530,18 +625,16 @@ export class ClaudeLogWatcher {
    * Extract project information from log file path
    * Path format: ~/.claude/projects/-home-seth-Projects-raven/session-id.jsonl
    */
-  extractProjectFromPath(logFilePath) {
+  extractProjectFromPath(logFilePath: string): ProjectInfo | null {
     const relativePath = path.relative(this.claudeProjectsDir, logFilePath);
     const parts = relativePath.split(path.sep);
 
     if (parts.length < 2) return null;
 
-    const projectDirName = parts[0]; // e.g., "-home-seth-Projects-raven"
+    const projectDirName = parts[0];
     const sessionId = path.basename(parts[1], '.jsonl');
 
-    // Convert "-home-user-Projects-myapp" back to "/home/user/Projects/myapp"
     const projectPath = projectDirName.replace(/^-/, '/').replace(/-/g, '/');
-
     const projectName = path.basename(projectPath);
 
     return {
@@ -551,14 +644,11 @@ export class ClaudeLogWatcher {
     };
   }
 
-  /**
-   * Get statistics about what we're watching
-   */
-  async getWatchStats() {
-    const files = [];
+  async getWatchStats(): Promise<{ fileCount: number; files: string[] }> {
+    const files: string[] = [];
 
     try {
-      const walk = dir => {
+      const walk = (dir: string): void => {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
@@ -574,19 +664,17 @@ export class ClaudeLogWatcher {
         walk(this.claudeProjectsDir);
       }
     } catch (err) {
-      this.logger.error(`Error walking Claude projects directory: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Error walking Claude projects directory: ${msg}`);
     }
 
     return {
       fileCount: files.length,
-      files: files
+      files
     };
   }
 
-  /**
-   * Get list of active Claude projects
-   */
-  getActiveProjects() {
+  getActiveProjects(): ProjectInfo[] {
     return Array.from(this.activeProjects.entries()).map(([projectPath, sessionId]) => ({
       projectPath,
       projectName: path.basename(projectPath),
