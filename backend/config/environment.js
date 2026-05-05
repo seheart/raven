@@ -69,7 +69,7 @@ const baseEnv = {
   CORS_ORIGIN: getEnv('CORS_ORIGIN', 'http://localhost:9000'),
 
   // Authentication
-  DISABLE_AUTH: getBoolEnv('DISABLE_AUTH', false),
+  RAVEN_DEV_DISABLE_AUTH: getBoolEnv('RAVEN_DEV_DISABLE_AUTH', false),
   JWT_SECRET:
     process.env.NODE_ENV === 'production'
       ? getRequiredEnv('JWT_SECRET')
@@ -135,8 +135,8 @@ export function validateConfig() {
     if (!env.JWT_SECRET || env.JWT_SECRET === 'dev-secret-key') {
       errors.push('JWT_SECRET must be set in production');
     }
-    if (env.DISABLE_AUTH) {
-      errors.push('DISABLE_AUTH should not be enabled in production');
+    if (env.RAVEN_DEV_DISABLE_AUTH) {
+      errors.push('RAVEN_DEV_DISABLE_AUTH should not be enabled in production');
     }
     if (env.SHOW_ERROR_DETAILS) {
       errors.push('SHOW_ERROR_DETAILS should be false in production');
@@ -167,7 +167,7 @@ export function printConfig() {
   logger.info(`   Environment: ${env.NODE_ENV}`);
   logger.info(`   Port: ${env.PORT}`);
   logger.info(`   CORS Origin: ${env.CORS_ORIGIN}`);
-  logger.info(`   Auth: ${env.DISABLE_AUTH ? 'Disabled' : 'Enabled'}`);
+  logger.info(`   Auth: ${env.RAVEN_DEV_DISABLE_AUTH ? 'Disabled (dev)' : 'Enabled'}`);
   logger.info(`   Log Level: ${env.LOG_LEVEL}`);
   logger.info(`   Structured Logging: ${env.STRUCTURED_LOGGING}`);
   logger.info(`   Cache Size: ${env.MAX_CACHE_SIZE}`);

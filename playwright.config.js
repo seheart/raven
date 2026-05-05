@@ -88,7 +88,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         NODE_ENV: 'test',
-        DISABLE_AUTH: 'true'
+        RAVEN_DEV_DISABLE_AUTH: 'true'
       }
     },
     {

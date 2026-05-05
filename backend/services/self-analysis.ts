@@ -60,7 +60,14 @@ function runCommand(
           ...process.env,
           NODE_ENV: 'test',
           FORCE_COLOR: '0',
-          DISABLE_AUTH: '' // Don't inherit server's DISABLE_AUTH=true
+          // Defense in depth: even though the auth middleware also checks
+          // NODE_ENV (set to 'test' above), explicitly clear the dev-only
+          // bypass so subprocess auth tests exercise rejection paths rather
+          // than passing through. RAVEN_DEV_DISABLE_AUTH replaced the older
+          // generic DISABLE_AUTH name; we clear both for safety during
+          // any transitional period.
+          RAVEN_DEV_DISABLE_AUTH: '',
+          DISABLE_AUTH: ''
         }
       },
       (error, stdout, stderr) => {

@@ -289,15 +289,15 @@ describe('ServerConfig', () => {
       expect(module.serverConfig.security.maxRequestSize).toBe('5mb');
     });
 
-    test('should have DISABLE_AUTH false by default', async () => {
-      delete process.env.DISABLE_AUTH;
+    test('should have RAVEN_DEV_DISABLE_AUTH false by default', async () => {
+      delete process.env.RAVEN_DEV_DISABLE_AUTH;
       const module = await import('../../config/server-config.js');
 
       expect(module.serverConfig.security.disableAuth).toBe(false);
     });
 
-    test('should set DISABLE_AUTH true when env is true', async () => {
-      process.env.DISABLE_AUTH = 'true';
+    test('should set RAVEN_DEV_DISABLE_AUTH true when env is true', async () => {
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       const module = await import('../../config/server-config.js');
 
       expect(module.serverConfig.security.disableAuth).toBe(true);

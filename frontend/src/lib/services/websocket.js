@@ -30,7 +30,7 @@ class WebSocketService {
       return this.socket;
     }
 
-    // Connect without authentication (DISABLE_AUTH mode)
+    // Connect without authentication (RAVEN_DEV_DISABLE_AUTH mode)
     this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,

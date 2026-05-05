@@ -9,12 +9,25 @@ import { join } from 'path';
 import { logger } from '../utils/logger.js';
 
 /**
+ * Whether auth is disabled for this process. Requires *both* the
+ * Raven-specific opt-in env var and a non-production NODE_ENV — so even
+ * if the env var leaks into a prod-like context, auth still engages.
+ *
+ * @returns {boolean}
+ */
+export function isAuthDisabled() {
+  return (
+    process.env.RAVEN_DEV_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production'
+  );
+}
+
+/**
  * Get JWT secret from file or environment
  * @returns {string} JWT secret
  */
 function getJWTSecret() {
   // Check if auth is disabled
-  if (process.env.DISABLE_AUTH === 'true') {
+  if (isAuthDisabled()) {
     return 'dev-secret-key-for-testing-only';
   }
 
@@ -97,8 +110,8 @@ export function verifyToken(token) {
  * @param {Function} next - Express next function
  */
 export function authenticate(req, res, next) {
-  // Skip authentication if disabled
-  if (process.env.DISABLE_AUTH === 'true') {
+  // Skip authentication if disabled (dev-only opt-in)
+  if (isAuthDisabled()) {
     req.user = {
       id: 1,
       username: 'dev-user',
@@ -146,8 +159,8 @@ export function authenticate(req, res, next) {
  */
 export function authorize(...allowedRoles) {
   return (req, res, next) => {
-    // Skip authorization if auth is disabled
-    if (process.env.DISABLE_AUTH === 'true') {
+    // Skip authorization if auth is disabled (dev-only opt-in)
+    if (isAuthDisabled()) {
       return next();
     }
 
@@ -192,8 +205,8 @@ export function authorize(...allowedRoles) {
  * @param {Function} next - Socket.IO next function
  */
 export function authenticateSocket(socket, next) {
-  // Skip authentication if disabled
-  if (process.env.DISABLE_AUTH === 'true') {
+  // Skip authentication if disabled (dev-only opt-in)
+  if (isAuthDisabled()) {
     socket.user = {
       id: 1,
       username: 'dev-user',

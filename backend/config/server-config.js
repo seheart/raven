@@ -97,7 +97,7 @@ export const serverConfig = {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
     sessionSecret: process.env.SESSION_SECRET,
-    disableAuth: process.env.DISABLE_AUTH === 'true',
+    disableAuth: process.env.RAVEN_DEV_DISABLE_AUTH === 'true',
     maxRequestSize: process.env.MAX_REQUEST_SIZE || '10mb'
   },
 

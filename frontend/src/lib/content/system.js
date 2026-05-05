@@ -142,7 +142,7 @@ export const PARAMETERS = [
   { label: 'Event retention', value: '7 days (RETENTION_EVENT_DAYS)' },
   { label: 'Metrics retention', value: '30 days (RETENTION_METRICS_DAYS)' },
   { label: 'Diff size cap', value: '64 KB per text-file change' },
-  { label: 'Auth (dev)', value: 'Disabled (DISABLE_AUTH=true)' },
+  { label: 'Auth (dev)', value: 'Disabled (RAVEN_DEV_DISABLE_AUTH=true)' },
   { label: 'WebSocket transport', value: 'Socket.IO — websocket + polling fallback' },
   { label: 'Agent-stats coalesce', value: '2s broadcast window + 2s memo' },
   { label: 'Insights model (default)', value: 'qwen2.5-coder:14b via local Ollama' }

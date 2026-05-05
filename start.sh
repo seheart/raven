@@ -89,7 +89,7 @@ cd backend
 # Transparent Ollama proxy: Raven listens on 11434 (Ollama's default port)
 # and forwards to Ollama on 11435 (set via systemd override). Any tool
 # using default Ollama settings is observed without per-app config.
-nohup env NODE_ENV=development DISABLE_AUTH=true \
+nohup env NODE_ENV=development RAVEN_DEV_DISABLE_AUTH=true \
   OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11435}" \
   TRANSPARENT_OLLAMA_PORT="${TRANSPARENT_OLLAMA_PORT:-11434}" \
   RAVEN_INSIGHTS_DISABLED="${RAVEN_INSIGHTS_DISABLED:-1}" \

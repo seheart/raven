@@ -30,8 +30,13 @@ Everything runs locally. No network calls, no cloud services.
 
 These were discovered during the initial cleanup and are important for anyone modifying the analysis system or the checks it runs.
 
-### DISABLE_AUTH env leak
-The Raven server runs with `DISABLE_AUTH=true` (set in `start.sh`). The analysis service inherits the server's environment. Without explicitly clearing this, all 12 auth middleware tests silently pass-through instead of testing rejection paths. The service sets `DISABLE_AUTH: ''` in the exec environment to prevent this.
+### Auth-bypass env leak (RAVEN_DEV_DISABLE_AUTH)
+The Raven server runs with `RAVEN_DEV_DISABLE_AUTH=true` (set in `start.sh`). Subprocesses spawned by the analysis service inherit the server's environment. Two layers of defense ensure auth tests still exercise rejection paths:
+
+1. The auth middleware requires *both* `RAVEN_DEV_DISABLE_AUTH === 'true'` AND `NODE_ENV !== 'production'`. The analysis service sets `NODE_ENV: 'test'` for the subprocess, which by itself does not disable the bypass — but combined with point 2, the bypass cannot trip in tests.
+2. The analysis service explicitly clears `RAVEN_DEV_DISABLE_AUTH: ''` (and the older generic `DISABLE_AUTH: ''` for safety during any transitional period) in the exec environment.
+
+The variable was renamed from the generic `DISABLE_AUTH` so it doesn't collide with anything else that might happen to set the same name.
 
 ### Jest --forceExit exit code
 Jest with `--forceExit` exits non-zero even when all tests pass (due to open handles). Do not rely on exit code alone. The service uses `--json` and parses `numFailedTests` / `numPassedTests` from the structured output.
@@ -84,6 +89,6 @@ Both backend and frontend configs include `eslint-config-prettier` as the last c
 - Reordered checks: build runs before tests
 - Backend test parser: uses `--json` + JSON parsing instead of regex on truncated output
 - Frontend type parser: only marks `warn` when warning count > 0 (was matching "0 warnings" as a warning)
-- Clears `DISABLE_AUTH` env var for test runs
+- Clears `RAVEN_DEV_DISABLE_AUTH` env var for test runs (formerly `DISABLE_AUTH`)
 - Cleans up stale "running" records on server restart
 - `getLatestRun()` only returns completed runs

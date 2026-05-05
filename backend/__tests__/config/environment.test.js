@@ -79,16 +79,16 @@ describe('Environment Configuration', () => {
   });
 
   describe('Boolean Environment Variables', () => {
-    test('should parse DISABLE_AUTH as boolean', async () => {
-      process.env.DISABLE_AUTH = 'true';
+    test('should parse RAVEN_DEV_DISABLE_AUTH as boolean', async () => {
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       const { env } = await import('../../config/environment.js');
-      expect(env.DISABLE_AUTH).toBe(true);
+      expect(env.RAVEN_DEV_DISABLE_AUTH).toBe(true);
     });
 
-    test('should default DISABLE_AUTH to false', async () => {
-      delete process.env.DISABLE_AUTH;
+    test('should default RAVEN_DEV_DISABLE_AUTH to false', async () => {
+      delete process.env.RAVEN_DEV_DISABLE_AUTH;
       const { env } = await import('../../config/environment.js');
-      expect(env.DISABLE_AUTH).toBe(false);
+      expect(env.RAVEN_DEV_DISABLE_AUTH).toBe(false);
     });
 
     test('should parse ENABLE_METRICS as boolean', async () => {
@@ -177,12 +177,12 @@ describe('Environment Configuration', () => {
       expect(() => validateConfig()).toThrow(/JWT_SECRET/);
     });
 
-    test('should throw if DISABLE_AUTH enabled in production', async () => {
+    test('should throw if RAVEN_DEV_DISABLE_AUTH enabled in production', async () => {
       process.env.NODE_ENV = 'production';
       process.env.JWT_SECRET = 'prod-secret';
-      process.env.DISABLE_AUTH = 'true';
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       const { validateConfig } = await import('../../config/environment.js');
-      expect(() => validateConfig()).toThrow(/DISABLE_AUTH/);
+      expect(() => validateConfig()).toThrow(/RAVEN_DEV_DISABLE_AUTH/);
     });
 
     test('should throw if PORT is invalid', async () => {

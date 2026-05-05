@@ -372,9 +372,9 @@ describe('Authentication Middleware', () => {
   });
 
   describe('AUTH_DISABLED mode', () => {
-    test('authenticate should bypass auth when DISABLE_AUTH is true', async () => {
+    test('authenticate should bypass auth when RAVEN_DEV_DISABLE_AUTH is true', async () => {
       jest.resetModules();
-      process.env.DISABLE_AUTH = 'true';
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       process.env.NODE_ENV = 'development';
 
       const { authenticate: authDisabled } = await import('../../middleware/auth.js');
@@ -392,13 +392,13 @@ describe('Authentication Middleware', () => {
       expect(localNext).toHaveBeenCalled();
       expect(localRes.status).not.toHaveBeenCalled();
 
-      delete process.env.DISABLE_AUTH;
+      delete process.env.RAVEN_DEV_DISABLE_AUTH;
       jest.resetModules();
     });
 
-    test('authorize should bypass when DISABLE_AUTH is true', async () => {
+    test('authorize should bypass when RAVEN_DEV_DISABLE_AUTH is true', async () => {
       jest.resetModules();
-      process.env.DISABLE_AUTH = 'true';
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       process.env.NODE_ENV = 'development';
 
       const { authorize: authorizeDisabled } = await import('../../middleware/auth.js');
@@ -413,13 +413,13 @@ describe('Authentication Middleware', () => {
       expect(localNext).toHaveBeenCalled();
       expect(localRes.status).not.toHaveBeenCalled();
 
-      delete process.env.DISABLE_AUTH;
+      delete process.env.RAVEN_DEV_DISABLE_AUTH;
       jest.resetModules();
     });
 
-    test('authenticateSocket should bypass when DISABLE_AUTH is true', async () => {
+    test('authenticateSocket should bypass when RAVEN_DEV_DISABLE_AUTH is true', async () => {
       jest.resetModules();
-      process.env.DISABLE_AUTH = 'true';
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       process.env.NODE_ENV = 'development';
 
       const { authenticateSocket: socketDisabled } = await import('../../middleware/auth.js');
@@ -435,7 +435,7 @@ describe('Authentication Middleware', () => {
       expect(localSocket.user.role).toBe('admin');
       expect(localNext).toHaveBeenCalled();
 
-      delete process.env.DISABLE_AUTH;
+      delete process.env.RAVEN_DEV_DISABLE_AUTH;
       jest.resetModules();
     });
   });

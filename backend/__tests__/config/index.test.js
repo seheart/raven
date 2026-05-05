@@ -23,7 +23,7 @@ describe('Config Index', () => {
       delete process.env.JSON_PAYLOAD_LIMIT;
       delete process.env.LOG_LEVEL;
       delete process.env.SNAPSHOT_TTL_DAYS;
-      delete process.env.DISABLE_AUTH;
+      delete process.env.RAVEN_DEV_DISABLE_AUTH;
 
       const { config } = await import('../../config/index.js');
 
@@ -33,7 +33,7 @@ describe('Config Index', () => {
       expect(config.JSON_LIMIT).toBe('10mb');
       expect(config.LOG_LEVEL).toBe('info');
       expect(config.SNAPSHOT_TTL_DAYS).toBe(30);
-      expect(config.DISABLE_AUTH).toBe(false);
+      expect(config.RAVEN_DEV_DISABLE_AUTH).toBe(false);
     });
 
     test('should have cache configuration', async () => {
@@ -93,25 +93,25 @@ describe('Config Index', () => {
       expect(config.SNAPSHOT_TTL_DAYS).toBe(60);
     });
 
-    test('should enable DISABLE_AUTH when set to true', async () => {
-      process.env.DISABLE_AUTH = 'true';
+    test('should enable RAVEN_DEV_DISABLE_AUTH when set to true', async () => {
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       const { config } = await import('../../config/index.js');
 
-      expect(config.DISABLE_AUTH).toBe(true);
+      expect(config.RAVEN_DEV_DISABLE_AUTH).toBe(true);
     });
 
-    test('should not enable DISABLE_AUTH for non-true values', async () => {
-      process.env.DISABLE_AUTH = 'false';
+    test('should not enable RAVEN_DEV_DISABLE_AUTH for non-true values', async () => {
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'false';
       const { config } = await import('../../config/index.js');
 
-      expect(config.DISABLE_AUTH).toBe(false);
+      expect(config.RAVEN_DEV_DISABLE_AUTH).toBe(false);
     });
 
-    test('should not enable DISABLE_AUTH for empty string', async () => {
-      process.env.DISABLE_AUTH = '';
+    test('should not enable RAVEN_DEV_DISABLE_AUTH for empty string', async () => {
+      process.env.RAVEN_DEV_DISABLE_AUTH = '';
       const { config } = await import('../../config/index.js');
 
-      expect(config.DISABLE_AUTH).toBe(false);
+      expect(config.RAVEN_DEV_DISABLE_AUTH).toBe(false);
     });
   });
 
@@ -140,12 +140,12 @@ describe('Config Index', () => {
       expect(config.SNAPSHOT_TTL_DAYS).toBe(90);
     });
 
-    test('DISABLE_AUTH should be a boolean', async () => {
-      process.env.DISABLE_AUTH = 'true';
+    test('RAVEN_DEV_DISABLE_AUTH should be a boolean', async () => {
+      process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
       const { config } = await import('../../config/index.js');
 
-      expect(typeof config.DISABLE_AUTH).toBe('boolean');
-      expect(config.DISABLE_AUTH).toBe(true);
+      expect(typeof config.RAVEN_DEV_DISABLE_AUTH).toBe('boolean');
+      expect(config.RAVEN_DEV_DISABLE_AUTH).toBe(true);
     });
   });
 

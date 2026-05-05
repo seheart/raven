@@ -1,12 +1,12 @@
 /**
  * Integration test: server wiring with authentication enabled.
  *
- * The rest of the test suite forces DISABLE_AUTH=true via setup.js so that
+ * The rest of the test suite forces RAVEN_DEV_DISABLE_AUTH=true via setup.js so that
  * unrelated route tests don't have to mint tokens. That blind-spotted us:
  * a regression that disconnects setupHelmet, swaps `cors()` back to its
  * wildcard default, or unmounts the auth middleware would still pass.
  *
- * This file deliberately runs with DISABLE_AUTH=false and asserts that the
+ * This file deliberately runs with RAVEN_DEV_DISABLE_AUTH=false and asserts that the
  * security primitives actually behave when wired the way server.ts wires
  * them. We compose a minimal Express app with the same helmet/cors/auth
  * middleware the production server uses, then exercise it with supertest.
@@ -33,12 +33,12 @@ describe('server-wiring (auth enabled)', () => {
   let originalJwtSecret;
 
   beforeAll(() => {
-    // The rest of the suite sets DISABLE_AUTH=true. Flip it for this file
+    // The rest of the suite sets RAVEN_DEV_DISABLE_AUTH=true. Flip it for this file
     // only, with a deterministic JWT secret so generateToken/verifyToken
     // round-trip cleanly.
-    originalDisableAuth = process.env.DISABLE_AUTH;
+    originalDisableAuth = process.env.RAVEN_DEV_DISABLE_AUTH;
     originalJwtSecret = process.env.JWT_SECRET;
-    process.env.DISABLE_AUTH = 'false';
+    process.env.RAVEN_DEV_DISABLE_AUTH = 'false';
     process.env.JWT_SECRET = 'test-secret-do-not-use-in-prod';
 
     app = express();
@@ -61,8 +61,8 @@ describe('server-wiring (auth enabled)', () => {
   });
 
   afterAll(() => {
-    if (originalDisableAuth === undefined) delete process.env.DISABLE_AUTH;
-    else process.env.DISABLE_AUTH = originalDisableAuth;
+    if (originalDisableAuth === undefined) delete process.env.RAVEN_DEV_DISABLE_AUTH;
+    else process.env.RAVEN_DEV_DISABLE_AUTH = originalDisableAuth;
     if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = originalJwtSecret;
   });

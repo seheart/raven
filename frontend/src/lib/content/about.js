@@ -314,7 +314,7 @@ export const RESOLVED_DECISIONS = [
   {
     q: 'Auth on or off?',
     decision:
-      'Off in dev (DISABLE_AUTH=true). Middleware is wired and ready for LAN/cloud deployments — flip the env var and provide a JWT secret.',
+      'Off in dev (RAVEN_DEV_DISABLE_AUTH=true, plus NODE_ENV != production). Middleware is wired and ready for LAN/cloud deployments — drop the env var (or set NODE_ENV=production) and provide a JWT secret.',
     alternatives:
       'Mandatory auth even on localhost (friction without payoff for single-user case).',
     livesAt: 'backend/middleware/security.ts'

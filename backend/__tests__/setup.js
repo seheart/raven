@@ -6,7 +6,7 @@
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.PORT = '9999'; // Use different port for tests
-process.env.DISABLE_AUTH = 'true';
+process.env.RAVEN_DEV_DISABLE_AUTH = 'true';
 
 // Suppress console logs during tests (optional - comment out for debugging)
 // global.console = {

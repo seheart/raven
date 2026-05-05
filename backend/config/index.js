@@ -58,7 +58,7 @@ export const config = {
   DEBOUNCE_MS: getInt('FILE_WATCH_DEBOUNCE', 100),
 
   // Security
-  DISABLE_AUTH: getBool('DISABLE_AUTH', false),
+  RAVEN_DEV_DISABLE_AUTH: getBool('RAVEN_DEV_DISABLE_AUTH', false),
 
   // Rate Limiting
   API_RATE_LIMIT_WINDOW_MS: getInt('API_RATE_LIMIT_WINDOW_MS', 60000),
