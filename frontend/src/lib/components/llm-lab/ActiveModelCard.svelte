@@ -9,13 +9,23 @@
   import { onMount } from 'svelte';
   import { dataService } from '../../dataService.js';
   import { websocketService } from '../../services/websocket.js';
+  import { getAgentBrand } from '../../utils/agentBrand.js';
 
   let models = $state([]);
+  // API-based agents (Claude Code, Codex, …) — they don't sit in VRAM, but
+  // they're "active models" from the user's POV. Sourced from
+  // /api/process-activity + the live `process-activity` websocket event.
+  let apiAgents = $state([]);
   let lastFetch = $state(null);
   let error = $state(null);
   let ollamaOffline = $state(false);
   let offlineDetail = $state('');
   let now = $state(Date.now());
+
+  // An API agent is considered "active" if we've seen a heartbeat within
+  // this window. Process-metrics tick ~every 5s, so 90s gives a couple
+  // misses of headroom before the row disappears.
+  const API_AGENT_TTL_MS = 90_000;
 
   // Per-model state, keyed by model name.
   //   flashId    — bumps on each new inference (re-triggers CSS animation)
@@ -94,6 +104,28 @@
     return `M ${points.join(' L ')}`;
   }
 
+  // process-activity rows keyed by raw process agent_name (e.g. "claude-sonnet-3.5")
+  let processByName = $state({});
+  // Latest observed model name per agent_type (e.g. "claude-code" → "claude-opus-4-7"),
+  // sourced from /api/api-latency. The Claude CLI process name doesn't carry this —
+  // it only shows up on observed Anthropic API requests.
+  let latestModelByAgent = $state({});
+
+  function prettyModel(m) {
+    if (!m) return null;
+    const l = m.toLowerCase();
+    if (l.includes('opus-4-7')) return 'Opus 4.7';
+    if (l.includes('opus-4-6')) return 'Opus 4.6';
+    if (l.includes('opus-4')) return 'Opus 4';
+    if (l.includes('sonnet-4-7')) return 'Sonnet 4.7';
+    if (l.includes('sonnet-4-6')) return 'Sonnet 4.6';
+    if (l.includes('sonnet-4-5')) return 'Sonnet 4.5';
+    if (l.includes('sonnet-4')) return 'Sonnet 4';
+    if (l.includes('haiku-4-5')) return 'Haiku 4.5';
+    if (l.includes('haiku-3-5')) return 'Haiku 3.5';
+    return m;
+  }
+
   async function refresh() {
     try {
       // Shared /ollama/ps cache via dataService (3s TTL == poll interval)
@@ -102,7 +134,18 @@
       // Backend upstream-fetches /api/ps with a 3s AbortSignal.timeout, so a
       // 5s client timeout is enough headroom and surfaces failure 3× faster
       // than the default 15s — important because three cards share this poll.
-      const data = await dataService.fetch('/ollama/ps', { ttl: 3000, timeout: 5000 });
+      const [data, agentsData, procData, apiLat] = await Promise.all([
+        dataService.fetch('/ollama/ps', { ttl: 3000, timeout: 5000 }),
+        dataService
+          .fetch('/agents-status', { ttl: 3000, timeout: 5000 })
+          .catch(() => []),
+        dataService
+          .fetch('/process-activity', { ttl: 3000, timeout: 5000 })
+          .catch(() => []),
+        dataService
+          .fetch('/api-latency?limit=20', { ttl: 5000, timeout: 5000 })
+          .catch(() => ({ recent: [] }))
+      ]);
       ollamaOffline = data.ollama_status === 'offline';
       offlineDetail = data.detail || '';
       const seenNames = new Set();
@@ -119,11 +162,89 @@
         if (!seenNames.has(k)) delete modelState[k];
       }
       models = data.models || [];
+
+      // Replace the by-name map outright on each refresh so dropped processes
+      // age out immediately rather than waiting on the cull timer.
+      const next = {};
+      for (const p of Array.isArray(procData) ? procData : []) {
+        if (p?.agent_name) next[p.agent_name] = p;
+      }
+      processByName = next;
+      apiAgents = filterFreshApiAgents(agentsData);
+
+      // Map api-latency rows → most-recent model per agent_type. The repo
+      // doesn't tag rows with agent_type, but in practice claude-* models
+      // are Claude Code, gpt-* would be Codex, etc. Cheap heuristic that
+      // covers the present use case.
+      const recent = Array.isArray(apiLat?.recent) ? apiLat.recent : [];
+      const modelMap = {};
+      for (const row of recent) {
+        const m = (row?.model || '').toLowerCase();
+        if (!m) continue;
+        if (m.includes('claude') && !modelMap['claude-code']) {
+          modelMap['claude-code'] = row.model;
+        } else if ((m.includes('gpt') || m.includes('o1') || m.includes('o3')) && !modelMap['codex']) {
+          modelMap['codex'] = row.model;
+        }
+      }
+      latestModelByAgent = modelMap;
+
       lastFetch = Date.now();
       error = null;
     } catch (e) {
       error = e.message || 'fetch failed';
     }
+  }
+
+  function filterFreshApiAgents(rows) {
+    if (!Array.isArray(rows)) return [];
+    const cutoff = Date.now() - API_AGENT_TTL_MS;
+    // Only API-style agents — Ollama is rendered below as resident-model rows.
+    return rows.filter((a) => {
+      if (!a?.is_running) return false;
+      if ((a.agent_type || '').toLowerCase() === 'ollama') return false;
+      const ts = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+      return ts >= cutoff;
+    });
+  }
+
+  // Match an agents-status row to its latest process-activity row.
+  // agents-status uses display agent_type (e.g. "claude-code"); process metrics
+  // key by raw process name (e.g. "claude-sonnet-3.5"). Substring match on
+  // the lowercased pair is enough to pair them.
+  function processFor(agent) {
+    const type = (agent?.agent_type || '').toLowerCase();
+    if (!type) return null;
+    const head = type.split('-')[0];
+    for (const [name, row] of Object.entries(processByName)) {
+      const lower = name.toLowerCase();
+      if (lower.includes(type) || lower.includes(head)) return row;
+    }
+    return null;
+  }
+
+  function activityLabel(state, conns) {
+    if (state === 'thinking') {
+      return conns > 1 ? `API call (${conns})` : 'API call';
+    }
+    if (state === 'executing') return 'Executing';
+    if (state === 'idle') return 'Idle';
+    return state || 'unknown';
+  }
+
+  function activityColor(state) {
+    if (state === 'thinking') return 'var(--warning)';
+    if (state === 'executing') return 'var(--success)';
+    return 'var(--muted)';
+  }
+
+  function formatRelative(iso) {
+    if (!iso) return '—';
+    const ms = Math.max(0, now - new Date(iso).getTime());
+    if (ms < 1500) return 'just now';
+    if (ms < 60_000) return `${Math.round(ms / 1000)}s ago`;
+    if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m ago`;
+    return `${(ms / 3_600_000).toFixed(1)}h ago`;
   }
 
   onMount(() => {
@@ -146,10 +267,35 @@
     };
     websocketService.on('agent-event', onAgentEvent);
 
+    const onProcessActivity = (data) => {
+      if (!data?.agent_name) return;
+      processByName = {
+        ...processByName,
+        [data.agent_name]: {
+          timestamp: data.timestamp || new Date().toISOString(),
+          agent_name: data.agent_name,
+          activity_state: data.activity_state,
+          api_connections: data.api_connections,
+          network_connections: data.network_connections,
+          cpu_usage: data.cpu_usage,
+          memory_mb: data.memory_mb
+        }
+      };
+    };
+    websocketService.on('process-activity', onProcessActivity);
+
+    // Cull stale API-agent rows on the same cadence as the time tick.
+    const cullTimer = setInterval(() => {
+      const fresh = filterFreshApiAgents(apiAgents);
+      if (fresh.length !== apiAgents.length) apiAgents = fresh;
+    }, 5000);
+
     return () => {
       clearInterval(refreshTimer);
       clearInterval(tickTimer);
+      clearInterval(cullTimer);
       websocketService.off('agent-event', onAgentEvent);
+      websocketService.off('process-activity', onProcessActivity);
     };
   });
 </script>
@@ -169,18 +315,83 @@
 
   {#if error}
     <div class="text-xs text-[var(--error)] font-mono">{error}</div>
-  {:else if ollamaOffline}
+  {:else if ollamaOffline && apiAgents.length === 0}
     <div class="text-xs text-[var(--warning)] py-4 text-center">
       <div class="font-semibold">Ollama not reachable</div>
       {#if offlineDetail}
         <div class="text-[10px] text-[var(--muted)] font-mono mt-1">{offlineDetail}</div>
       {/if}
     </div>
-  {:else if models.length === 0}
+  {:else if models.length === 0 && apiAgents.length === 0}
     <div class="text-xs text-[var(--muted)] italic py-4 text-center">
       No models resident in VRAM
     </div>
   {:else}
+    {#if apiAgents.length > 0}
+      <div class="space-y-1 mb-2">
+        {#each apiAgents as a (a.agent_type || a.agent_name)}
+          {@const proc = processFor(a)}
+          {@const state = proc?.activity_state}
+          {@const conns = proc?.network_connections ?? 0}
+          {@const apiConns = proc?.api_connections ?? 0}
+          {@const brandColor = a.color || getAgentBrand(a.agent_name).color}
+          {@const stateColor = activityColor(state)}
+          {@const modelRaw = latestModelByAgent[(a.agent_type || '').toLowerCase()]}
+          {@const modelLabel = prettyModel(modelRaw)}
+          <div
+            class="model-row relative pl-3 py-1 rounded transition-colors"
+            style="border-left: 3px solid {brandColor}; --pulse-color: {brandColor};"
+            title="API agent — runs against a cloud model, not resident in VRAM."
+          >
+            <div class="relative flex items-baseline justify-between gap-2">
+              <div class="flex items-baseline gap-2 flex-wrap min-w-0">
+                <span
+                  class="inline-block w-2 h-2 rounded-full heartbeat flex-shrink-0"
+                  style="background: {brandColor};"
+                  title="Active"
+                ></span>
+                <span class="font-mono text-sm text-[var(--text)] font-semibold truncate">{a.agent_name}</span>
+                {#if modelLabel}
+                  <span
+                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
+                    title={`Latest model observed on /api/api-latency: ${modelRaw}`}
+                  >
+                    {modelLabel}
+                  </span>
+                {/if}
+                {#if state}
+                  <span
+                    class="text-[10px] font-mono"
+                    style="color: {stateColor};"
+                  >
+                    {activityLabel(state, apiConns)}
+                  </span>
+                {/if}
+                {#if conns > 0}
+                  <span class="text-[10px] text-[var(--muted)] font-mono">{conns} conn</span>
+                {/if}
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-[10px] text-[var(--muted)] font-mono">{formatRelative(a.last_seen)}</span>
+              </div>
+            </div>
+            <div class="relative mt-1 text-[11px] font-mono text-[var(--muted)] flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              {#if typeof proc?.cpu_usage === 'number'}
+                <span>CPU <span class="text-[var(--text)]">{proc.cpu_usage.toFixed(1)}%</span></span>
+              {/if}
+              {#if proc?.memory_mb > 0}
+                <span>RAM <span class="text-[var(--text)]">{proc.memory_mb} MB</span></span>
+              {/if}
+              {#if a.requests_handled > 0}
+                <span>Calls <span class="text-[var(--text)]">{a.requests_handled.toLocaleString()}</span></span>
+              {/if}
+              <span class="ml-auto text-[10px]">cloud API</span>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  {#if models.length > 0}
     <!-- Auto-compact when 3+ models are loaded — single stats line, smaller
          padding so a busy multi-model setup stays readable without scroll. -->
     {@const dense = models.length >= 3}
@@ -275,6 +486,7 @@
         </div>
       {/each}
     </div>
+  {/if}
   {/if}
 </div>
 
