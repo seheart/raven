@@ -57,6 +57,7 @@ import { createDevRouter } from './dev.js';
 import { createDiffsRouter } from './diffs.js';
 import { createDigestsRouter } from './digests.js';
 import { createDecisionsRouter } from './decisions.js';
+import { createContextWindowRouter } from './context-window.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -272,6 +273,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/diffs', createDiffsRouter(db, diffAnnotationsRepository, diffAnnotationService));
   app.use('/api/digests', createDigestsRouter(digestService));
   app.use('/api/decisions', createDecisionsRouter(decisionsService));
+  app.use('/api/context', createContextWindowRouter(db));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());

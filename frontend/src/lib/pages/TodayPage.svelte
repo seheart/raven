@@ -8,6 +8,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
   import TokenStream from '../components/today/TokenStream.svelte';
+  import ContextVessel from '../components/today/ContextVessel.svelte';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { navigate } from '../utils/router.svelte.js';
@@ -587,8 +588,9 @@
         {/if}
       </div>
 
-      <!-- Aside: jump links -->
-      <aside class="lg:w-72 lg:flex-shrink-0">
+      <!-- Aside: context vessel + jump links -->
+      <aside class="lg:w-72 lg:flex-shrink-0 space-y-4">
+        <ContextVessel />
         <div class="bg-surface border border-border rounded-lg p-4">
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Want more detail?</div>
           <ul class="space-y-2 text-sm">
