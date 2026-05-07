@@ -9,12 +9,14 @@
   let {
     activeTab = 'overview',
     activeSubTab = '',
-    onSettingsClick = () => {},
     _onLogoutClick = () => {}
   } = $props();
 
 
-  let stats = $state({ files: 0, edits: 0, creates: 0, deletes: 0 });
+  // Header strip shows TODAY's activity, not lifetime totals. The +/-
+  // styling reads like a diff, so it should mean "today's net activity"
+  // not "every event ever recorded".
+  let stats = $state({ filesToday: 0, editsToday: 0, createsToday: 0, deletesToday: 0 });
   // CPU/MEM display moved to VitalsStrip; state removed.
   let projects = $state([]);
   let currentFilter = $state(get(projectFilter));
@@ -95,10 +97,10 @@
     try {
       const data = await dataService.fetchDashboardStats();
       stats = {
-        files: data.total_files || 0,
-        edits: data.edits || 0,
-        creates: data.creates || 0,
-        deletes: data.deletes || 0
+        filesToday: data.active_files_today || 0,
+        editsToday: data.edits_today || 0,
+        createsToday: data.creates_today || 0,
+        deletesToday: data.deletes_today || 0
       };
     } catch {
       // Silent fail — stats are supplementary
@@ -123,10 +125,10 @@
     const unsubStats = dataService.stores.dashboardStats.subscribe(d => {
       if (!d || typeof d !== 'object') return;
       stats = {
-        files: d.total_files || 0,
-        edits: d.edits || 0,
-        creates: d.creates || 0,
-        deletes: d.deletes || 0
+        filesToday: d.active_files_today || 0,
+        editsToday: d.edits_today || 0,
+        createsToday: d.creates_today || 0,
+        deletesToday: d.deletes_today || 0
       };
     });
     return () => {
@@ -165,15 +167,18 @@
       {/each}
     </nav>
 
-    <!-- Activity Stats (real data) — hidden until xl so the nav has
-         room at typical laptop widths after the type-scale bump. -->
+    <!-- Activity Stats — TODAY-scoped so the +/- actually means "net
+         activity today" instead of "lifetime odometer". Hidden until xl
+         so the nav has room at typical laptop widths. -->
     <div
-      class="hidden xl:flex gap-2 lg:gap-3 text-xs font-mono text-[var(--muted)] pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
+      class="hidden xl:flex items-baseline gap-2 lg:gap-3 text-xs font-mono text-[var(--muted)] pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
+      title="Today's file activity since local midnight"
     >
-      <span>{stats.files} files</span>
-      <span>{stats.edits} edits</span>
-      <span class="text-[var(--success)]">+{stats.creates}</span>
-      <span class="text-[var(--error)]">-{stats.deletes}</span>
+      <span class="text-[10px] uppercase tracking-wide text-[var(--muted)]/70">Today</span>
+      <span>{stats.filesToday} files</span>
+      <span>~{stats.editsToday}</span>
+      <span class="text-[var(--success)]">+{stats.createsToday}</span>
+      <span class="text-[var(--error)]">-{stats.deletesToday}</span>
     </div>
 
     <!-- CPU / MEM bars moved to the global VitalsStrip below the header. -->
@@ -195,14 +200,6 @@
       </div>
     {/if}
 
-    <!-- Settings -->
-    <button
-      onclick={onSettingsClick}
-      class="px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 cursor-pointer shrink-0"
-      aria-label="Settings"
-    >
-      Settings
-    </button>
   </div>
 
   <!-- Sub-Navigation -->

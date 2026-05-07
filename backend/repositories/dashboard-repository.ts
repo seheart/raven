@@ -51,6 +51,12 @@ interface DashboardStats {
   creates: number;
   edits: number;
   deletes: number;
+  /** Today-scoped counts (since local midnight). Lifetime numbers above
+   *  read like a never-resetting odometer; these are what the header
+   *  strip's +/- styling actually wants to mean. */
+  creates_today: number;
+  edits_today: number;
+  deletes_today: number;
   app_errors: number;
 }
 
@@ -379,14 +385,34 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
       }
 
       const today = new Date().toISOString().split('T')[0];
+      const todayStart = today + 'T00:00:00';
       const activeTodaySql = projectFilter
         ? `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ? AND project_name = ?`
         : `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ?`;
       const activeTodayParams = projectFilter
-        ? [today + 'T00:00:00', projectFilter]
-        : [today + 'T00:00:00'];
+        ? [todayStart, projectFilter]
+        : [todayStart];
       const activeTodayRow = db.db.prepare(activeTodaySql).get(...activeTodayParams) as
         | { count: number }
+        | undefined;
+
+      // Today-scoped change-type counters. Mirrors the lifetime ones above
+      // but with a timestamp filter so the header strip's +/- can mean
+      // "today's net activity" instead of "lifetime odometer".
+      const todayChangesSql = projectFilter
+        ? `SELECT
+             SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates_today,
+             SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits_today,
+             SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes_today
+           FROM events WHERE timestamp >= ? AND project_name = ?`
+        : `SELECT
+             SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates_today,
+             SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits_today,
+             SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes_today
+           FROM events WHERE timestamp >= ?`;
+      const todayChangesParams = projectFilter ? [todayStart, projectFilter] : [todayStart];
+      const todayChangesRow = db.db.prepare(todayChangesSql).get(...todayChangesParams) as
+        | { creates_today: number; edits_today: number; deletes_today: number }
         | undefined;
       // session_id intentionally unused — current implementation aggregates
       // across the database; session-scoped stats land in dashboardRepo.
@@ -401,6 +427,9 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
         creates: eventStats?.creates || 0,
         edits: eventStats?.edits || 0,
         deletes: eventStats?.deletes || 0,
+        creates_today: todayChangesRow?.creates_today || 0,
+        edits_today: todayChangesRow?.edits_today || 0,
+        deletes_today: todayChangesRow?.deletes_today || 0,
         app_errors: 0 // Filled in by the route from errors repo
       };
     }

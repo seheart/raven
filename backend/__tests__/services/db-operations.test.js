@@ -244,6 +244,9 @@ describe('RavenDB - Dashboard Stats', () => {
     expect(stats).toHaveProperty('creates');
     expect(stats).toHaveProperty('edits');
     expect(stats).toHaveProperty('deletes');
+    expect(stats).toHaveProperty('creates_today');
+    expect(stats).toHaveProperty('edits_today');
+    expect(stats).toHaveProperty('deletes_today');
     expect(stats).toHaveProperty('session_duration_seconds');
     expect(stats).toHaveProperty('active_files_today');
     expect(stats.total_events).toBeGreaterThan(0);

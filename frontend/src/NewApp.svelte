@@ -157,7 +157,6 @@
   <Header
     {activeTab}
     {activeSubTab}
-    onSettingsClick={handleSettingsClick}
     onLogoutClick={handleLogoutClick}
   />
   <!-- Today is the lightweight first-run view; the dense vitals strip
@@ -548,6 +547,7 @@
     onTechStackClick={handleTechStackClick}
     onDesignSystemClick={handleDesignSystemClick}
     onRoadmapClick={handleRoadmapClick}
+    onSettingsClick={handleSettingsClick}
   />
 
   <!-- Toast Notifications -->

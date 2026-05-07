@@ -199,10 +199,14 @@
   function filterFreshApiAgents(rows) {
     if (!Array.isArray(rows)) return [];
     const cutoff = Date.now() - API_AGENT_TTL_MS;
-    // Only API-style agents — Ollama is rendered below as resident-model rows.
+    // Only API-style agents — Ollama (umbrella) and its individual loaded
+    // models (`ollama-model`) are rendered below as resident-model rows.
+    // Including ollama-model here also collides keys (every loaded model
+    // shares agent_type 'ollama-model'), crashing the keyed each block.
     return rows.filter((a) => {
       if (!a?.is_running) return false;
-      if ((a.agent_type || '').toLowerCase() === 'ollama') return false;
+      const type = (a.agent_type || '').toLowerCase();
+      if (type === 'ollama' || type === 'ollama-model') return false;
       const ts = a.last_seen ? new Date(a.last_seen).getTime() : 0;
       return ts >= cutoff;
     });
