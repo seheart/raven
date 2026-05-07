@@ -7,6 +7,7 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import TokenStream from '../components/today/TokenStream.svelte';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { navigate } from '../utils/router.svelte.js';
@@ -673,6 +674,10 @@
         </div>
       {/if}
     </section>
+
+    <!-- Token stream — paired with the cost hero above so the user can
+         feel the unit cost of an inference in real time. -->
+    <TokenStream />
 
     <!-- Secondary stats — files + cache. Cost lives above as the hero. -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
