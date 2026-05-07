@@ -15,8 +15,8 @@
     ARCHITECTURE_DIAGRAM,
     ROLES,
     OPERATION_STEPS,
-    RESOLVED_DECISIONS,
-    STILL_OPEN,
+    RESOLVED_DECISIONS as FALLBACK_RESOLVED,
+    STILL_OPEN as FALLBACK_OPEN,
     PRINCIPLES,
     MANIFEST
   } from '../content/about.js';
@@ -26,6 +26,14 @@
   /** @type {{platform_label?:string, agent_count?:number, table_count?:number, endpoint_count?:number, uptime_seconds?:number}|null} */
   let intro = $state(null);
   let websocketConnected = $state(false);
+
+  // Decisions audit-trail comes from /api/decisions (parses DECISIONS.md
+  // at repo root). Falls back to the static arrays if the endpoint is
+  // unreachable so the page is never empty.
+  /** @type {Array<{q:string, decision:string, alternatives:string, livesAt:string}>} */
+  let resolvedDecisions = $state(FALLBACK_RESOLVED);
+  /** @type {Array<{q:string, note:string}>} */
+  let openQuestions = $state(FALLBACK_OPEN);
 
   /** @param {number|null|undefined} s */
   function fmtUptime(s) {
@@ -64,6 +72,19 @@
       intro = await api.get('/system/introspection');
     } catch (err) {
       logger.error('About page failed to load:', err);
+    }
+    // Decisions parse on the backend from DECISIONS.md. Falls back to
+    // the static arrays imported above if the endpoint isn't there.
+    try {
+      const data = await api.get('/decisions');
+      if (Array.isArray(data?.resolved) && data.resolved.length > 0) {
+        resolvedDecisions = data.resolved;
+      }
+      if (Array.isArray(data?.open) && data.open.length > 0) {
+        openQuestions = data.open;
+      }
+    } catch {
+      // Silent — fallback content already populated.
     }
   }
 
@@ -337,7 +358,7 @@
         <p class="text-sm text-muted font-sans mb-4">The questions we walked through and the calls we made. Preserved as an audit trail — if a decision turns out wrong later, the original framing is still here.</p>
       </ProseBlock>
       <div class="space-y-3 mb-8">
-        {#each RESOLVED_DECISIONS as d, i (d.q)}
+        {#each resolvedDecisions as d, i (d.q)}
           <div class="bg-surface border border-border rounded-lg p-4">
             <div class="text-sm font-semibold text-accent mb-2">{i + 1}. {d.q}</div>
             <p class="text-sm text-body font-sans leading-relaxed mb-2">{d.decision}</p>
@@ -354,7 +375,7 @@
         <p class="text-sm text-muted font-sans mb-4">Items intentionally parked. Each has a clear shape and a reason for the deferral.</p>
       </ProseBlock>
       <div class="space-y-3">
-        {#each STILL_OPEN as q (q.q)}
+        {#each openQuestions as q (q.q)}
           <div class="bg-surface border border-dashed border-border rounded-lg p-4">
             <div class="text-sm font-semibold text-heading mb-1">{q.q}</div>
             <p class="text-sm text-body font-sans leading-relaxed">{q.note}</p>

@@ -62,6 +62,7 @@ import { createDiffRiskRepository } from './repositories/diff-risk-repository.js
 import { createDiffAnnotationsRepository } from './repositories/diff-annotations-repository.js';
 import { createDiffAnnotationService } from './services/diff-annotation-service.js';
 import { createDigestService } from './services/digest-service.js';
+import { createDecisionsService } from './services/decisions-service.js';
 import { wireRoutes } from './routes/index.js';
 
 // ==================== Configuration ====================
@@ -303,6 +304,7 @@ const diffRiskRepository = createDiffRiskRepository(db);
 const diffAnnotationsRepository = createDiffAnnotationsRepository(db);
 const diffAnnotationService = createDiffAnnotationService(diffAnnotationsRepository);
 const digestService = createDigestService(db);
+const decisionsService = createDecisionsService(join(process.cwd(), '..'));
 const createAgentEventHandler = createAgentEventHandlerFactory({
   db,
   io,
@@ -426,6 +428,7 @@ wireRoutes(app, {
   diffAnnotationsRepository,
   diffAnnotationService,
   digestService,
+  decisionsService,
   syntaxErrorsRepository,
   patternWarningsRepository,
   errorsRepository,

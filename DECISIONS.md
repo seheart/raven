@@ -1,0 +1,84 @@
+# Decisions
+
+A living audit trail of the architectural choices Raven has made, plus the
+questions still parked. Edit this file to update the About page — the
+backend parses it on demand and exposes it at `/api/decisions`.
+
+The format is loose Markdown. Two top-level sections (`## resolved` and
+`## open`); inside each, one `###` heading per item. For resolved items
+the parser recognizes the bold-prefix metadata lines:
+
+- `**Decision:**`
+- `**Alternatives:**`
+- `**Lives at:**`
+
+For open questions, everything under the `###` heading until the next
+heading is treated as the note.
+
+## resolved
+
+### Where do events live?
+
+**Decision:** Local SQLite via better-sqlite3, single file under `.raven/db/raven.db`. WAL journal mode, `auto_vacuum=incremental`, 7-day retention sweep nightly. Full SQL is exposed for ad-hoc queries.
+**Alternatives:** Postgres (overkill for single-host), Parquet (no live writes), event-stream service (cloud).
+**Lives at:** backend/db.ts
+
+### Local-only or networked?
+
+**Decision:** Bind to 127.0.0.1 by default. LAN exposure is opt-in via `RAVEN_HOST=0.0.0.0`; documented as "you trust every host on the bound network." Cloud is not on the roadmap.
+**Alternatives:** Per-instance API key, mTLS between dev machines, hosted aggregator.
+**Lives at:** backend/server.ts
+
+### Auth on or off?
+
+**Decision:** Off in dev (`RAVEN_DEV_DISABLE_AUTH=true`, plus `NODE_ENV != production`). Middleware is wired and ready for LAN/cloud deployments — drop the env var (or set `NODE_ENV=production`) and provide a JWT secret.
+**Alternatives:** Mandatory auth even on localhost (friction without payoff for the single-user case).
+**Lives at:** backend/middleware/security.ts
+
+### How do we capture diffs without bloating the DB?
+
+**Decision:** `shouldSkipDiff()` filters binary extensions, `__diffs__` / `__snapshots__` directories, and 9 lockfile basenames at the write path. Text diffs cap at 64 KB. Retention deletes + incremental vacuum reclaim space nightly.
+**Alternatives:** Store full diffs (caused a 7 GB events table on a 6-day window before this fix).
+**Lives at:** backend/utils/file-processing-helpers.js
+
+### How do we track Ollama inference?
+
+**Decision:** Proxy `/ollama` → `:11434` with telemetry interception. Tools point at Raven's port; we log every request without modifying upstream clients.
+**Alternatives:** Patch every client config (fragile), poll Ollama metrics (lossy).
+**Lives at:** backend/routes/ollama-proxy.ts
+
+### How do we expose live system state?
+
+**Decision:** On-demand introspection at `/api/system/*` — `sqlite_master` walks for the schema, `nvidia-smi` for the GPU, app router walk for endpoints. No background polling, no cached snapshots.
+**Alternatives:** Background metrics collector (extra cost when the page is closed).
+**Lives at:** backend/routes/system.ts
+
+### How does the dark theme actually flip?
+
+**Decision:** The `dark` class lives on `<html>`, not `<body>`. Tailwind v4 `@theme` aliases like `--color-canvas: var(--bg)` compile into `:root`, and CSS resolves `var()` at the declaring element — so the override has to be on `:root` too.
+**Alternatives:** Body-scoped `dark` class (semantic utilities froze at the light hex; verified empirically across 31 routes).
+**Lives at:** frontend/src/app.css
+
+### Single port or split frontend/backend?
+
+**Decision:** Two ports in dev (Vite `:9000` + Express `:9100`) for HMR; one binary in prod (Express serves the built static bundle).
+**Alternatives:** One Express in dev too (slower iteration, no HMR).
+**Lives at:** bin/raven-npx.js · start.sh
+
+## open
+
+### How do we roll up multiple hosts?
+
+Each Raven instance is single-host today. A central aggregator is the obvious next step but the design tradeoffs (push vs pull, schema versioning, auth at the boundary) are unsettled. Parking until the demand signal is clearer.
+
+### Auto-generate decisions from git history?
+
+This page is hand-curated. We could mine commit messages and PR descriptions for an "auto-decisions" track, but signal quality is unproven and a wrong-shape decision is worse than no decision.
+
+### How far do we push anomaly scoring?
+
+Trigger rules cover the obvious cases. Per-agent baselining and learned thresholds are tempting but raise the question of how much state Raven should hold beyond raw events.
+
+### Native desktop or stay browser-served?
+
+Browser-served is fine today and avoids a Tauri/Electron build pipeline. A native shell would buy notifications and tray status, but the cost is real and the use case isn't yet.
