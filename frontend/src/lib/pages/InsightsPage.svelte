@@ -4,6 +4,7 @@
   import { formatTimeOnly as formatTime, formatShortDateTime } from '../timeFormat.js';
   import { renderMarkdown } from '../utils/markdown.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import JourneyPanel from '../components/insights/JourneyPanel.svelte';
   import { EmptyState } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -126,6 +127,11 @@
       {/if}
     {/snippet}
   </PageHeader>
+
+    <!-- Before/after journey panel — surfaces the user's growth arc. -->
+    <div class="mb-4">
+      <JourneyPanel />
+    </div>
 
     <!-- Controls -->
     <div class="bg-surface border border-border rounded-lg p-4 mb-4">

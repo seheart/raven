@@ -60,6 +60,7 @@ import { createDigestsRouter } from './digests.js';
 import { createDecisionsRouter } from './decisions.js';
 import { createContextWindowRouter } from './context-window.js';
 import { createPluginsRouter } from './plugins.js';
+import { createJourneyRouter } from './journey.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -279,6 +280,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/decisions', createDecisionsRouter(decisionsService));
   app.use('/api/context', createContextWindowRouter(db));
   app.use('/api/plugins', createPluginsRouter(pluginRuntime));
+  app.use('/api/journey', createJourneyRouter(db));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());
