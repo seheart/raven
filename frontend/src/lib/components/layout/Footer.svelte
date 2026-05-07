@@ -40,6 +40,14 @@
     <div class="flex items-center gap-4">
       <span class="font-semibold text-[var(--accent)]">Raven v{version}</span>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <span
+        class="hidden md:flex items-center gap-1.5 text-xs text-[var(--muted)]"
+        title="Raven runs entirely on your machine. No telemetry, no cloud, no account."
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-[var(--success)]" aria-hidden="true"></span>
+        <span>Local-first · nothing leaves your machine</span>
+      </span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         class="bg-transparent border-0 p-0 cursor-pointer text-[var(--muted)] hover:text-[var(--accent)] transition-colors text-xs flex items-center gap-2"
         onclick={onSessionClick}

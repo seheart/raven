@@ -375,7 +375,12 @@
 
         <!-- Trigger Rules Grid -->
         {#if filteredTriggers.length === 0 && triggers.length > 0}
-          <EmptyState size="compact" title="No Matching Triggers" description="Try adjusting your search or filters." />
+          <EmptyState
+            size="compact"
+            title="No triggers match those filters"
+            description="Loosen the search box or category filter above. Every trigger you've defined in .raven/config.toml is still loaded — they're just hidden by the current view."
+            icon="⚙"
+          />
         {:else if triggers.length === 0}
           <EmptyState
             size="compact"

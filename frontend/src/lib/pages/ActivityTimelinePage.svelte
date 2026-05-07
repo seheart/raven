@@ -269,7 +269,11 @@
         <div class="text-sm text-muted font-sans">Loading timeline...</div>
       </div>
     {:else if groupedEvents.length === 0}
-      <EmptyState title="No events found" description="Try adjusting your filters" />
+      <EmptyState
+        title="Nothing in this window"
+        description="Either no edits happened in the time range you selected, or the project / change-type filters above are hiding them. Widen the time range or clear the filters to see more."
+        icon="◴"
+      />
     {:else}
       <div class="space-y-6">
         {#each groupedEvents as group, index (index)}

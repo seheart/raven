@@ -465,7 +465,7 @@
                     </td>
                     <td class="px-3 py-2 font-mono text-body">
                       <div class="font-semibold">{t.name}</div>
-                      <div class="text-xs font-sans text-muted mt-0.5">{t.bestFor}</div>
+                      <div class="text-sm font-sans text-muted mt-0.5">{t.bestFor}</div>
                     </td>
                     <td class="px-3 py-2 text-muted font-sans hidden md:table-cell">{t.provider}</td>
                     <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell">{t.cost}</td>

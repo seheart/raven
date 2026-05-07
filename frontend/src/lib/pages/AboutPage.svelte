@@ -275,7 +275,7 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <div class="text-xs font-mono uppercase tracking-wide text-success mb-1">Does</div>
-                <ul class="text-xs font-sans text-body space-y-1 list-none">
+                <ul class="text-sm font-sans text-body space-y-1 list-none">
                   {#each r.does as d (d)}
                     <li class="pl-3 relative before:content-['+'] before:absolute before:left-0 before:text-success">{d}</li>
                   {/each}
@@ -283,7 +283,7 @@
               </div>
               <div>
                 <div class="text-xs font-mono uppercase tracking-wide text-error mb-1">Doesn't</div>
-                <ul class="text-xs font-sans text-muted space-y-1 list-none">
+                <ul class="text-sm font-sans text-muted space-y-1 list-none">
                   {#each r.doesNot as d (d)}
                     <li class="pl-3 relative before:content-['−'] before:absolute before:left-0 before:text-error">{d}</li>
                   {/each}
@@ -342,7 +342,7 @@
             <div class="text-sm font-semibold text-accent mb-2">{i + 1}. {d.q}</div>
             <p class="text-sm text-body font-sans leading-relaxed mb-2">{d.decision}</p>
             {#if d.alternatives}
-              <p class="text-xs font-sans text-muted mb-2"><span class="font-semibold">Alternatives considered:</span> {d.alternatives}</p>
+              <p class="text-sm font-sans text-muted mb-2"><span class="font-semibold">Alternatives considered:</span> {d.alternatives}</p>
             {/if}
             <div class="text-xs font-mono text-muted">Lives at <code class="text-body">{d.livesAt}</code></div>
           </div>

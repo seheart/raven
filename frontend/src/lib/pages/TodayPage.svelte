@@ -34,12 +34,20 @@
   /** @type {Narrative|null} */
   let narrative = $state(null);
 
+  /** @type {Array<{bucket:string, cost_usd:number, requests:number}>} */
+  let costTimeline = $state([]);
+  /** Previous spend value, used to flash the hero number when it ticks up. */
+  let lastSpend = $state(0);
+  let spendDelta = $state(0);
+
   let websocketConnected = $state(false);
   /** @type {string|null} */
   let loadError = $state(null);
 
   /** @type {ReturnType<typeof setInterval>|null} */
   let costTicker = null;
+  /** @type {ReturnType<typeof setInterval>|null} */
+  let timelineTicker = null;
 
   // ── Date helpers ───────────────────────────────────────────────
   // "Today" = local midnight onward. Convert to ISO for the API.
@@ -183,6 +191,14 @@
   async function loadCosts() {
     try {
       const data = await api.get(`/costs/summary?start=${encodeURIComponent(todayStartIso())}`);
+      const newSpend = Number(data?.total_cost_usd) || 0;
+      // Track delta so the hero can flash when the meter ticks up.
+      if (lastSpend > 0 && newSpend > lastSpend) {
+        spendDelta = newSpend - lastSpend;
+        // Auto-clear the delta marker after 4s — keeps it from sticking.
+        setTimeout(() => { spendDelta = 0; }, 4000);
+      }
+      lastSpend = newSpend;
       costs = data;
     } catch (err) {
       // Silent — keep prior value rather than blanking the ticker.
@@ -191,6 +207,39 @@
       }
     }
   }
+
+  async function loadCostTimeline() {
+    try {
+      const start = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+      const data = await api.get(`/costs/timeline?bucket=hour&start=${encodeURIComponent(start)}`);
+      costTimeline = Array.isArray(data) ? data : [];
+    } catch (err) {
+      if (err?.name !== 'AbortError') console.warn('costs/timeline failed:', err);
+    }
+  }
+
+  // Sparkline path for the hero cost band — last 12 hours of spend.
+  // Returns null when there isn't enough variation to draw something useful.
+  const sparkPath = $derived.by(() => {
+    if (!costTimeline || costTimeline.length < 2) return null;
+    const w = 600, h = 36, pad = 2;
+    const max = Math.max(...costTimeline.map(t => Number(t.cost_usd) || 0));
+    if (max <= 0) return null;
+    const stepX = (w - pad * 2) / (costTimeline.length - 1);
+    return costTimeline.map((t, i) => {
+      const x = pad + i * stepX;
+      const y = h - pad - ((Number(t.cost_usd) || 0) / max) * (h - pad * 2);
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  });
+
+  // Filled-area version of the same path, anchored to the bottom edge so the
+  // sparkline reads as a small "weight of spend" silhouette rather than a line.
+  const sparkAreaPath = $derived.by(() => {
+    if (!sparkPath) return null;
+    const w = 600, h = 36;
+    return `${sparkPath} L${w - 2},${h - 2} L2,${h - 2} Z`;
+  });
 
   async function loadActivity() {
     try {
@@ -431,7 +480,7 @@
   }
 
   onMount(() => {
-    Promise.allSettled([loadCosts(), loadActivity(), loadEvents(), loadNarrative()]).then(results => {
+    Promise.allSettled([loadCosts(), loadCostTimeline(), loadActivity(), loadEvents(), loadNarrative()]).then(results => {
       const firstFail = results.find(r => r.status === 'rejected');
       if (firstFail && firstFail.reason?.name !== 'AbortError') {
         loadError = firstFail.reason?.message || 'Failed to load Today data';
@@ -442,7 +491,10 @@
     loadSummary();
 
     // Cost ticker: refresh every 5s so the dollar number visibly moves.
+    // Timeline redraws on a slower 60s cadence — the sparkline doesn't
+    // need to repaint every 5s and the timeline query is heavier.
     costTicker = setInterval(loadCosts, 5000);
+    timelineTicker = setInterval(loadCostTimeline, 60000);
 
     websocketConnected = websocketService.isConnected();
     const updateStatus = () => { websocketConnected = websocketService.isConnected(); };
@@ -457,6 +509,7 @@
 
   onDestroy(() => {
     if (costTicker) clearInterval(costTicker);
+    if (timelineTicker) clearInterval(timelineTicker);
     abort();
   });
 </script>
@@ -572,22 +625,57 @@
       </section>
     {/if}
 
-    <!-- Big numbers strip -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- Cost so far -->
-      <div class="bg-surface border border-border rounded-lg p-5">
-        <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">Spent so far today</div>
-        <div class="text-4xl font-bold text-heading tracking-[-0.025em] tabular-nums transition-all">
-          {fmtUsd(costs?.total_cost_usd)}
-        </div>
-        <div class="mt-2 text-xs font-mono text-muted">
-          {fmtInt(costs?.total_requests)} requests ·
-          {fmtTokens(costs?.total_input_tokens)}↑ /
-          {fmtTokens(costs?.total_output_tokens)}↓
+    <!-- Cost ticker — the hero. The single most educational visualization
+         for someone new to AI. Big number, ticking up in real time as
+         inferences resolve. Cost anxiety is the #1 felt pain — answer it
+         before they ask. -->
+    <section class="bg-surface border border-border rounded-lg p-6 relative overflow-hidden">
+      <div class="flex items-baseline justify-between gap-4 flex-wrap">
+        <div class="min-w-0">
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">Spent so far today</div>
+          <div class="flex items-baseline gap-3 flex-wrap">
+            <div class="text-6xl font-bold text-heading tracking-[-0.04em] tabular-nums transition-all">
+              {fmtUsd(costs?.total_cost_usd)}
+            </div>
+            {#if spendDelta > 0}
+              <span
+                class="text-success font-mono text-sm tabular-nums animate-pulse"
+                title="Spend ticked up since last refresh"
+              >
+                +{fmtUsd(spendDelta)}
+              </span>
+            {/if}
+          </div>
+          <div class="mt-2 text-sm font-mono text-muted">
+            {fmtInt(costs?.total_requests)} requests ·
+            {fmtTokens(costs?.total_input_tokens)}↑ /
+            {fmtTokens(costs?.total_output_tokens)}↓
+          </div>
         </div>
       </div>
 
-      <!-- Files touched -->
+      {#if sparkPath}
+        <div class="mt-4">
+          <svg
+            class="w-full block"
+            height="36"
+            viewBox="0 0 600 36"
+            preserveAspectRatio="none"
+            aria-label="Cost over the last 12 hours"
+          >
+            <path d={sparkAreaPath} fill="var(--accent)" fill-opacity="0.12" />
+            <path d={sparkPath} fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" />
+          </svg>
+          <div class="mt-1 text-[10px] font-mono text-muted/70 flex justify-between">
+            <span>12 hours ago</span>
+            <span>now</span>
+          </div>
+        </div>
+      {/if}
+    </section>
+
+    <!-- Secondary stats — files + cache. Cost lives above as the hero. -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-surface border border-border rounded-lg p-5">
         <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">Files Claude touched</div>
         <div class="text-4xl font-bold text-heading tracking-[-0.025em] tabular-nums">
@@ -598,7 +686,6 @@
         </div>
       </div>
 
-      <!-- Cache savings (educational moment for new users) -->
       <div class="bg-surface border border-border rounded-lg p-5">
         <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">Cache reads</div>
         <div class="text-4xl font-bold text-heading tracking-[-0.025em] tabular-nums">
@@ -632,7 +719,7 @@
                       <span class="text-body"> {desc.verb}</span>
                     </div>
                     {#if desc.detail}
-                      <div class="text-xs text-muted font-sans mt-0.5 truncate">{desc.detail}</div>
+                      <div class="text-sm text-muted font-sans mt-0.5 truncate">{desc.detail}</div>
                     {/if}
                   </div>
                 </li>

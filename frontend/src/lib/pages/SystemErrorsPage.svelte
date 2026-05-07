@@ -129,7 +129,11 @@
         {/each}
       </div>
     {:else if errors.length === 0}
-      <EmptyState title="No errors found" />
+      <EmptyState
+        title="No errors logged"
+        description="When Raven's backend hits a 4xx/5xx response or an unhandled exception, it shows up here with the request body and stack. A quiet list is a healthy sign."
+        icon="✓"
+      />
     {:else}
       <div class="bg-surface border border-border rounded-lg">
         <div class="divide-y divide-[var(--border)]">

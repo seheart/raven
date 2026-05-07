@@ -538,7 +538,7 @@
             <RefreshButton onClick={() => {}} loading={true} />
             <RefreshButton onClick={() => {}} label="Reload" />
           </div>
-          <p class="text-xs text-muted font-sans">Canonical refresh button used in 23+ page headers. Built-in loading state.</p>
+          <p class="text-sm text-muted font-sans">Canonical refresh button used in 23+ page headers. Built-in loading state.</p>
         </div>
 
         <!-- ToolbarButton -->
@@ -553,7 +553,7 @@
             <ToolbarButton onClick={() => {}} variant="danger">Clear all</ToolbarButton>
             <ToolbarButton onClick={() => {}} disabled={true}>Disabled</ToolbarButton>
           </div>
-          <p class="text-xs text-muted font-sans">Secondary toolbar action (Export, Auto-refresh, filter toggles). One styling source for all toolbar buttons.</p>
+          <p class="text-sm text-muted font-sans">Secondary toolbar action (Export, Auto-refresh, filter toggles). One styling source for all toolbar buttons.</p>
         </div>
 
         <!-- FilterToggle -->
@@ -567,7 +567,7 @@
             <FilterToggle active={false} onClick={() => {}}>Medium</FilterToggle>
             <FilterToggle active={false} onClick={() => {}}>Low</FilterToggle>
           </div>
-          <p class="text-xs text-muted font-sans">Bordered active/inactive filter pill — severity filters, search-type toggles.</p>
+          <p class="text-sm text-muted font-sans">Bordered active/inactive filter pill — severity filters, search-type toggles.</p>
         </div>
 
         <!-- TabButton -->
@@ -582,7 +582,7 @@
             <TabButton active={false} onClick={() => {}}>30d</TabButton>
             <TabButton active={false} onClick={() => {}}>All</TabButton>
           </div>
-          <p class="text-xs text-muted font-sans mt-3">Connected tab segment for time-range pickers.</p>
+          <p class="text-sm text-muted font-sans mt-3">Connected tab segment for time-range pickers.</p>
         </div>
 
         <!-- Reference table for the rest — name + variants + use line -->
@@ -686,7 +686,7 @@
               {/if}
             </div>
 
-            <p class="text-xs text-muted font-sans leading-relaxed">{s.desc}</p>
+            <p class="text-sm text-muted font-sans leading-relaxed">{s.desc}</p>
           </div>
         {/each}
       </div>
@@ -858,7 +858,7 @@
           <div class="bg-surface border border-border rounded-lg p-5">
             <div class="text-sm font-semibold text-heading mb-1">{f.name}</div>
             <code class="font-mono text-xs text-accent">{f.cssVar}</code>
-            <p class="text-xs text-muted font-sans mt-2 mb-3">{f.use}</p>
+            <p class="text-sm text-muted font-sans mt-2 mb-3">{f.use}</p>
             <p class="text-base" style="font-family: var({f.cssVar});">{f.sample}</p>
           </div>
         {/each}

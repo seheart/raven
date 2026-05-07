@@ -199,9 +199,17 @@
         <div class="text-sm text-muted font-sans">Searching...</div>
       </div>
     {:else if !hasSearched}
-      <EmptyState title="Start Searching" description="Enter a search term to find files, events, and activity" />
+      <EmptyState
+        title="Search across everything"
+        description="Looks through every file event, agent action, and edited path Raven has recorded. Try a filename, a project name, or part of a path."
+        icon="?"
+      />
     {:else if filteredResults.length === 0}
-      <EmptyState title="No Results Found" description="No matches for &quot;{searchQuery}&quot;. Try a different search term." />
+      <EmptyState
+        title="Nothing matches “{searchQuery}”"
+        description="Try a partial filename, a project slug, or drop the file extension. Search is case-insensitive but exact on substrings."
+        icon="∅"
+      />
     {:else}
       <!-- Results Header -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
