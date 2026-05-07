@@ -65,6 +65,7 @@ import { createDigestService } from './services/digest-service.js';
 import { createDecisionsService } from './services/decisions-service.js';
 import { createPluginRuntime } from './services/plugin-runtime.js';
 import { createBaselinesService } from './services/baselines-service.js';
+import { createMilestonesService } from './services/milestones-service.js';
 import { wireRoutes } from './routes/index.js';
 
 // ==================== Configuration ====================
@@ -310,6 +311,7 @@ const decisionsService = createDecisionsService(join(process.cwd(), '..'));
 const pluginRuntime = createPluginRuntime(join(RAVEN_DIR, 'plugins'));
 pluginRuntime.init();
 const baselinesService = createBaselinesService(db);
+const milestonesService = createMilestonesService(db);
 const createAgentEventHandler = createAgentEventHandlerFactory({
   db,
   io,
@@ -436,6 +438,7 @@ wireRoutes(app, {
   decisionsService,
   pluginRuntime,
   baselinesService,
+  milestonesService,
   syntaxErrorsRepository,
   patternWarningsRepository,
   errorsRepository,

@@ -15,6 +15,7 @@
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
   import WeeklyDigestModal from './lib/components/insights/WeeklyDigestModal.svelte';
+  import MilestoneModal from './lib/components/insights/MilestoneModal.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from './lib/dataService.js';
@@ -571,5 +572,10 @@
   <!-- Weekly Digest auto-shows on Monday or after a 7-day-quiet streak.
        Manages its own visibility + dismiss state in localStorage. -->
   <WeeklyDigestModal />
+
+  <!-- Milestone modals — first session, 7d/30d marks, 100/1000th edit,
+       anniversaries, project month-ones. One at a time, dismissed
+       permanently per id. -->
+  <MilestoneModal />
 </div>
 
