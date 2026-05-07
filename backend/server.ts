@@ -67,6 +67,7 @@ import { createDerivedDecisionsService } from './services/derived-decisions-serv
 import { createPluginRuntime } from './services/plugin-runtime.js';
 import { createBaselinesService } from './services/baselines-service.js';
 import { createMilestonesService } from './services/milestones-service.js';
+import { createWrappedService } from './services/wrapped-service.js';
 import { wireRoutes } from './routes/index.js';
 
 // ==================== Configuration ====================
@@ -314,6 +315,7 @@ const pluginRuntime = createPluginRuntime(join(RAVEN_DIR, 'plugins'));
 pluginRuntime.init();
 const baselinesService = createBaselinesService(db);
 const milestonesService = createMilestonesService(db);
+const wrappedService = createWrappedService(db);
 const createAgentEventHandler = createAgentEventHandlerFactory({
   db,
   io,
@@ -442,6 +444,7 @@ wireRoutes(app, {
   pluginRuntime,
   baselinesService,
   milestonesService,
+  wrappedService,
   syntaxErrorsRepository,
   patternWarningsRepository,
   errorsRepository,

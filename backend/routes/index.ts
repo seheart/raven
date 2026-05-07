@@ -33,6 +33,7 @@ import type { DerivedDecisionsService } from '../services/derived-decisions-serv
 import type { PluginRuntime } from '../services/plugin-runtime.js';
 import type { BaselinesService } from '../services/baselines-service.js';
 import type { MilestonesService } from '../services/milestones-service.js';
+import type { WrappedService } from '../services/wrapped-service.js';
 import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
 import type { PatternWarningsRepository } from '../repositories/pattern-warnings-repository.js';
 import type { ErrorsRepository } from '../repositories/errors-repository.js';
@@ -66,6 +67,7 @@ import { createPluginsRouter } from './plugins.js';
 import { createJourneyRouter } from './journey.js';
 import { createBaselinesRouter } from './baselines.js';
 import { createMilestonesRouter } from './milestones.js';
+import { createWrappedRouter } from './wrapped.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -141,6 +143,7 @@ interface WireRoutesDeps {
   pluginRuntime: PluginRuntime;
   baselinesService: BaselinesService;
   milestonesService: MilestonesService;
+  wrappedService: WrappedService;
   syntaxErrorsRepository: SyntaxErrorsRepository;
   patternWarningsRepository: PatternWarningsRepository;
   errorsRepository: ErrorsRepository;
@@ -190,6 +193,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     pluginRuntime,
     baselinesService,
     milestonesService,
+    wrappedService,
     syntaxErrorsRepository,
     patternWarningsRepository,
     errorsRepository,
@@ -295,6 +299,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/journey', createJourneyRouter(db));
   app.use('/api/agents', createBaselinesRouter(baselinesService));
   app.use('/api/milestones', createMilestonesRouter(milestonesService));
+  app.use('/api/wrapped', createWrappedRouter(wrappedService));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());

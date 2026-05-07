@@ -607,6 +607,9 @@
             <li>
               <button type="button" onclick={() => navigate('/insights')} class="text-accent hover:underline">→ All insights</button>
             </li>
+            <li>
+              <button type="button" onclick={() => navigate('/wrapped')} class="text-accent hover:underline">→ Your Wrapped</button>
+            </li>
           </ul>
           <div class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed">
             <span class="text-success">●</span> Local-first · nothing leaves your machine
