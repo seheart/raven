@@ -28,8 +28,11 @@ interface RetentionConfig {
  * Tables with `events`-grade churn use `eventDays` (default 7); slower-moving
  * metric/insight tables use `metricsDays` (default 30). Missing tables are
  * skipped silently.
+ *
+ * Exported so `/api/storage/retention/run` can fire it on demand without
+ * waiting for the nightly schedule.
  */
-function runRetentionCleanup(
+export function runRetentionCleanup(
   db: RavenDB,
   eventDays = DEFAULT_EVENT_DAYS,
   metricsDays = DEFAULT_METRICS_DAYS

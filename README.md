@@ -95,6 +95,9 @@ Environment knobs:
 - `RAVEN_INSIGHTS_DISABLED=1` — turn off local-LLM narration
 - `TRANSPARENT_OLLAMA_PORT` — proxy port (default `11434`, Ollama's default)
 - `RAVEN_DEV_DISABLE_AUTH=true` — local-only dev, skip auth
+- `RETENTION_EVENT_DAYS` — high-churn tables (events, agent_events, …) keep N days (default 7)
+- `RETENTION_METRICS_DAYS` — slower-moving tables (token_usage, insights, …) keep N days (default 30)
+- `RETENTION_SNAPSHOT_DAYS` — snapshot files keep N days (default 7)
 
 ## Tech stack
 

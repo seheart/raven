@@ -14,6 +14,8 @@ import {
   InvalidNameError,
   NotFoundError
 } from '../repositories/storage-repository.js';
+import { runRetentionCleanup } from '../services/retention-cleanup.js';
+import type { RavenDB } from '../db.js';
 
 const RetentionSchema = z.object({
   enabled: z.boolean(),
@@ -26,12 +28,18 @@ const CleanBodySchema = z.object({
   days: z.coerce.number().int().min(1).max(365)
 });
 
+const RetentionRunSchema = z.object({
+  eventDays: z.coerce.number().int().min(1).max(365).optional(),
+  metricsDays: z.coerce.number().int().min(1).max(365).optional()
+});
+
 interface StorageDeps {
   repo: StorageRepository;
   expensiveOpLimiter: RequestHandler;
+  db: RavenDB;
 }
 
-export function createStorageRouter({ repo, expensiveOpLimiter }: StorageDeps): Router {
+export function createStorageRouter({ repo, expensiveOpLimiter, db }: StorageDeps): Router {
   const router = express.Router();
 
   // GET /api/storage — overview
@@ -155,6 +163,39 @@ export function createStorageRouter({ repo, expensiveOpLimiter }: StorageDeps): 
     } catch (error) {
       logger.error('❌ Error saving retention policy:', error as Error);
       return res.status(500).json({ error: 'Failed to save retention policy' });
+    }
+  });
+
+  /**
+   * POST /api/storage/retention/run
+   *
+   * Run the retention cleanup immediately and return the per-table row
+   * counts deleted. Body params are optional overrides for the windows;
+   * default to the env-configured values used by the nightly job.
+   */
+  router.post('/retention/run', async (req: Request, res: Response) => {
+    const parsed = RetentionRunSchema.safeParse(req.body || {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid window', issues: parsed.error.issues });
+    }
+    try {
+      const eventDays =
+        parsed.data.eventDays ?? parseInt(process.env.RETENTION_EVENT_DAYS || '7', 10);
+      const metricsDays =
+        parsed.data.metricsDays ?? parseInt(process.env.RETENTION_METRICS_DAYS || '30', 10);
+      const deleted = runRetentionCleanup(db, eventDays, metricsDays);
+      const total = Object.values(deleted).reduce((s, n) => s + n, 0);
+      logger.info(`🧹 Manual retention run — deleted ${total} rows`);
+      return res.json({
+        ok: true,
+        eventDays,
+        metricsDays,
+        total_rows_deleted: total,
+        deleted
+      });
+    } catch (err) {
+      logger.error('❌ Manual retention run failed:', err as Error);
+      return res.status(500).json({ error: 'Retention run failed' });
     }
   });
 
