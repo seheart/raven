@@ -75,7 +75,8 @@
       { id: 'safety', label: 'Safety' },
       { id: 'errors', label: 'Errors' },
       { id: 'projects', label: 'Projects' },
-      { id: 'storage', label: 'Storage' }
+      { id: 'storage', label: 'Storage' },
+      { id: 'plugins', label: 'Plugins' }
     ],
     settings: []
   };

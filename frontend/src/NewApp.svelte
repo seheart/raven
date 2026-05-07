@@ -452,6 +452,14 @@
           {:catch}
             <PlaceholderPage title="Storage" description="Failed to load" />
           {/await}
+        {:else if activeSubTab === 'plugins'}
+          {#await import('./lib/pages/SystemPluginsPage.svelte')}
+            <PlaceholderPage title="Plugins" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Plugins" description="Failed to load" />
+          {/await}
         {:else}
           <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
         {/if}
