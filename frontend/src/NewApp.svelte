@@ -33,7 +33,7 @@
   const pathParts = $derived.by(() => {
     const parts = currentPath.split('/').filter(Boolean);
     return {
-      tab: parts[0] || 'overview',
+      tab: parts[0] || 'today',
       subTab: parts[1] || ''
     };
   });
@@ -43,9 +43,9 @@
 
   // Initialize route on mount
   $effect(() => {
-    // If on root path, redirect to dashboard
+    // Root path lands on Today (the lightweight first-run view).
     if (currentPath === '/') {
-      navigate('/overview');
+      navigate('/today');
     }
   });
 
@@ -160,7 +160,11 @@
     onSettingsClick={handleSettingsClick}
     onLogoutClick={handleLogoutClick}
   />
-  <VitalsStrip />
+  <!-- Today is the lightweight first-run view; the dense vitals strip
+       belongs to the power-user dashboards, not the landing page. -->
+  {#if activeTab !== 'today'}
+    <VitalsStrip />
+  {/if}
 
   <!-- Main Content -->
   <main class="pb-16">
@@ -193,7 +197,15 @@
           </div>
         </div>
       {/snippet}
-      {#if activeTab === 'live'}
+      {#if activeTab === 'today'}
+        {#await import('./lib/pages/TodayPage.svelte')}
+          <PlaceholderPage title="Today" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Today" description="Failed to load" />
+        {/await}
+      {:else if activeTab === 'live'}
         {#await import('./lib/pages/LivePage.svelte')}
           <PlaceholderPage title="Live Monitor" description="Loading..." />
         {:then { default: Component }}

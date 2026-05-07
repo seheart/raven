@@ -31,6 +31,7 @@ websocketService.on('analysis-progress', progress => {
  * @param {AbortSignal} [options.signal] - AbortController signal for cancellation
  * @param {RequestCache} [options.cache] - Cache mode
  * @param {number} [options.timeout=15000] - Request timeout in milliseconds (default: 15s)
+ * @param {boolean} [options.silent=false] - Suppress toasts + error-log on failure. Use when the caller renders its own graceful UI for expected error modes (e.g. /insights/* when RAVEN_INSIGHTS_DISABLED=1 returns 503).
  * @returns {Promise<any>} Parsed JSON response or text if not JSON
  * @throws {Error} Throws on HTTP errors (4xx, 5xx), network failures, or timeouts
  * @public
@@ -80,9 +81,11 @@ export async function apiFetch(endpoint, options = {}) {
         endpoint.includes('/easter-eggs') ||
         endpoint.includes('/social/');
 
-      // Suppress logging and notifications for 404s/501s on Tier 4 endpoints (they're not implemented yet)
+      // Suppress logging and notifications for 404s/501s on Tier 4 endpoints (they're not implemented yet),
+      // or when the caller passed { silent: true } because it's rendering its own graceful UI.
       const shouldSuppress =
-        (response.status === 404 || response.status === 501) && isTier4Endpoint;
+        ((response.status === 404 || response.status === 501) && isTier4Endpoint) ||
+        options.silent === true;
 
       // Log HTTP error to error log (but don't log errors from the error endpoint itself)
       if (!endpoint.includes('/errors') && !shouldSuppress) {

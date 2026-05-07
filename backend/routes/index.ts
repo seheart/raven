@@ -78,6 +78,7 @@ import { createSyntaxErrorsRouter } from './syntax-errors.js';
 import { createSystemInfoRouter, createPublicHealthRouter } from './system-info.js';
 import { createSystemRouter } from './system.js';
 import { createTelemetryRouter } from './telemetry.js';
+import { createTodayNarrativeRouter } from './today-narrative.js';
 import { createTrendsRouter } from './trends.js';
 import { createTriggersRouter } from './triggers.js';
 
@@ -252,6 +253,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   );
 
   app.use('/api/costs', createCostsRouter(db));
+  app.use('/api/today', createTodayNarrativeRouter(db));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());
