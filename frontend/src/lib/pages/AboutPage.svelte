@@ -35,6 +35,16 @@
   /** @type {Array<{q:string, note:string}>} */
   let openQuestions = $state(FALLBACK_OPEN);
 
+  /**
+   * @typedef {{
+   *   sha:string, short_sha:string, date:string, author:string,
+   *   kind:'breaking'|'decision-marker'|'feat-architecture'|'refactor',
+   *   headline:string, excerpt:string, breaking:boolean
+   * }} DerivedDecision
+   */
+  /** @type {DerivedDecision[]} */
+  let derivedDecisions = $state([]);
+
   /** @param {number|null|undefined} s */
   function fmtUptime(s) {
     if (s == null) return '—';
@@ -86,6 +96,39 @@
     } catch {
       // Silent — fallback content already populated.
     }
+
+    // Auto-derived decisions from git log — best-effort, ok to be empty.
+    try {
+      const data = await api.get('/decisions/derived?limit=12');
+      derivedDecisions = Array.isArray(data) ? data : [];
+    } catch {
+      derivedDecisions = [];
+    }
+  }
+
+  /** @param {string} kind */
+  function kindLabelClass(kind) {
+    switch (kind) {
+      case 'breaking':           return 'bg-error/15 text-error border-error/30';
+      case 'decision-marker':    return 'bg-accent/15 text-accent border-accent/30';
+      case 'feat-architecture':  return 'bg-info/15 text-info border-info/30';
+      case 'refactor':           return 'bg-warning/15 text-warning border-warning/30';
+      default:                   return 'bg-surface-2 text-muted border-border';
+    }
+  }
+  /** @param {string} kind */
+  function kindLabel(kind) {
+    switch (kind) {
+      case 'breaking':           return 'breaking';
+      case 'decision-marker':    return 'decision';
+      case 'feat-architecture':  return 'arch';
+      case 'refactor':           return 'refactor';
+      default:                   return kind;
+    }
+  }
+  /** @param {string} iso */
+  function shortDate(iso) {
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   onMount(() => {
@@ -382,6 +425,37 @@
           </div>
         {/each}
       </div>
+
+      {#if derivedDecisions.length > 0}
+        <ProseBlock>
+          <h3 class="text-sm font-semibold text-heading mt-8 mb-2">Auto-detected from commits</h3>
+          <p class="text-sm text-muted font-sans mb-4">
+            Mined from <code class="font-mono text-body">git log</code> — explicit
+            <code class="font-mono text-body">BREAKING:</code> /
+            <code class="font-mono text-body">Decision:</code> markers, plus
+            <code class="font-mono text-body">feat(arch)</code> and substantial
+            <code class="font-mono text-body">refactor</code> commits. Quality is
+            best-effort; the audit trail above is the source of truth.
+          </p>
+        </ProseBlock>
+        <div class="space-y-3">
+          {#each derivedDecisions as d (d.sha)}
+            <div class="bg-surface border border-border rounded-lg p-4">
+              <div class="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+                <span class="text-sm font-semibold text-heading min-w-0 truncate">{d.headline}</span>
+                <span class="flex items-center gap-2 text-xs font-mono text-muted flex-shrink-0">
+                  <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border {kindLabelClass(d.kind)}">{kindLabel(d.kind)}</span>
+                  <span>{d.short_sha}</span>
+                  <span>{shortDate(d.date)}</span>
+                </span>
+              </div>
+              {#if d.excerpt}
+                <p class="text-sm text-body font-sans leading-relaxed mt-2">{d.excerpt}</p>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
     </PageSection>
 
     <!-- 10 // Principles -->

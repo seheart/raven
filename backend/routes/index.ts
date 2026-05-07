@@ -29,6 +29,7 @@ import type { DiffAnnotationsRepository } from '../repositories/diff-annotations
 import type { DiffAnnotationService } from '../services/diff-annotation-service.js';
 import type { DigestService } from '../services/digest-service.js';
 import type { DecisionsService } from '../services/decisions-service.js';
+import type { DerivedDecisionsService } from '../services/derived-decisions-service.js';
 import type { PluginRuntime } from '../services/plugin-runtime.js';
 import type { BaselinesService } from '../services/baselines-service.js';
 import type { MilestonesService } from '../services/milestones-service.js';
@@ -136,6 +137,7 @@ interface WireRoutesDeps {
   diffAnnotationService: DiffAnnotationService;
   digestService: DigestService;
   decisionsService: DecisionsService;
+  derivedDecisionsService: DerivedDecisionsService;
   pluginRuntime: PluginRuntime;
   baselinesService: BaselinesService;
   milestonesService: MilestonesService;
@@ -184,6 +186,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     diffAnnotationService,
     digestService,
     decisionsService,
+    derivedDecisionsService,
     pluginRuntime,
     baselinesService,
     milestonesService,
@@ -286,7 +289,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/today', createTodayNarrativeRouter(db));
   app.use('/api/diffs', createDiffsRouter(db, diffAnnotationsRepository, diffAnnotationService));
   app.use('/api/digests', createDigestsRouter(digestService));
-  app.use('/api/decisions', createDecisionsRouter(decisionsService));
+  app.use('/api/decisions', createDecisionsRouter(decisionsService, derivedDecisionsService));
   app.use('/api/context', createContextWindowRouter(db));
   app.use('/api/plugins', createPluginsRouter(pluginRuntime));
   app.use('/api/journey', createJourneyRouter(db));

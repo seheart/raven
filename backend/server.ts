@@ -63,6 +63,7 @@ import { createDiffAnnotationsRepository } from './repositories/diff-annotations
 import { createDiffAnnotationService } from './services/diff-annotation-service.js';
 import { createDigestService } from './services/digest-service.js';
 import { createDecisionsService } from './services/decisions-service.js';
+import { createDerivedDecisionsService } from './services/derived-decisions-service.js';
 import { createPluginRuntime } from './services/plugin-runtime.js';
 import { createBaselinesService } from './services/baselines-service.js';
 import { createMilestonesService } from './services/milestones-service.js';
@@ -308,6 +309,7 @@ const diffAnnotationsRepository = createDiffAnnotationsRepository(db);
 const diffAnnotationService = createDiffAnnotationService(diffAnnotationsRepository);
 const digestService = createDigestService(db);
 const decisionsService = createDecisionsService(join(process.cwd(), '..'));
+const derivedDecisionsService = createDerivedDecisionsService(join(process.cwd(), '..'));
 const pluginRuntime = createPluginRuntime(join(RAVEN_DIR, 'plugins'));
 pluginRuntime.init();
 const baselinesService = createBaselinesService(db);
@@ -436,6 +438,7 @@ wireRoutes(app, {
   diffAnnotationService,
   digestService,
   decisionsService,
+  derivedDecisionsService,
   pluginRuntime,
   baselinesService,
   milestonesService,
