@@ -64,6 +64,7 @@ import { createDiffAnnotationService } from './services/diff-annotation-service.
 import { createDigestService } from './services/digest-service.js';
 import { createDecisionsService } from './services/decisions-service.js';
 import { createPluginRuntime } from './services/plugin-runtime.js';
+import { createBaselinesService } from './services/baselines-service.js';
 import { wireRoutes } from './routes/index.js';
 
 // ==================== Configuration ====================
@@ -308,6 +309,7 @@ const digestService = createDigestService(db);
 const decisionsService = createDecisionsService(join(process.cwd(), '..'));
 const pluginRuntime = createPluginRuntime(join(RAVEN_DIR, 'plugins'));
 pluginRuntime.init();
+const baselinesService = createBaselinesService(db);
 const createAgentEventHandler = createAgentEventHandlerFactory({
   db,
   io,
@@ -433,6 +435,7 @@ wireRoutes(app, {
   digestService,
   decisionsService,
   pluginRuntime,
+  baselinesService,
   syntaxErrorsRepository,
   patternWarningsRepository,
   errorsRepository,

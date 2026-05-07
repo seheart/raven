@@ -30,6 +30,7 @@ import type { DiffAnnotationService } from '../services/diff-annotation-service.
 import type { DigestService } from '../services/digest-service.js';
 import type { DecisionsService } from '../services/decisions-service.js';
 import type { PluginRuntime } from '../services/plugin-runtime.js';
+import type { BaselinesService } from '../services/baselines-service.js';
 import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
 import type { PatternWarningsRepository } from '../repositories/pattern-warnings-repository.js';
 import type { ErrorsRepository } from '../repositories/errors-repository.js';
@@ -61,6 +62,7 @@ import { createDecisionsRouter } from './decisions.js';
 import { createContextWindowRouter } from './context-window.js';
 import { createPluginsRouter } from './plugins.js';
 import { createJourneyRouter } from './journey.js';
+import { createBaselinesRouter } from './baselines.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -133,6 +135,7 @@ interface WireRoutesDeps {
   digestService: DigestService;
   decisionsService: DecisionsService;
   pluginRuntime: PluginRuntime;
+  baselinesService: BaselinesService;
   syntaxErrorsRepository: SyntaxErrorsRepository;
   patternWarningsRepository: PatternWarningsRepository;
   errorsRepository: ErrorsRepository;
@@ -179,6 +182,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     digestService,
     decisionsService,
     pluginRuntime,
+    baselinesService,
     syntaxErrorsRepository,
     patternWarningsRepository,
     errorsRepository,
@@ -281,6 +285,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/context', createContextWindowRouter(db));
   app.use('/api/plugins', createPluginsRouter(pluginRuntime));
   app.use('/api/journey', createJourneyRouter(db));
+  app.use('/api/agents', createBaselinesRouter(baselinesService));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());

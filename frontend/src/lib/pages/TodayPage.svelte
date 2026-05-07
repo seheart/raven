@@ -9,6 +9,7 @@
   import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
   import TokenStream from '../components/today/TokenStream.svelte';
   import ContextVessel from '../components/today/ContextVessel.svelte';
+  import AnomalyBanner from '../components/today/AnomalyBanner.svelte';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { navigate } from '../utils/router.svelte.js';
@@ -613,6 +614,9 @@
         </div>
       </aside>
     </section>
+
+    <!-- Anomaly banner — only renders when an agent is drifting. -->
+    <AnomalyBanner />
 
     <!-- Narrative beats — second-person, data-driven sentences. -->
     {#if beats.length > 0}
