@@ -69,23 +69,15 @@ export async function apiFetch(endpoint, options = {}) {
       const errorText = await response.text().catch(() => 'Unknown error');
       const errorMessage = `API error (${response.status}): ${errorText}`;
 
-      // Check if this is a Tier 4 endpoint (experimental features)
-      const isTier4Endpoint =
-        endpoint.includes('/health/') ||
-        endpoint.includes('/drift/') ||
-        endpoint.includes('/productivity/') ||
-        endpoint.includes('/personality/') ||
-        endpoint.includes('/growth/') ||
-        endpoint.includes('/integrations/') ||
-        endpoint.includes('/gamification/') ||
-        endpoint.includes('/easter-eggs') ||
-        endpoint.includes('/social/');
-
-      // Suppress logging and notifications for 404s/501s on Tier 4 endpoints (they're not implemented yet),
-      // or when the caller passed { silent: true } because it's rendering its own graceful UI.
-      const shouldSuppress =
-        ((response.status === 404 || response.status === 501) && isTier4Endpoint) ||
-        options.silent === true;
+      // Callers that render their own graceful UI for known-failure modes
+      // can opt out of the toast + error-log via `{ silent: true }`. The
+      // old "Tier 4" hardcoded path-prefix suppression list (drift,
+      // productivity, personality, growth, gamification, easter-eggs,
+      // social, integrations) was retired — none of those endpoints are
+      // implemented and no frontend code calls them, so suppression had
+      // no real-world effect. If we add an experimental endpoint back,
+      // its caller can opt in to silent.
+      const shouldSuppress = options.silent === true;
 
       // Log HTTP error to error log (but don't log errors from the error endpoint itself)
       if (!endpoint.includes('/errors') && !shouldSuppress) {
