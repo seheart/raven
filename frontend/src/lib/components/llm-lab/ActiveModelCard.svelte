@@ -242,6 +242,19 @@
     return 'var(--muted)';
   }
 
+  /**
+   * Per-state pulse rhythm class — extends `heartbeat` with state-aware
+   * cadence so users can tell at a glance whether an agent is breathing
+   * (idle), thinking (slow inhale/exhale), or executing (sharp tick).
+   * @param {string|null|undefined} state
+   */
+  function rhythmClass(state) {
+    if (state === 'thinking') return 'heartbeat rhythm-thinking';
+    if (state === 'executing') return 'heartbeat rhythm-executing';
+    if (state === 'idle') return 'heartbeat rhythm-idle';
+    return 'heartbeat';
+  }
+
   function formatRelative(iso) {
     if (!iso) return '—';
     const ms = Math.max(0, now - new Date(iso).getTime());
@@ -350,9 +363,9 @@
             <div class="relative flex items-baseline justify-between gap-2">
               <div class="flex items-baseline gap-2 flex-wrap min-w-0">
                 <span
-                  class="inline-block w-2 h-2 rounded-full heartbeat flex-shrink-0"
+                  class="inline-block w-2 h-2 rounded-full {rhythmClass(state)} flex-shrink-0"
                   style="background: {brandColor};"
-                  title="Active"
+                  title={state ? `${state}` : 'Active'}
                 ></span>
                 <span class="font-mono text-sm text-[var(--text)] font-semibold truncate">{a.agent_name}</span>
                 {#if modelLabel}
@@ -521,5 +534,40 @@
     0%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
     20%      { box-shadow: 0 0 0 4px transparent; transform: scale(1.15); }
     40%      { transform: scale(1); }
+  }
+
+  /* Per-state rhythms — extend `heartbeat` with cadence that matches
+     what the agent is doing. Honest stillness when idle (a slow
+     breath); thoughtful breathing when thinking; sharp ticks when
+     executing tools. Build on the existing infra rather than
+     re-implementing. */
+  .rhythm-thinking {
+    animation: rhythm-thinking 1.6s ease-in-out infinite;
+  }
+  @keyframes rhythm-thinking {
+    0%, 100% { box-shadow: 0 0 0 0 var(--pulse-color, var(--accent)); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 6px transparent; transform: scale(1.25); }
+  }
+
+  .rhythm-executing {
+    animation: rhythm-executing 0.55s steps(1, end) infinite;
+  }
+  @keyframes rhythm-executing {
+    0%   { box-shadow: 0 0 0 0 var(--pulse-color, var(--accent)); transform: scale(1); }
+    20%  { box-shadow: 0 0 0 3px transparent; transform: scale(1.4); }
+    40%  { transform: scale(1); }
+    100% { transform: scale(1); }
+  }
+
+  .rhythm-idle {
+    /* Honest stillness — a very slow, low-amplitude breath, never zero
+       motion (so the dot doesn't read as "frozen") but quiet enough
+       not to compete for attention. */
+    animation: rhythm-idle 5.2s ease-in-out infinite;
+    opacity: 0.7;
+  }
+  @keyframes rhythm-idle {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
   }
 </style>
