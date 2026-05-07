@@ -1,5 +1,6 @@
 <script>
   import RavenLogo from '../ui/RavenLogo.svelte';
+  import HeartbeatIndicator from './HeartbeatIndicator.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from '../../dataService.js';
@@ -181,6 +182,11 @@
       <span class="text-[var(--success)]">+{stats.createsToday}</span>
       <span class="text-[var(--error)]">-{stats.deletesToday}</span>
     </div>
+
+    <!-- Persistent agent heartbeat — global presence element. Visible on
+         every page; rhythm + color reflect the most-active agent's state.
+         Honest stillness when nothing is happening. -->
+    <HeartbeatIndicator />
 
     <!-- CPU / MEM bars moved to the global VitalsStrip below the header. -->
 
