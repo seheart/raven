@@ -27,6 +27,7 @@ import type { DashboardRepository } from '../repositories/dashboard-repository.j
 import type { DiffRiskRepository } from '../repositories/diff-risk-repository.js';
 import type { DiffAnnotationsRepository } from '../repositories/diff-annotations-repository.js';
 import type { DiffAnnotationService } from '../services/diff-annotation-service.js';
+import type { DigestService } from '../services/digest-service.js';
 import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
 import type { PatternWarningsRepository } from '../repositories/pattern-warnings-repository.js';
 import type { ErrorsRepository } from '../repositories/errors-repository.js';
@@ -53,6 +54,7 @@ import { createCostsRouter } from './costs.js';
 import { createDashboardRouter } from './dashboard.js';
 import { createDevRouter } from './dev.js';
 import { createDiffsRouter } from './diffs.js';
+import { createDigestsRouter } from './digests.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -122,6 +124,7 @@ interface WireRoutesDeps {
   diffRiskRepository: DiffRiskRepository;
   diffAnnotationsRepository: DiffAnnotationsRepository;
   diffAnnotationService: DiffAnnotationService;
+  digestService: DigestService;
   syntaxErrorsRepository: SyntaxErrorsRepository;
   patternWarningsRepository: PatternWarningsRepository;
   errorsRepository: ErrorsRepository;
@@ -165,6 +168,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     diffRiskRepository,
     diffAnnotationsRepository,
     diffAnnotationService,
+    digestService,
     syntaxErrorsRepository,
     patternWarningsRepository,
     errorsRepository,
@@ -262,6 +266,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/costs', createCostsRouter(db));
   app.use('/api/today', createTodayNarrativeRouter(db));
   app.use('/api/diffs', createDiffsRouter(db, diffAnnotationsRepository, diffAnnotationService));
+  app.use('/api/digests', createDigestsRouter(digestService));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());

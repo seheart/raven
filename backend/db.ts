@@ -267,6 +267,26 @@ export class RavenDB {
       )
     `);
 
+    // Insights table — local-LLM narrations + structured aggregates
+     // (e.g. weekly digests). Owned canonically here so consumers like
+     // digest-service can read it without depending on InsightsService
+     // having booted first.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS insights (
+        id TEXT PRIMARY KEY,
+        timestamp TEXT NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        model TEXT NOT NULL,
+        duration_ms INTEGER NOT NULL,
+        context_events INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_insights_type_ts ON insights(type, timestamp DESC)`
+    );
+
     // Diff annotations — per-line risk findings tied to a specific file
     // event. Distinct from pattern_warnings (which can be raised anywhere)
     // because annotations are attached to a single diff and queried as a

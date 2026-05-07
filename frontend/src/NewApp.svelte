@@ -14,6 +14,7 @@
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
+  import WeeklyDigestModal from './lib/components/insights/WeeklyDigestModal.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from './lib/dataService.js';
@@ -558,5 +559,9 @@
     visible={showKeyboardShortcuts}
     onClose={() => (showKeyboardShortcuts = false)}
   />
+
+  <!-- Weekly Digest auto-shows on Monday or after a 7-day-quiet streak.
+       Manages its own visibility + dismiss state in localStorage. -->
+  <WeeklyDigestModal />
 </div>
 
