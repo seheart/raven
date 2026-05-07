@@ -267,6 +267,27 @@ export class RavenDB {
       )
     `);
 
+    // Diff annotations — per-line risk findings tied to a specific file
+    // event. Distinct from pattern_warnings (which can be raised anywhere)
+    // because annotations are attached to a single diff and queried as a
+    // unit with that diff. Source distinguishes detector origin.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS diff_annotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        filepath TEXT NOT NULL,
+        line_number INTEGER NOT NULL,
+        severity TEXT NOT NULL,
+        category TEXT NOT NULL,
+        rule_id TEXT NOT NULL,
+        rule_name TEXT NOT NULL,
+        message TEXT NOT NULL,
+        match_text TEXT,
+        source TEXT NOT NULL DEFAULT 'pattern',
+        timestamp TEXT NOT NULL
+      )
+    `);
+
     // Token usage tracking (Claude API costs)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS token_usage (
@@ -436,6 +457,20 @@ export class RavenDB {
     );
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_diff_risk_scores_score ON diff_risk_scores(score DESC)`
+    );
+
+    // Diff annotations indexes
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_annotations_event_id ON diff_annotations(event_id)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_annotations_filepath ON diff_annotations(filepath)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_annotations_severity ON diff_annotations(severity)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_diff_annotations_timestamp ON diff_annotations(timestamp DESC)`
     );
 
     // Token usage indexes

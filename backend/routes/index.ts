@@ -25,6 +25,8 @@ import type { FileEventsRepository } from '../repositories/file-events-repositor
 import type { MetricsRepository } from '../repositories/metrics-repository.js';
 import type { DashboardRepository } from '../repositories/dashboard-repository.js';
 import type { DiffRiskRepository } from '../repositories/diff-risk-repository.js';
+import type { DiffAnnotationsRepository } from '../repositories/diff-annotations-repository.js';
+import type { DiffAnnotationService } from '../services/diff-annotation-service.js';
 import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
 import type { PatternWarningsRepository } from '../repositories/pattern-warnings-repository.js';
 import type { ErrorsRepository } from '../repositories/errors-repository.js';
@@ -50,6 +52,7 @@ import { createConversationsRouter } from './conversations.js';
 import { createCostsRouter } from './costs.js';
 import { createDashboardRouter } from './dashboard.js';
 import { createDevRouter } from './dev.js';
+import { createDiffsRouter } from './diffs.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
 import { createFilesRouter } from './files.js';
@@ -117,6 +120,8 @@ interface WireRoutesDeps {
   metricsRepository: MetricsRepository;
   dashboardRepository: DashboardRepository;
   diffRiskRepository: DiffRiskRepository;
+  diffAnnotationsRepository: DiffAnnotationsRepository;
+  diffAnnotationService: DiffAnnotationService;
   syntaxErrorsRepository: SyntaxErrorsRepository;
   patternWarningsRepository: PatternWarningsRepository;
   errorsRepository: ErrorsRepository;
@@ -158,6 +163,8 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     metricsRepository,
     dashboardRepository,
     diffRiskRepository,
+    diffAnnotationsRepository,
+    diffAnnotationService,
     syntaxErrorsRepository,
     patternWarningsRepository,
     errorsRepository,
@@ -254,6 +261,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
 
   app.use('/api/costs', createCostsRouter(db));
   app.use('/api/today', createTodayNarrativeRouter(db));
+  app.use('/api/diffs', createDiffsRouter(db, diffAnnotationsRepository, diffAnnotationService));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());

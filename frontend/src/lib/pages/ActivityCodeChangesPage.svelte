@@ -29,6 +29,12 @@
   let diffOldContent = $state('');
   let diffNewContent = $state('');
   let diffText = $state('');
+  /** @type {Array<{line_number:number, severity:string, rule_id:string, rule_name:string, message:string}>} */
+  let diffAnnotations = $state([]);
+
+  // Per-event risk roll-ups for the events list (keyed by event_id).
+  /** @type {Record<number, { critical_count:number, warning_count:number, info_count:number, highest_severity:string|null }>} */
+  let riskByEventId = $state({});
 
   // Debounced timeout reference
   let debouncedTimeoutId;
@@ -137,6 +143,22 @@
 
   async function viewDiff(event) {
     try {
+      // Prefer the new /api/diffs/:event_id endpoint when we know the
+      // event id — it returns the diff and any persisted annotations in
+      // a single round-trip and lazily computes annotations on first
+      // read. Fall back to the filepath-based file-events query when no
+      // id is available (defensive; events should always have one).
+      if (event?.id != null) {
+        const data = await api.get(`/diffs/${event.id}`);
+        if (data?.event?.diff) {
+          diffText = data.event.diff;
+          diffOldContent = '';
+          diffNewContent = '';
+          diffAnnotations = Array.isArray(data.annotations) ? data.annotations : [];
+          showDiff = true;
+          return;
+        }
+      }
       const data = await api.get(
         `/file-events?limit=1&diff=true&filepath=${encodeURIComponent(event.filepath)}`
       );
@@ -145,10 +167,24 @@
         diffText = events[0].diff;
         diffOldContent = '';
         diffNewContent = '';
+        diffAnnotations = [];
         showDiff = true;
       }
     } catch (err) {
       logger.error('Failed to load diff:', err);
+    }
+  }
+
+  async function loadRiskSummaries() {
+    try {
+      const data = await api.get('/diffs/risk/recent?limit=100');
+      const next = {};
+      for (const row of Array.isArray(data) ? data : []) {
+        next[row.event_id] = row;
+      }
+      riskByEventId = next;
+    } catch {
+      // Silent — risk badges are supplementary
     }
   }
 
@@ -177,6 +213,7 @@
   onMount(() => {
     // Load initial data
     loadEvents();
+    loadRiskSummaries();
 
     // Connect to WebSocket for real-time updates
     websocketService.connect();
@@ -321,8 +358,18 @@
                     </span>
                   </td>
                   <td class="px-3 py-2 text-sm font-mono text-body max-w-[28rem]">
-                    <div class="truncate" title={event.filepath}>
-                      {event.filepath || 'Unknown'}
+                    <div class="flex items-baseline gap-2">
+                      {#if riskByEventId[event.id]?.highest_severity}
+                        {@const r = riskByEventId[event.id]}
+                        <span
+                          class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border flex-shrink-0 {r.highest_severity === 'critical' ? 'bg-error/15 text-error border-error/30' : r.highest_severity === 'warning' ? 'bg-warning/15 text-warning border-warning/30' : 'bg-info/15 text-info border-info/30'}"
+                          title="{r.critical_count} critical · {r.warning_count} warning · {r.info_count} info"
+                          aria-label="risk: {r.highest_severity}"
+                        >{r.highest_severity === 'critical' ? '!' : r.highest_severity === 'warning' ? '⚠' : 'i'}</span>
+                      {/if}
+                      <span class="truncate" title={event.filepath}>
+                        {event.filepath || 'Unknown'}
+                      </span>
                     </div>
                   </td>
                   <td class="px-3 py-2 text-sm font-mono text-muted">
@@ -358,6 +405,7 @@
       diff={diffText}
       oldContent={diffOldContent}
       newContent={diffNewContent}
+      annotations={diffAnnotations}
       onClose={() => (showDiff = false)}
     />
   {/if}

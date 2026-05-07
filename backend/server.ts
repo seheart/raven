@@ -59,6 +59,8 @@ import { createSyntaxErrorsRepository } from './repositories/syntax-errors-repos
 import { createPatternWarningsRepository } from './repositories/pattern-warnings-repository.js';
 import { createMetricsRepository } from './repositories/metrics-repository.js';
 import { createDiffRiskRepository } from './repositories/diff-risk-repository.js';
+import { createDiffAnnotationsRepository } from './repositories/diff-annotations-repository.js';
+import { createDiffAnnotationService } from './services/diff-annotation-service.js';
 import { wireRoutes } from './routes/index.js';
 
 // ==================== Configuration ====================
@@ -297,6 +299,8 @@ const fileEventsRepository = createFileEventsRepository(db);
 const metricsRepository = createMetricsRepository(db);
 const dashboardRepository = createDashboardRepository(db);
 const diffRiskRepository = createDiffRiskRepository(db);
+const diffAnnotationsRepository = createDiffAnnotationsRepository(db);
+const diffAnnotationService = createDiffAnnotationService(diffAnnotationsRepository);
 const createAgentEventHandler = createAgentEventHandlerFactory({
   db,
   io,
@@ -417,6 +421,8 @@ wireRoutes(app, {
   metricsRepository,
   dashboardRepository,
   diffRiskRepository,
+  diffAnnotationsRepository,
+  diffAnnotationService,
   syntaxErrorsRepository,
   patternWarningsRepository,
   errorsRepository,
