@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * Raven Monitor — Zero-config launcher
+ * Raven Monitor — Zero-config launcher.
  *
- * Usage: npx raven-monitor
+ * Usage:
+ *   npx raven-monitor                    # one-shot
+ *   npm i -g raven-monitor && raven-monitor
  *
- * Builds frontend + backend if needed, then starts the server
- * with the frontend served statically from the backend (single port).
+ * Single-port mode: backend serves the built frontend statically. Data lives
+ * under ~/.raven (or $RAVEN_DIR) so it persists across project switches. The
+ * directory you invoked from is what Raven watches by default.
  */
 
-import { execSync, spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -17,41 +20,33 @@ import { networkInterfaces } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const BACKEND = join(ROOT, 'backend');
-const FRONTEND = join(ROOT, 'frontend');
+const BACKEND_DIST = join(ROOT, 'backend', 'dist');
+const FRONTEND_DIST = join(ROOT, 'frontend', 'dist');
+const SERVER_ENTRY = join(BACKEND_DIST, 'server.js');
 
 function log(msg) {
   console.log(`\x1b[36m[raven]\x1b[0m ${msg}`);
 }
-
-function run(cmd, cwd) {
-  log(`Running: ${cmd}`);
-  execSync(cmd, { cwd, stdio: 'inherit' });
+function fail(msg) {
+  console.error(`\x1b[31m[raven]\x1b[0m ${msg}`);
+  process.exit(1);
 }
 
-// Install dependencies if needed
-if (!existsSync(join(BACKEND, 'node_modules'))) {
-  log('Installing backend dependencies...');
-  run('npm install', BACKEND);
-}
-if (!existsSync(join(FRONTEND, 'node_modules'))) {
-  log('Installing frontend dependencies...');
-  run('npm install', FRONTEND);
-}
-
-// Build backend if needed
-if (!existsSync(join(BACKEND, 'dist'))) {
-  log('Building backend...');
-  run('npm run build', BACKEND);
-}
-
-// Build frontend if needed
-if (!existsSync(join(FRONTEND, 'dist'))) {
-  log('Building frontend...');
-  run('npm run build', FRONTEND);
+// In a published package these dirs are guaranteed to exist (prepublishOnly
+// builds them). In a dev checkout they only exist after `npm run build:all`.
+if (!existsSync(SERVER_ENTRY) || !existsSync(FRONTEND_DIST)) {
+  if (existsSync(join(ROOT, 'backend', 'package.json'))) {
+    log('Build artifacts missing — running build:all...');
+    try {
+      execSync('npm run build:all', { cwd: ROOT, stdio: 'inherit' });
+    } catch {
+      fail('Build failed. Run `npm install && npm run build:all` and try again.');
+    }
+  } else {
+    fail(`Missing ${SERVER_ENTRY} or ${FRONTEND_DIST}. Reinstall raven-monitor.`);
+  }
 }
 
-// Get LAN IP
 const nets = networkInterfaces();
 let lanIp = 'localhost';
 for (const ifaces of Object.values(nets)) {
@@ -69,21 +64,15 @@ log('Starting Raven...');
 console.log('');
 console.log(`  Local:   http://localhost:${PORT}`);
 console.log(`  LAN:     http://${lanIp}:${PORT}`);
+console.log(`  Watching: ${process.cwd()}`);
 console.log('');
 
-// Start the backend (which serves the frontend statically)
-const server = spawn('node', [join(BACKEND, 'dist', 'server.js')], {
-  cwd: ROOT,
+const server = spawn('node', [SERVER_ENTRY], {
+  cwd: process.cwd(),
   stdio: 'inherit',
   env: { ...process.env, PORT, NODE_ENV: 'production' }
 });
 
 server.on('close', code => process.exit(code || 0));
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  server.kill('SIGINT');
-});
-process.on('SIGTERM', () => {
-  server.kill('SIGTERM');
-});
+process.on('SIGINT', () => server.kill('SIGINT'));
+process.on('SIGTERM', () => server.kill('SIGTERM'));

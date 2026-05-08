@@ -8,6 +8,7 @@ import { promises as fs } from 'fs';
 import { join, basename } from 'path';
 import { homedir } from 'os';
 import { logger } from '../utils/logger.js';
+import { resolveRavenPaths } from '../utils/paths.js';
 
 interface ActivityEntry {
   timestamp: string;
@@ -22,8 +23,7 @@ interface ActivityEntry {
 }
 
 function getProjectLogDir(): string {
-  // Server runs from backend/, project root is one level up
-  const projectRoot = join(process.cwd(), '..');
+  const projectRoot = resolveRavenPaths().watchPath;
   const encoded = '-' + projectRoot.replace(/^\//, '').replace(/\//g, '-');
   return join(homedir(), '.claude', 'projects', encoded);
 }

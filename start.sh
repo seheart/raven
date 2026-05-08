@@ -195,4 +195,7 @@ echo -e "  ${DIM}Stop${NC}      raven stop"
 echo -e "  ${DIM}Restart${NC}   raven restart"
 echo ""
 
-# Don't open new browser tabs — user already has Raven open
+# Auto-open Raven in the browser
+if [ -z "$RAVEN_NO_OPEN" ] && command -v xdg-open &>/dev/null; then
+  xdg-open "http://localhost:9000" >/dev/null 2>&1 &
+fi

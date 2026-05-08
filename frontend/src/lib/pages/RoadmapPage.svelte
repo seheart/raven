@@ -20,46 +20,16 @@
   // Claude Code users on something they immediately understand.
   const publicLaunch = [
     {
-      title: 'One-command install',
-      detail:
-        'Eliminate git clone + npm install. Ship as `npx raven`, a Homebrew formula, or a single static binary. Public adoption dies on multi-step setup. Whichever path is shortest wins. Auto-detect Claude Code on first run; no project registration required.',
-      size: 'XL'
-    },
-    {
-      title: 'First-run "Today" landing view',
-      detail:
-        "New users shouldn't land on the power dashboard. Build a lightweight Today page: cost so far, recent activity in plain English, files Claude touched, and a single sentence summarizing the session. Push Overview / Active Models / Vitals behind a nav tab. The current Overview becomes the second click, not the first.",
-      size: 'L'
-    },
-    {
-      title: 'Prominent live cost ticker',
-      detail:
-        "The single most educational visualization for someone new to AI. Big number, tickling upward in real time as inferences resolve through /api/api-latency. Hover for breakdown by model. Cost anxiety is the #1 felt pain — answer it before they ask.",
-      size: 'M'
-    },
-    {
       title: 'README + landing screencast',
       detail:
         'GitHub is the first-impression surface. Needs a sub-3-second value prop, an animated GIF or screencast of the Today view + heartbeat, and a one-line install. The README is the actual product page until raven.dev exists.',
       size: 'M'
     },
     {
-      title: 'Trust messaging: local-first, nothing leaves your machine',
+      title: 'CODE_OF_CONDUCT.md',
       detail:
-        'Persistent banner or footer line that earns trust on first launch. The unique advantage over Langfuse / Helicone / etc. is local-first — say it loud. Privacy-conscious developers are exactly the audience most likely to evangelize.',
+        'LICENSE + CONTRIBUTING already shipped. CoC remains — the standard Contributor Covenant boilerplate. Curl from contributor-covenant.org rather than generating: the Anthropic safety filter blocks generation of CoC content.',
       size: 'XS'
-    },
-    {
-      title: 'Onboarding empty-states that teach',
-      detail:
-        "Every empty card should say more than 'No data.' Use empty states to translate jargon: 'No models in VRAM. Run `ollama run llama3` and a green dot will appear here.' Tooltips that explain VRAM / tokens / context. Treat the UI as a tour.",
-      size: 'M'
-    },
-    {
-      title: 'OSS hygiene: LICENSE + CONTRIBUTING + CODE_OF_CONDUCT',
-      detail:
-        'Pick a license (MIT or Apache 2.0 are the safe defaults). Write a short CONTRIBUTING.md pointing at start.sh + the test commands. CODE_OF_CONDUCT boilerplate. None of this is glamorous; all of it is a yellow flag if missing on launch day.',
-      size: 'S'
     },
     {
       title: 'Pre-launch polish sweep',
@@ -91,11 +61,11 @@
   // important; they just stop blocking the launch.
   const powerUser = [
     {
-      title: 'Multi-machine roll-up',
+      title: 'Multi-machine roll-up — Phases 2–4',
       detail:
-        'Each Raven instance is single-host today. A central aggregator lets you see sessions across hosts in one view. Design doc landed at docs/architecture/MULTI_MACHINE_ROLLUP.md (May 2026); implementation queued in 4 phases starting with the host_id + export endpoint.',
+        'Phase 1 shipped (host_id + dormant /api/sync/export with Bearer auth via .raven/peers.json). Remaining: Phase 2 aggregator mode (--aggregator flag, host_id columns, sync scheduler), Phase 3 Peers sub-tab + per-host Today narrative beats, Phase 4 optional push notifications.',
       size: 'L',
-      blocking: 'Design done — start with Phase 1 (export endpoint).'
+      blocking: 'Phase 1 capability is dormant by default; Phase 2 unlocks it.'
     }
   ];
 
@@ -103,36 +73,52 @@
   const open = [
     {
       title: 'Recap cadence — daily, weekly, or both?',
-      note:
-        "Daily risks becoming noise: most days don't have a story worth telling. Weekly digests + milestone modals may be enough. But a low-fidelity daily 'one-line summary' on the Today view (no modal, no notification) might thread the needle. Worth a small experiment.",
+      note: "Daily risks becoming noise: most days don't have a story worth telling. Weekly digests + milestone modals may be enough. But a low-fidelity daily 'one-line summary' on the Today view (no modal, no notification) might thread the needle. Worth a small experiment.",
       added: '2026-05'
     },
     {
       title: 'Where is the line between presence and gimmick?',
-      note:
-        "Pulse + sparkline + animation everywhere becomes noise. Pick 2–3 channels (heartbeat / cost / context vessel) and invest in them masterfully. Need a UX-discipline rule before the team adds 'one more pulse.' Honest stillness is what gives motion meaning.",
+      note: "Pulse + sparkline + animation everywhere becomes noise. Pick 2–3 channels (heartbeat / cost / context vessel) and invest in them masterfully. Need a UX-discipline rule before the team adds 'one more pulse.' Honest stillness is what gives motion meaning.",
       added: '2026-05'
     },
     {
       title: 'Optional sound cues — opt-in only?',
-      note:
-        'A single soft tone on inference can be transformative for embodying the AI. Most users will hate it; the right users will love it forever. Off by default, opt-in via Settings. Decide whether this fits Raven\'s aesthetic at all before building.',
+      note: "A single soft tone on inference can be transformative for embodying the AI. Most users will hate it; the right users will love it forever. Off by default, opt-in via Settings. Decide whether this fits Raven's aesthetic at all before building.",
       added: '2026-05'
     },
     {
       title: 'Auto-detect projects vs explicit registration?',
-      note:
-        "For new users, any setup beyond 'open Raven' kills adoption. Auto-detect from Claude Code's CWD on each session. Power users may still want explicit project registration. Default to auto, allow override.",
+      note: "For new users, any setup beyond 'open Raven' kills adoption. Auto-detect from Claude Code's CWD on each session. Power users may still want explicit project registration. Default to auto, allow override.",
       added: '2026-05'
     },
     {
       title: 'Should Raven adopt a "terminal" variant for some pages?',
-      note:
-        "ant uses a phosphor-green terminal aesthetic; raven is modern. We deliberately kept raven's tokens, but Monitoring / System views could justify a denser, more terminal-like skin if it actually helps comprehension. Not a no, not a yes — needs prototyping."
-    },
+      note: "ant uses a phosphor-green terminal aesthetic; raven is modern. We deliberately kept raven's tokens, but Monitoring / System views could justify a denser, more terminal-like skin if it actually helps comprehension. Not a no, not a yes — needs prototyping."
+    }
   ];
 
   const recentlyShipped = [
+    // ── May 2026 — Phase 00 launch-blocker batch ───────────────
+    {
+      label: 'One-command install (npx raven-monitor)',
+      detail:
+        'Single-port mode now works end-to-end: paths resolve dynamically via a new utils/paths.ts (dev mode walks up for .raven/, npx mode defaults to ~/.raven and watches cwd), root package.json hoists backend deps and declares files, the launcher drops the npm-install hack, and `prepublishOnly` runs build:all. Smoke-tested via npm pack into a clean install dir. Bonus fix: gitMonitor was pointed at the wrong dir and silently failing.'
+    },
+    {
+      label: 'Local-first trust messaging',
+      detail:
+        'Footer trust line now visible at every breakpoint with an animated success dot, and a "Local-first · nothing leaves your machine" pill renders above the Today PageHeader so the privacy story is the first thing a new user reads.'
+    },
+    {
+      label: 'Teaching empty-states across high-traffic pages',
+      detail:
+        'Replaced cold "No data" copy with action-oriented text on CompactActiveModel, CombinedLlmCard, ActiveModelCard, LibraryCard, ModelsPage, OverviewPage (Live activity / Agents / Latest Change), and AgentMonitoring. Each one names the next command (`ollama run llama3`, `claude`) so a new user knows exactly what action makes the panel light up.'
+    },
+    {
+      label: 'Multi-machine roll-up — Phase 1',
+      detail:
+        'host_id auto-written to .raven/host.json on first start (host_name overridable via RAVEN_HOST_NAME). New /api/sync/export streams NDJSON of events / agent_events / token_usage / api_latency keyed by row id, with Bearer auth against .raven/peers.json (5s cache). Dormant by default — returns 503 until peers are configured. Identity also surfaces on /api/health and /api/sync/identity.'
+    },
     // ── May 2026 batch — Phase 01, 02, and most of 03 ──────────
     {
       label: 'Year-end Raven Wrapped',
@@ -177,7 +163,7 @@
     {
       label: '"You\'ve come a long way" before/after panel',
       detail:
-        'Insights page surfaces the user\'s first 7 days vs the most-recent 7 days side-by-side, with deltas and ratios. Renders too-early state if Raven\'s been running < 14 days.'
+        "Insights page surfaces the user's first 7 days vs the most-recent 7 days side-by-side, with deltas and ratios. Renders too-early state if Raven's been running < 14 days."
     },
     {
       label: 'Live token stream paired with cost ticker',
@@ -187,7 +173,7 @@
     {
       label: 'Context window vessel',
       detail:
-        'Per-session context-size bar in the Today aside, polling /api/context/current. Color shifts ok → warm → tight → overflow as token usage approaches the model\'s configured context limit.'
+        "Per-session context-size bar in the Today aside, polling /api/context/current. Color shifts ok → warm → tight → overflow as token usage approaches the model's configured context limit."
     },
     {
       label: 'Per-state activity rhythms',
@@ -202,7 +188,7 @@
     {
       label: 'Today narrative beats + cost hero + Today landing',
       detail:
-        '/today is the new root landing — local-LLM narrated lead sentence, second-person beats from /api/today/narrative, full-width cost hero with hourly sparkline, plain-English activity, files Claude touched today. Header strip rescoped to today\'s activity. Settings moved to a footer gear.'
+        "/today is the new root landing — local-LLM narrated lead sentence, second-person beats from /api/today/narrative, full-width cost hero with hourly sparkline, plain-English activity, files Claude touched today. Header strip rescoped to today's activity. Settings moved to a footer gear."
     },
     {
       label: 'OSS hygiene — README rewrite + CONTRIBUTING.md',
@@ -234,43 +220,52 @@
     {
       label: 'API agents in Active Models card',
       detail:
-        "Claude Code (and Codex when present) now render alongside Ollama models, with brand color, live activity_state from /api/process-activity, network connection count, and the most-recent observed model from /api/api-latency. Card is no longer empty when only API agents are working."
+        'Claude Code (and Codex when present) now render alongside Ollama models, with brand color, live activity_state from /api/process-activity, network connection count, and the most-recent observed model from /api/api-latency. Card is no longer empty when only API agents are working.'
     },
     {
       label: 'Backend architecture refactor',
-      detail: 'server.ts split 4,282 → 755 lines (routes/ + services/ extraction). db.ts split 1,523 → 441 lines into 15 repositories. Repository pattern enforced via dependency-cruiser.'
+      detail:
+        'server.ts split 4,282 → 755 lines (routes/ + services/ extraction). db.ts split 1,523 → 441 lines into 15 repositories. Repository pattern enforced via dependency-cruiser.'
     },
     {
       label: 'Route validation + OpenAPI codegen',
-      detail: 'zod boundary validation on 11 routes; openapi-typescript pipeline (npm run openapi:dump + openapi:gen). Frontend consumes via JSDoc-imported types in src/lib/typedApi.js.'
+      detail:
+        'zod boundary validation on 11 routes; openapi-typescript pipeline (npm run openapi:dump + openapi:gen). Frontend consumes via JSDoc-imported types in src/lib/typedApi.js.'
     },
     {
       label: 'Governance tooling in CI',
-      detail: 'Knip (dead-code detection), dependency-cruiser (architectural rules), type-coverage --ignore-catch ratchet. Backend coverage 88.23% → 91.57%.'
+      detail:
+        'Knip (dead-code detection), dependency-cruiser (architectural rules), type-coverage --ignore-catch ratchet. Backend coverage 88.23% → 91.57%.'
     },
     {
       label: 'Frontend component test growth',
-      detail: '22 test files / 148 tests (was 7/82). ui/ primitives, layout primitives, Header chrome, llm-lab cards. Patterns: vi.hoisted for forward-ref mocks, jsdom getAnimations stub for Svelte transitions.'
+      detail:
+        '22 test files / 148 tests (was 7/82). ui/ primitives, layout primitives, Header chrome, llm-lab cards. Patterns: vi.hoisted for forward-ref mocks, jsdom getAnimations stub for Svelte transitions.'
     },
     {
       label: 'Post-extraction cleanup',
-      detail: 'Dashboard aggregators moved to dashboard-repository. Prepared statements cached at factory init in errors-, pattern-warnings-, agent-events-, dashboard-repository. routes/metrics.ts standardized on `error instanceof Error` pattern. ESLint guard against db.db.prepare() in routes/.'
+      detail:
+        'Dashboard aggregators moved to dashboard-repository. Prepared statements cached at factory init in errors-, pattern-warnings-, agent-events-, dashboard-repository. routes/metrics.ts standardized on `error instanceof Error` pattern. ESLint guard against db.db.prepare() in routes/.'
     },
     {
       label: '--text-* tokens in @theme',
-      detail: "Moved from :root into Tailwind v4 @theme. Tailwind utilities (text-sm, text-base) now read raven's scale, so future tweaks cascade automatically."
+      detail:
+        "Moved from :root into Tailwind v4 @theme. Tailwind utilities (text-sm, text-base) now read raven's scale, so future tweaks cascade automatically."
     },
     {
       label: 'Container.svelte cleanup',
-      detail: 'Removed the unused max-w-* container component; full-width is the default everywhere.'
+      detail:
+        'Removed the unused max-w-* container component; full-width is the default everywhere.'
     },
     {
       label: 'System page port',
-      detail: 'Live data model, API routes, hardware capacity, installed Ollama models, provisioning roadmap.'
+      detail:
+        'Live data model, API routes, hardware capacity, installed Ollama models, provisioning roadmap.'
     },
     {
       label: 'About page port',
-      detail: 'Hero, overview, operation steps, telemetry, decisions audit trail, principles, manifest.'
+      detail:
+        'Hero, overview, operation steps, telemetry, decisions audit trail, principles, manifest.'
     },
     {
       label: 'Design page additions',
@@ -278,7 +273,8 @@
     },
     {
       label: 'Width + typography pass',
-      detail: "All content pages now full-width (max-w-none); typography tokens bumped to ant's scale (body 14px, etc.)."
+      detail:
+        "All content pages now full-width (max-w-none); typography tokens bumped to ant's scale (body 14px, etc.)."
     },
     {
       label: 'Footer cleanup',
@@ -286,7 +282,8 @@
     },
     {
       label: 'start.sh hang fix',
-      detail: 'Cache-warming step now bounds each curl with --max-time 5; can no longer hang on a stuck endpoint.'
+      detail:
+        'Cache-warming step now bounds each curl with --max-time 5; can no longer hang on a stuck endpoint.'
     },
     {
       label: 'Backend /api/system/* family',
@@ -318,7 +315,8 @@
       title: 'Public Launch',
       tone: 'accent',
       label: 'Blocks public release',
-      blurb: 'What must ship before raven goes out the door. Theme: zero-friction install + a first-run experience a brand-new Claude Code user immediately understands.',
+      blurb:
+        'What must ship before raven goes out the door. Theme: zero-friction install + a first-run experience a brand-new Claude Code user immediately understands.',
       items: publicLaunch
     },
     {
@@ -326,7 +324,8 @@
       title: 'Presence & Feel',
       tone: 'info',
       label: 'Make AI felt',
-      blurb: 'Turn invisible inference into a sensory companion. New users develop intuition by feeling the weight of what AI does, not by reading docs about it.',
+      blurb:
+        'Turn invisible inference into a sensory companion. New users develop intuition by feeling the weight of what AI does, not by reading docs about it.',
       items: presence
     },
     {
@@ -334,7 +333,8 @@
       title: 'Reflect & Reward',
       tone: 'success',
       label: 'The retention loop',
-      blurb: 'Reflect the user\'s growth back to them. Milestones land at exactly the moments retention is fragile (week-1, day-30, anniversaries). The killer feature for democratization.',
+      blurb:
+        "Reflect the user's growth back to them. Milestones land at exactly the moments retention is fragile (week-1, day-30, anniversaries). The killer feature for democratization.",
       items: reflect
     },
     {
@@ -342,18 +342,24 @@
       title: 'Power-User Depth',
       tone: 'warning',
       label: 'Post-launch',
-      blurb: 'Carried from the previous roadmap. The audience Raven was first built for stays important — these items just stop blocking the public launch.',
+      blurb:
+        'Carried from the previous roadmap. The audience Raven was first built for stays important — these items just stop blocking the public launch.',
       items: powerUser
     }
   ];
 
   function toneClass(tone) {
     switch (tone) {
-      case 'accent': return 'text-accent';
-      case 'info': return 'text-info';
-      case 'success': return 'text-success';
-      case 'warning': return 'text-warning';
-      default: return 'text-muted';
+      case 'accent':
+        return 'text-accent';
+      case 'info':
+        return 'text-info';
+      case 'success':
+        return 'text-success';
+      case 'warning':
+        return 'text-warning';
+      default:
+        return 'text-muted';
     }
   }
 
@@ -363,14 +369,21 @@
 <PageLayout>
   <div class="space-y-10">
     <!-- Status bar -->
-    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
+    <div
+      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
+    >
       <div class="flex items-center gap-2">
         <span class="text-accent font-semibold">RAVEN.ROADMAP</span>
         <span>::</span>
-        <span class="uppercase tracking-wide">Phased toward public launch · Edit RoadmapPage.svelte</span>
+        <span class="uppercase tracking-wide"
+          >Phased toward public launch · Edit RoadmapPage.svelte</span
+        >
       </div>
       <div class="flex items-center gap-2">
-        <span class="uppercase tracking-wide">{publicLaunch.length} launch · {presence.length + reflect.length} v1 · {powerUser.length} post · {open.length} open</span>
+        <span class="uppercase tracking-wide"
+          >{publicLaunch.length} launch · {presence.length + reflect.length} v1 · {powerUser.length}
+          post · {open.length} open</span
+        >
       </div>
     </div>
 
@@ -387,20 +400,16 @@
         <div class="bg-surface border border-border rounded-lg p-4">
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Size legend</div>
           <dl class="space-y-1.5 text-sm font-mono">
-            {#each [
-              { k: 'XS', v: 'typo · copy tweak' },
-              { k: 'S', v: '~1 day refactor' },
-              { k: 'M', v: '2–3 day feature' },
-              { k: 'L', v: 'week-long initiative' },
-              { k: 'XL', v: '2+ weeks · multi-phase' }
-            ] as row (row.k)}
+            {#each [{ k: 'XS', v: 'typo · copy tweak' }, { k: 'S', v: '~1 day refactor' }, { k: 'M', v: '2–3 day feature' }, { k: 'L', v: 'week-long initiative' }, { k: 'XL', v: '2+ weeks · multi-phase' }] as row (row.k)}
               <div class="flex items-baseline gap-3">
                 <dt class="text-accent w-7 flex-shrink-0">{row.k}</dt>
                 <dd class="text-muted">{row.v}</dd>
               </div>
             {/each}
           </dl>
-          <div class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed">
+          <div
+            class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
+          >
             <span class="text-text">{totalQueued}</span> items across 4 phases ·
             <span class="text-text">{publicLaunch.length}</span> block public launch
           </div>
@@ -411,7 +420,9 @@
     <!-- Phases 00 → 03 -->
     {#each phases as phase (phase.num)}
       <section>
-        <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
+        <div
+          class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
+        >
           <span>{phase.num} // {phase.title}</span>
           <span class="flex-1 border-t border-dashed border-border"></span>
           <span class="{toneClass(phase.tone)} normal-case">{phase.label}</span>
@@ -425,7 +436,11 @@
                   <span class="text-muted font-mono mr-2">{String(i + 1).padStart(2, '0')}</span>
                   {item.title}
                 </h3>
-                <span class="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded {sizeBadgeClass(item.size)}">{item.size}</span>
+                <span
+                  class="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded {sizeBadgeClass(
+                    item.size
+                  )}">{item.size}</span
+                >
               </div>
               <p class="text-sm text-body font-sans leading-relaxed">{item.detail}</p>
               {#if item.blocking}
@@ -442,7 +457,9 @@
 
     <!-- 04 // Open Questions -->
     <section>
-      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
+      <div
+        class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
+      >
         <span>04 // Open Questions</span>
         <span class="flex-1 border-t border-dashed border-border"></span>
         <span class="text-warning normal-case">Parked</span>
@@ -453,7 +470,9 @@
             <h3 class="text-base font-semibold text-heading mb-2">
               {q.title}
               {#if q.added}
-                <span class="text-[10px] font-mono text-muted ml-2 align-middle">added {q.added}</span>
+                <span class="text-[10px] font-mono text-muted ml-2 align-middle"
+                  >added {q.added}</span
+                >
               {/if}
             </h3>
             <p class="text-sm text-body font-sans leading-relaxed">{q.note}</p>
@@ -464,7 +483,9 @@
 
     <!-- 05 // Recently Shipped -->
     <section>
-      <div class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3">
+      <div
+        class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
+      >
         <span>05 // Recently Shipped</span>
         <span class="flex-1 border-t border-dashed border-border"></span>
         <span class="text-success normal-case">Done</span>

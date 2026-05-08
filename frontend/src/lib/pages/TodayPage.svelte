@@ -64,9 +64,11 @@
   function isToday(iso) {
     const d = new Date(iso);
     const now = new Date();
-    return d.getFullYear() === now.getFullYear()
-      && d.getMonth() === now.getMonth()
-      && d.getDate() === now.getDate();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
   }
 
   /** @param {string} iso */
@@ -125,7 +127,11 @@
       }
       case 'subagent': {
         const t = m.subagentType || 'agent';
-        return { lead: 'Claude', verb: `delegated to ${t}`, detail: trimContent(entry.content, 120) };
+        return {
+          lead: 'Claude',
+          verb: `delegated to ${t}`,
+          detail: trimContent(entry.content, 120)
+        };
       }
       default:
         return { lead: 'Activity', verb: entry.type, detail: trimContent(entry.content, 120) };
@@ -142,11 +148,16 @@
   /** @param {string} type */
   function activityToneClass(type) {
     switch (type) {
-      case 'user': return 'text-info';
-      case 'assistant': return 'text-accent';
-      case 'tool': return 'text-success';
-      case 'subagent': return 'text-warning';
-      default: return 'text-muted';
+      case 'user':
+        return 'text-info';
+      case 'assistant':
+        return 'text-accent';
+      case 'tool':
+        return 'text-success';
+      case 'subagent':
+        return 'text-warning';
+      default:
+        return 'text-muted';
     }
   }
 
@@ -154,12 +165,16 @@
   function changeBadgeClass(kind) {
     switch (kind) {
       case 'add':
-      case 'create': return 'bg-success/15 text-success';
+      case 'create':
+        return 'bg-success/15 text-success';
       case 'unlink':
-      case 'delete': return 'bg-error/15 text-error';
+      case 'delete':
+        return 'bg-error/15 text-error';
       case 'change':
-      case 'modify': return 'bg-info/15 text-info';
-      default: return 'bg-surface-2 text-muted';
+      case 'modify':
+        return 'bg-info/15 text-info';
+      default:
+        return 'bg-surface-2 text-muted';
     }
   }
 
@@ -199,7 +214,9 @@
       if (lastSpend > 0 && newSpend > lastSpend) {
         spendDelta = newSpend - lastSpend;
         // Auto-clear the delta marker after 4s — keeps it from sticking.
-        setTimeout(() => { spendDelta = 0; }, 4000);
+        setTimeout(() => {
+          spendDelta = 0;
+        }, 4000);
       }
       lastSpend = newSpend;
       costs = data;
@@ -225,22 +242,27 @@
   // Returns null when there isn't enough variation to draw something useful.
   const sparkPath = $derived.by(() => {
     if (!costTimeline || costTimeline.length < 2) return null;
-    const w = 600, h = 36, pad = 2;
+    const w = 600,
+      h = 36,
+      pad = 2;
     const max = Math.max(...costTimeline.map(t => Number(t.cost_usd) || 0));
     if (max <= 0) return null;
     const stepX = (w - pad * 2) / (costTimeline.length - 1);
-    return costTimeline.map((t, i) => {
-      const x = pad + i * stepX;
-      const y = h - pad - ((Number(t.cost_usd) || 0) / max) * (h - pad * 2);
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
+    return costTimeline
+      .map((t, i) => {
+        const x = pad + i * stepX;
+        const y = h - pad - ((Number(t.cost_usd) || 0) / max) * (h - pad * 2);
+        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
   });
 
   // Filled-area version of the same path, anchored to the bottom edge so the
   // sparkline reads as a small "weight of spend" silhouette rather than a line.
   const sparkAreaPath = $derived.by(() => {
     if (!sparkPath) return null;
-    const w = 600, h = 36;
+    const w = 600,
+      h = 36;
     return `${sparkPath} L${w - 2},${h - 2} L2,${h - 2} Z`;
   });
 
@@ -276,7 +298,9 @@
   // tone: specific, encouraging, never canned. Each beat is only
   // emitted when the data actually supports it — silence beats noise.
   /** @param {number} n @param {string} singular @param {string} plural */
-  function plural(n, singular, plural) { return n === 1 ? singular : plural; }
+  function plural(n, singular, plural) {
+    return n === 1 ? singular : plural;
+  }
 
   /** @param {number} seconds */
   function fmtDuration(seconds) {
@@ -302,9 +326,10 @@
     // 1. Returning to a project — high relational value, leads.
     for (const r of returning.slice(0, 1)) {
       const days = r.days_since_last_event;
-      const phrase = days >= 7
-        ? `${days} ${plural(days, 'day', 'days')} away`
-        : `${days} ${plural(days, 'day', 'days')}`;
+      const phrase =
+        days >= 7
+          ? `${days} ${plural(days, 'day', 'days')} away`
+          : `${days} ${plural(days, 'day', 'days')}`;
       beats.push({
         glyph: '↩',
         tone: 'warning',
@@ -385,11 +410,16 @@
   /** @param {Beat['tone']} t */
   function beatToneClass(t) {
     switch (t) {
-      case 'accent': return 'text-accent';
-      case 'success': return 'text-success';
-      case 'info': return 'text-info';
-      case 'warning': return 'text-warning';
-      default: return 'text-muted';
+      case 'accent':
+        return 'text-accent';
+      case 'success':
+        return 'text-success';
+      case 'info':
+        return 'text-info';
+      case 'warning':
+        return 'text-warning';
+      default:
+        return 'text-muted';
     }
   }
 
@@ -404,7 +434,9 @@
   }
 
   /** @param {number} ms */
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
 
   // The insights service returns a multi-paragraph markdown summary; the Today
   // hero wants a single sentence. Strip headers + bold-prefix labels and grab
@@ -412,7 +444,10 @@
   /** @param {string|null|undefined} content */
   function extractLeadSentence(content) {
     if (!content) return '';
-    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = content
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean);
     for (const raw of lines) {
       if (/^#+\s/.test(raw)) continue; // skip markdown headers
       // strip a leading "**Label:** " prefix like "**What happened:** ..."
@@ -430,7 +465,9 @@
     summaryError = null;
     try {
       // 1. Check for a recently-generated summary (cheap, no Ollama call).
-      const latest = await api.get('/insights/latest?type=session_summary', { silent: true }).catch(() => null);
+      const latest = await api
+        .get('/insights/latest?type=session_summary', { silent: true })
+        .catch(() => null);
       if (latest && latest.content && isFresh(latest.timestamp)) {
         summary = extractLeadSentence(latest.content);
         summaryDisabled = false;
@@ -456,7 +493,9 @@
       const baseline = latest?.timestamp || null;
       for (let i = 0; i < 20; i++) {
         await sleep(3000);
-        const poll = await api.get('/insights/latest?type=session_summary', { silent: true }).catch(() => null);
+        const poll = await api
+          .get('/insights/latest?type=session_summary', { silent: true })
+          .catch(() => null);
         if (poll?.content && poll.timestamp !== baseline) {
           summary = extractLeadSentence(poll.content);
           summaryDisabled = false;
@@ -483,7 +522,13 @@
   }
 
   onMount(() => {
-    Promise.allSettled([loadCosts(), loadCostTimeline(), loadActivity(), loadEvents(), loadNarrative()]).then(results => {
+    Promise.allSettled([
+      loadCosts(),
+      loadCostTimeline(),
+      loadActivity(),
+      loadEvents(),
+      loadNarrative()
+    ]).then(results => {
       const firstFail = results.find(r => r.status === 'rejected');
       if (firstFail && firstFail.reason?.name !== 'AbortError') {
         loadError = firstFail.reason?.message || 'Failed to load Today data';
@@ -500,7 +545,9 @@
     timelineTicker = setInterval(loadCostTimeline, 60000);
 
     websocketConnected = websocketService.isConnected();
-    const updateStatus = () => { websocketConnected = websocketService.isConnected(); };
+    const updateStatus = () => {
+      websocketConnected = websocketService.isConnected();
+    };
     websocketService.on('connect', updateStatus);
     websocketService.on('disconnect', updateStatus);
 
@@ -519,17 +566,24 @@
 
 <PageLayout>
   <div class="space-y-10">
-
     <!-- Status bar -->
-    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
+    <div
+      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
+    >
       <div class="flex items-center gap-2">
         <span class="text-accent font-semibold">RAVEN.TODAY</span>
         <span aria-hidden="true">::</span>
         <span class="uppercase tracking-wide">{todayLabel}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-1.5 h-1.5 rounded-full {websocketConnected ? 'bg-success animate-pulse' : 'bg-warning'}"></span>
-        <span class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}">
+        <span
+          class="w-1.5 h-1.5 rounded-full {websocketConnected
+            ? 'bg-success animate-pulse'
+            : 'bg-warning'}"
+        ></span>
+        <span
+          class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}"
+        >
           {websocketConnected ? 'Live' : 'Disconnected'}
         </span>
       </div>
@@ -538,6 +592,14 @@
     <!-- Hero — narrated summary -->
     <section class="flex flex-col lg:flex-row gap-8">
       <div class="flex-1 min-w-0 max-w-[48rem]">
+        <!-- Local-first trust pill — visible on the landing page so the privacy
+             story is the first thing a new user reads. -->
+        <div
+          class="mb-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse" aria-hidden="true"></span>
+          <span>Local-first · nothing leaves your machine</span>
+        </div>
         <PageHeader
           title="Today"
           description="A quick read of what's happened so far. Cost, files Claude touched, and the moments worth noticing."
@@ -552,7 +614,10 @@
             </div>
           {:else if summary}
             <p class="text-lg text-body font-sans leading-relaxed">
-              <span aria-hidden="true" class="text-accent mr-2">“</span>{summary}<span aria-hidden="true" class="text-accent ml-1">”</span>
+              <span aria-hidden="true" class="text-accent mr-2">“</span>{summary}<span
+                aria-hidden="true"
+                class="text-accent ml-1">”</span
+              >
             </p>
             <button
               type="button"
@@ -574,11 +639,13 @@
               <button
                 type="button"
                 onclick={loadSummary}
-                class="ml-2 underline hover:text-accent transition-colors"
-              >try again</button>
+                class="ml-2 underline hover:text-accent transition-colors">try again</button
+              >
             </p>
           {:else}
-            <p class="text-sm text-muted font-sans italic">No summary yet — check back when there's been more activity.</p>
+            <p class="text-sm text-muted font-sans italic">
+              No summary yet — check back when there's been more activity.
+            </p>
           {/if}
         </div>
 
@@ -593,25 +660,49 @@
       <aside class="lg:w-72 lg:flex-shrink-0 space-y-4">
         <ContextVessel />
         <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Want more detail?</div>
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">
+            Want more detail?
+          </div>
           <ul class="space-y-2 text-sm">
             <li>
-              <button type="button" onclick={() => navigate('/overview')} class="text-accent hover:underline">→ Full dashboard</button>
+              <button
+                type="button"
+                onclick={() => navigate('/overview')}
+                class="text-accent hover:underline">→ Full dashboard</button
+              >
             </li>
             <li>
-              <button type="button" onclick={() => navigate('/analysis/costs')} class="text-accent hover:underline">→ Token usage breakdown</button>
+              <button
+                type="button"
+                onclick={() => navigate('/analysis/costs')}
+                class="text-accent hover:underline">→ Token usage breakdown</button
+              >
             </li>
             <li>
-              <button type="button" onclick={() => navigate('/live')} class="text-accent hover:underline">→ Live code changes</button>
+              <button
+                type="button"
+                onclick={() => navigate('/live')}
+                class="text-accent hover:underline">→ Live code changes</button
+              >
             </li>
             <li>
-              <button type="button" onclick={() => navigate('/insights')} class="text-accent hover:underline">→ All insights</button>
+              <button
+                type="button"
+                onclick={() => navigate('/insights')}
+                class="text-accent hover:underline">→ All insights</button
+              >
             </li>
             <li>
-              <button type="button" onclick={() => navigate('/wrapped')} class="text-accent hover:underline">→ Your Wrapped</button>
+              <button
+                type="button"
+                onclick={() => navigate('/wrapped')}
+                class="text-accent hover:underline">→ Your Wrapped</button
+              >
             </li>
           </ul>
-          <div class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed">
+          <div
+            class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
+          >
             <span class="text-success">●</span> Local-first · nothing leaves your machine
           </div>
         </div>
@@ -626,8 +717,13 @@
       <section aria-label="Narrative beats">
         <ul class="space-y-2">
           {#each beats as beat (beat.text)}
-            <li class="flex items-start gap-3 bg-surface/60 border border-border rounded-lg px-4 py-3">
-              <span class="text-lg leading-none {beatToneClass(beat.tone)} flex-shrink-0 select-none" aria-hidden="true">{beat.glyph}</span>
+            <li
+              class="flex items-start gap-3 bg-surface/60 border border-border rounded-lg px-4 py-3"
+            >
+              <span
+                class="text-lg leading-none {beatToneClass(beat.tone)} flex-shrink-0 select-none"
+                aria-hidden="true">{beat.glyph}</span
+              >
               <span class="text-sm text-body font-sans leading-relaxed">{beat.text}</span>
             </li>
           {/each}
@@ -642,9 +738,13 @@
     <section class="bg-surface border border-border rounded-lg p-6 relative overflow-hidden">
       <div class="flex items-baseline justify-between gap-4 flex-wrap">
         <div class="min-w-0">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">Spent so far today</div>
+          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">
+            Spent so far today
+          </div>
           <div class="flex items-baseline gap-3 flex-wrap">
-            <div class="text-6xl font-bold text-heading tracking-[-0.04em] tabular-nums transition-all">
+            <div
+              class="text-6xl font-bold text-heading tracking-[-0.04em] tabular-nums transition-all"
+            >
               {fmtUsd(costs?.total_cost_usd)}
             </div>
             {#if spendDelta > 0}
@@ -674,7 +774,13 @@
             aria-label="Cost over the last 12 hours"
           >
             <path d={sparkAreaPath} fill="var(--accent)" fill-opacity="0.12" />
-            <path d={sparkPath} fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" />
+            <path
+              d={sparkPath}
+              fill="none"
+              stroke="var(--accent)"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
           </svg>
           <div class="mt-1 text-[10px] font-mono text-muted/70 flex justify-between">
             <span>12 hours ago</span>
@@ -691,7 +797,9 @@
     <!-- Secondary stats — files + cache. Cost lives above as the hero. -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-surface border border-border rounded-lg p-5">
-        <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">Files Claude touched</div>
+        <div class="text-xs font-mono uppercase tracking-wide text-muted mb-2">
+          Files Claude touched
+        </div>
         <div class="text-4xl font-bold text-heading tracking-[-0.025em] tabular-nums">
           {filesTodayCount}
         </div>
@@ -713,9 +821,11 @@
 
     <!-- Two columns: activity + files -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
       <!-- Recent activity -->
-      <PageSection title="Recent activity" meta={activity.length ? `last ${Math.min(activity.length, 7)}` : ''}>
+      <PageSection
+        title="Recent activity"
+        meta={activity.length ? `last ${Math.min(activity.length, 7)}` : ''}
+      >
         <div class="bg-surface border border-border rounded-lg p-1">
           {#if activity.length === 0}
             <div class="p-4 text-sm text-muted italic">
@@ -726,7 +836,9 @@
               {#each activity.slice(0, 7) as entry, i (entry.timestamp + i)}
                 {@const desc = describeActivity(entry)}
                 <li class="p-3 flex gap-3 items-baseline">
-                  <span class="text-[11px] font-mono text-muted w-16 flex-shrink-0">{relativeTime(entry.timestamp)}</span>
+                  <span class="text-[11px] font-mono text-muted w-16 flex-shrink-0"
+                    >{relativeTime(entry.timestamp)}</span
+                  >
                   <div class="flex-1 min-w-0">
                     <div class="text-sm">
                       <span class="font-semibold {activityToneClass(entry.type)}">{desc.lead}</span>
@@ -754,14 +866,22 @@
             <ul class="divide-y divide-border">
               {#each filesToday as e (e.id)}
                 <li class="p-3 flex gap-3 items-baseline">
-                  <span class="text-[11px] font-mono text-muted w-16 flex-shrink-0">{relativeTime(e.timestamp)}</span>
+                  <span class="text-[11px] font-mono text-muted w-16 flex-shrink-0"
+                    >{relativeTime(e.timestamp)}</span
+                  >
                   <div class="flex-1 min-w-0">
-                    <div class="font-mono text-sm text-body truncate" title={e.filepath}>{shortPath(e.filepath)}</div>
+                    <div class="font-mono text-sm text-body truncate" title={e.filepath}>
+                      {shortPath(e.filepath)}
+                    </div>
                     {#if e.project_name}
                       <div class="text-xs text-muted font-mono mt-0.5">{e.project_name}</div>
                     {/if}
                   </div>
-                  <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {changeBadgeClass(e.change_type)} flex-shrink-0">
+                  <span
+                    class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {changeBadgeClass(
+                      e.change_type
+                    )} flex-shrink-0"
+                  >
                     {e.change_type}
                   </span>
                 </li>
@@ -771,6 +891,5 @@
         </div>
       </PageSection>
     </section>
-
   </div>
 </PageLayout>

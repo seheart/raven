@@ -63,12 +63,22 @@
       {/if}
     </div>
   {:else if models.length === 0}
-    <div class="text-xs text-[var(--muted)] italic py-6 text-center">No models installed</div>
+    <div class="text-xs text-[var(--muted)] py-6 text-center leading-relaxed">
+      <div class="font-semibold text-body">No models on disk</div>
+      <div class="mt-1.5">
+        Pull one with <code class="font-mono text-body">ollama pull llama3</code> and it'll show up here.
+      </div>
+    </div>
   {:else}
     <div class="space-y-1.5">
       {#each models as m (m.name)}
-        <div class="flex items-baseline gap-2 text-[11px] font-mono py-1 border-b border-[var(--border)] last:border-b-0">
-          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background: {familyColor(m.family)}"></span>
+        <div
+          class="flex items-baseline gap-2 text-[11px] font-mono py-1 border-b border-[var(--border)] last:border-b-0"
+        >
+          <span
+            class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            style="background: {familyColor(m.family)}"
+          ></span>
           <span class="text-[var(--text)] flex-1 truncate" title={m.name}>{m.name}</span>
           <span class="text-[var(--muted)]">{m.parameter_size}</span>
           <span class="text-[var(--muted)]">{m.quantization}</span>

@@ -6,6 +6,14 @@
   "bin": {
     "raven-monitor": "./bin/raven-npx.js"
   },
+  "files": [
+    "bin/raven-npx.js",
+    "backend/dist/**",
+    "backend/package.json",
+    "frontend/dist/**",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "concurrently -n tsc,node -c \"yellow,blue\" \"cd backend && npm run build:watch\" \"cd backend && npm run dev\"",
@@ -25,6 +33,7 @@
     "test:all": "npm run test && npm run test:e2e",
     "playwright:install": "playwright install --with-deps",
     "prepare": "husky",
+    "prepublishOnly": "npm run build:all",
     "typecheck": "cd backend && npm run type-check && cd ../frontend && npm run check",
     "lint:dead": "knip --include duplicates,exports,types,dependencies,devDependencies,unlisted,binaries",
     "lint:dead:full": "knip"
@@ -38,6 +47,25 @@
   ],
   "author": "Seth Eheart",
   "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "chokidar": "^4.0.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "diff": "^8.0.2",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "nanoid": "^5.1.6",
+    "simple-git": "^3.28.0",
+    "socket.io": "^4.8.1",
+    "systeminformation": "^5.27.11",
+    "toml": "^3.0.0",
+    "typescript": "^5.9.3",
+    "winston": "^3.18.3",
+    "zod": "^4.3.6"
+  },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "concurrently": "^9.1.2",

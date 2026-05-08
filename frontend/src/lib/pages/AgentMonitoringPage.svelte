@@ -438,389 +438,379 @@
             Updated {timeAgo}
           {/if}
         </span>
-        <RefreshButton onClick={loadMonitoringData} loading={loading} />
+        <RefreshButton onClick={loadMonitoringData} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    {#if error}
-      <div
-        class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
-      >
-        <span class="text-sm text-error font-sans"
-          >Failed to load monitoring data: {error}</span
-        >
-        <ToolbarButton variant="danger" onClick={loadMonitoringData}>Retry</ToolbarButton>
-      </div>
-    {/if}
+  {#if error}
+    <div
+      class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
+    >
+      <span class="text-sm text-error font-sans">Failed to load monitoring data: {error}</span>
+      <ToolbarButton variant="danger" onClick={loadMonitoringData}>Retry</ToolbarButton>
+    </div>
+  {/if}
 
-    <!-- Status Overview -->
+  <!-- Status Overview -->
+  {#if loading}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {#each Array(3) as _, i (i)}
+        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
+      {/each}
+    </div>
+  {:else}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Total Agents
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(agentsStatus.length)}
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Currently Running
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(runningAgents.length)}
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Idle Agents</div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(idleAgents.length)}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Agent Activity Charts -->
+  {#if !loading && recentEvents.length > 0}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <!-- Agent Activity Over Time -->
+      <section class="bg-surface border border-border rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
+          Agent Activity (Last 24h)
+        </h3>
+        <div class="h-64 bg-canvas rounded p-3">
+          <canvas id="agent-utilization-chart"></canvas>
+        </div>
+      </section>
+
+      <!-- Agent Distribution -->
+      <section class="bg-surface border border-border rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
+          Event Distribution by Agent
+        </h3>
+        <div class="h-64 bg-canvas rounded p-3">
+          <canvas id="agent-distribution-chart"></canvas>
+        </div>
+      </section>
+    </div>
+  {/if}
+
+  <!-- Currently Running Agents -->
+  <section class="bg-surface border border-border rounded-lg p-5 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
+        Currently Running Agents
+      </h3>
+      {#if autoRefresh}
+        <span class="flex items-center gap-2 text-sm text-success font-mono">
+          <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
+          Live
+        </span>
+      {/if}
+    </div>
+
     {#if loading}
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {#each Array(3) as _, i (i)}
-          <div
-            class="h-24 bg-surface border border-border rounded-lg animate-pulse"
-          ></div>
-        {/each}
+      <div class="text-center py-8 text-sm text-muted">Loading agents...</div>
+    {:else if runningAgents.length === 0}
+      <div class="text-center py-8 leading-relaxed">
+        <p class="text-sm text-body font-sans">No agents currently running</p>
+        <p class="text-xs text-muted mt-2 max-w-md mx-auto">
+          An "agent" here is a CLI like Claude Code, Codex, or a local Ollama session. Start one and
+          it'll appear with live process stats.
+        </p>
       </div>
     {:else}
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Agents
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(agentsStatus.length)}
-          </div>
-        </div>
-
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Currently Running
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(runningAgents.length)}
-          </div>
-        </div>
-
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Idle Agents
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(idleAgents.length)}
-          </div>
-        </div>
-      </div>
-    {/if}
-
-    <!-- Agent Activity Charts -->
-    {#if !loading && recentEvents.length > 0}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <!-- Agent Activity Over Time -->
-        <section class="bg-surface border border-border rounded-lg p-5">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-            Agent Activity (Last 24h)
-          </h3>
-          <div class="h-64 bg-canvas rounded p-3">
-            <canvas id="agent-utilization-chart"></canvas>
-          </div>
-        </section>
-
-        <!-- Agent Distribution -->
-        <section class="bg-surface border border-border rounded-lg p-5">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-            Event Distribution by Agent
-          </h3>
-          <div class="h-64 bg-canvas rounded p-3">
-            <canvas id="agent-distribution-chart"></canvas>
-          </div>
-        </section>
-      </div>
-    {/if}
-
-    <!-- Currently Running Agents -->
-    <section class="bg-surface border border-border rounded-lg p-5 mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
-          Currently Running Agents
-        </h3>
-        {#if autoRefresh}
-          <span class="flex items-center gap-2 text-sm text-success font-mono">
-            <span class="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-            Live
-          </span>
-        {/if}
-      </div>
-
-      {#if loading}
-        <div class="text-center py-8 text-sm text-muted">Loading agents...</div>
-      {:else if runningAgents.length === 0}
-        <div class="text-center py-8">
-          <p class="text-sm text-muted font-sans">No agents currently running</p>
-        </div>
-      {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {#each runningAgents as agent (agent.agent_name)}
-            <div
-              class="bg-canvas border border-border rounded-lg p-4 hover:border-accent transition-all"
-              style="border-left: 3px solid {getConfidenceColor(agent.confidence)}"
-            >
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-semibold text-body font-mono truncate">
-                    {agent.agent_name || 'Unknown'}
-                  </span>
-                </div>
-                <span class="flex-shrink-0 w-2 h-2 bg-success rounded-full animate-pulse"
-                ></span>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {#each runningAgents as agent (agent.agent_name)}
+          <div
+            class="bg-canvas border border-border rounded-lg p-4 hover:border-accent transition-all"
+            style="border-left: 3px solid {getConfidenceColor(agent.confidence)}"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-semibold text-body font-mono truncate">
+                  {agent.agent_name || 'Unknown'}
+                </span>
               </div>
+              <span class="flex-shrink-0 w-2 h-2 bg-success rounded-full animate-pulse"></span>
+            </div>
 
-              <div class="space-y-2">
+            <div class="space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-muted">Status:</span>
+                <span class="text-success font-semibold font-mono">
+                  {agent.is_running ? 'Running' : 'Active'}
+                </span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-muted">Confidence:</span>
+                <span
+                  class="font-semibold font-mono"
+                  style="color: {getConfidenceColor(agent.confidence)}"
+                >
+                  {(agent.confidence * 100).toFixed(0)}% ({getConfidenceLabel(agent.confidence)})
+                </span>
+              </div>
+              {#if agent.last_seen}
                 <div class="flex justify-between text-sm">
-                  <span class="text-muted">Status:</span>
-                  <span class="text-success font-semibold font-mono">
-                    {agent.is_running ? 'Running' : 'Active'}
+                  <span class="text-muted">Last Seen:</span>
+                  <span class="text-body font-semibold font-mono">
+                    {formatDateTime(agent.last_seen)}
                   </span>
                 </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-muted">Confidence:</span>
-                  <span
-                    class="font-semibold font-mono"
-                    style="color: {getConfidenceColor(agent.confidence)}"
-                  >
-                    {(agent.confidence * 100).toFixed(0)}% ({getConfidenceLabel(agent.confidence)})
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </section>
+
+  <!-- All Agents Status -->
+  <section class="bg-surface border border-border rounded-lg p-5 mb-6">
+    <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">All Agents Status</h3>
+
+    {#if loading}
+      <div class="text-center py-8 text-sm text-muted">Loading agents...</div>
+    {:else if agentsStatus.length === 0}
+      <div class="text-center py-8 leading-relaxed">
+        <p class="text-sm text-body font-sans">No agents detected yet</p>
+        <p class="text-xs text-muted mt-2 max-w-md mx-auto">
+          Raven discovers agents from their log files (Claude Code, Codex) or live processes. Run
+          one once and it'll be remembered here.
+        </p>
+      </div>
+    {:else}
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-canvas border-b border-border">
+            <tr class="text-left">
+              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
+                Agent
+              </th>
+              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
+                Status
+              </th>
+              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
+                Confidence
+              </th>
+              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
+                Last Seen
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each agentsStatus as agent (agent.agent_name)}
+              <tr class="border-b border-border hover:bg-canvas transition-colors">
+                <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
+                  {agent.agent_name || 'Unknown'}
+                </td>
+                <td class="px-4 py-3">
+                  <span class="flex items-center gap-2 text-sm font-mono">
+                    <span
+                      class="w-2 h-2 rounded-full {agent.is_running ? 'bg-success' : 'bg-muted'}"
+                    ></span>
+                    <span class="text-body">{agent.is_running ? 'Running' : 'Idle'}</span>
                   </span>
-                </div>
-                {#if agent.last_seen}
-                  <div class="flex justify-between text-sm">
-                    <span class="text-muted">Last Seen:</span>
-                    <span class="text-body font-semibold font-mono">
-                      {formatDateTime(agent.last_seen)}
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1 h-2 bg-canvas rounded overflow-hidden">
+                      <div
+                        class="h-full transition-all duration-300"
+                        style="width: {agent.confidence * 100}%; background: {getConfidenceColor(
+                          agent.confidence
+                        )}"
+                      ></div>
+                    </div>
+                    <span
+                      class="text-sm font-semibold font-mono"
+                      style="color: {getConfidenceColor(agent.confidence)}"
+                    >
+                      {(agent.confidence * 100).toFixed(0)}%
                     </span>
                   </div>
-                {/if}
-              </div>
-            </div>
+                </td>
+                <td class="px-4 py-3 text-sm text-body font-mono">
+                  {formatDateTime(agent.last_seen)}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
+  </section>
+
+  <!-- Activity Timeline -->
+  <section class="bg-surface border border-border rounded-lg p-5 mb-6">
+    <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
+      Recent Activity Timeline
+    </h3>
+
+    <!-- Event Filters -->
+    {#if !loading && recentEvents.length > 0}
+      <div class="mb-4 space-y-3">
+        <!-- Event Type Filters -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm text-muted font-sans font-semibold">Event Type:</span>
+          {#each availableEventTypes as type (type)}
+            <button
+              class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
+              class:bg-accent={selectedEventTypes.includes(type)}
+              class:text-white={selectedEventTypes.includes(type)}
+              class:border-accent={selectedEventTypes.includes(type)}
+              class:bg-canvas={!selectedEventTypes.includes(type)}
+              class:border-border={!selectedEventTypes.includes(type)}
+              class:text-body={!selectedEventTypes.includes(type)}
+              onclick={() => toggleEventType(type)}
+            >
+              {getEventIcon(type)}
+              {type}
+              {#if selectedEventTypes.includes(type)}{/if}
+            </button>
           {/each}
         </div>
-      {/if}
-    </section>
 
-    <!-- All Agents Status -->
-    <section class="bg-surface border border-border rounded-lg p-5 mb-6">
-      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-        All Agents Status
-      </h3>
-
-      {#if loading}
-        <div class="text-center py-8 text-sm text-muted">Loading agents...</div>
-      {:else if agentsStatus.length === 0}
-        <div class="text-center py-8">
-          <p class="text-sm text-muted font-sans">No agents detected</p>
+        <!-- Date Range Filters -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm text-muted font-sans font-semibold">Date Range:</span>
+          {#each ['all', 'today', '7d', '30d'] as range (range)}
+            <button
+              class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
+              class:bg-accent={dateRange === range}
+              class:text-white={dateRange === range}
+              class:border-accent={dateRange === range}
+              class:bg-canvas={dateRange !== range}
+              class:border-border={dateRange !== range}
+              class:text-body={dateRange !== range}
+              onclick={() => (dateRange = range)}
+            >
+              {range === 'all'
+                ? 'All Time'
+                : range === 'today'
+                  ? 'Today'
+                  : range === '7d'
+                    ? 'Last 7 Days'
+                    : 'Last 30 Days'}
+              {#if dateRange === range}{/if}
+            </button>
+          {/each}
         </div>
-      {:else}
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas border-b border-border">
-              <tr class="text-left">
-                <th
-                  class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide"
-                >
-                  Agent
-                </th>
-                <th
-                  class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide"
-                >
-                  Confidence
-                </th>
-                <th
-                  class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide"
-                >
-                  Last Seen
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each agentsStatus as agent (agent.agent_name)}
-                <tr class="border-b border-border hover:bg-canvas transition-colors">
-                  <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
-                    {agent.agent_name || 'Unknown'}
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="flex items-center gap-2 text-sm font-mono">
-                      <span
-                        class="w-2 h-2 rounded-full {agent.is_running
-                          ? 'bg-success'
-                          : 'bg-muted'}"
-                      ></span>
-                      <span class="text-body">{agent.is_running ? 'Running' : 'Idle'}</span
-                      >
-                    </span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-3">
-                      <div class="flex-1 h-2 bg-canvas rounded overflow-hidden">
-                        <div
-                          class="h-full transition-all duration-300"
-                          style="width: {agent.confidence * 100}%; background: {getConfidenceColor(
-                            agent.confidence
-                          )}"
-                        ></div>
-                      </div>
-                      <span
-                        class="text-sm font-semibold font-mono"
-                        style="color: {getConfidenceColor(agent.confidence)}"
-                      >
-                        {(agent.confidence * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-body font-mono">
-                    {formatDateTime(agent.last_seen)}
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      {/if}
-    </section>
 
-    <!-- Activity Timeline -->
-    <section class="bg-surface border border-border rounded-lg p-5 mb-6">
-      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-        Recent Activity Timeline
-      </h3>
-
-      <!-- Event Filters -->
-      {#if !loading && recentEvents.length > 0}
-        <div class="mb-4 space-y-3">
-          <!-- Event Type Filters -->
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-sm text-muted font-sans font-semibold">Event Type:</span>
-            {#each availableEventTypes as type (type)}
+        <!-- Active Filters Display -->
+        {#if hasActiveFilters}
+          <div class="flex flex-wrap items-center gap-2 p-3 bg-canvas rounded border border-border">
+            <span class="text-sm text-muted font-sans font-semibold">Active Filters:</span>
+            {#each selectedEventTypes as type (type)}
               <button
-                class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
-                class:bg-accent={selectedEventTypes.includes(type)}
-                class:text-white={selectedEventTypes.includes(type)}
-                class:border-accent={selectedEventTypes.includes(type)}
-                class:bg-canvas={!selectedEventTypes.includes(type)}
-                class:border-border={!selectedEventTypes.includes(type)}
-                class:text-body={!selectedEventTypes.includes(type)}
+                class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-canvas rounded text-xs font-sans font-semibold"
                 onclick={() => toggleEventType(type)}
               >
-                {getEventIcon(type)}
-                {type}
-                {#if selectedEventTypes.includes(type)}{/if}
+                Type: {type}
               </button>
             {/each}
-          </div>
-
-          <!-- Date Range Filters -->
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-sm text-muted font-sans font-semibold">Date Range:</span>
-            {#each ['all', 'today', '7d', '30d'] as range (range)}
+            {#if dateRange !== 'all'}
               <button
-                class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
-                class:bg-accent={dateRange === range}
-                class:text-white={dateRange === range}
-                class:border-accent={dateRange === range}
-                class:bg-canvas={dateRange !== range}
-                class:border-border={dateRange !== range}
-                class:text-body={dateRange !== range}
-                onclick={() => (dateRange = range)}
+                class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-canvas rounded text-xs font-sans font-semibold"
+                onclick={() => (dateRange = 'all')}
               >
-                {range === 'all'
-                  ? 'All Time'
-                  : range === 'today'
-                    ? 'Today'
-                    : range === '7d'
-                      ? 'Last 7 Days'
-                      : 'Last 30 Days'}
-                {#if dateRange === range}{/if}
+                Range: {dateRange}
               </button>
-            {/each}
-          </div>
-
-          <!-- Active Filters Display -->
-          {#if hasActiveFilters}
-            <div
-              class="flex flex-wrap items-center gap-2 p-3 bg-canvas rounded border border-border"
-            >
-              <span class="text-sm text-muted font-sans font-semibold"
-                >Active Filters:</span
-              >
-              {#each selectedEventTypes as type (type)}
-                <button
-                  class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-canvas rounded text-xs font-sans font-semibold"
-                  onclick={() => toggleEventType(type)}
-                >
-                  Type: {type}
-                </button>
-              {/each}
-              {#if dateRange !== 'all'}
-                <button
-                  class="inline-flex items-center gap-1 px-2 py-1 bg-accent text-canvas rounded text-xs font-sans font-semibold"
-                  onclick={() => (dateRange = 'all')}
-                >
-                  Range: {dateRange}
-                </button>
-              {/if}
-              <div class="ml-auto">
-                <ToolbarButton variant="danger" onClick={clearFilters}>Clear All</ToolbarButton>
-              </div>
+            {/if}
+            <div class="ml-auto">
+              <ToolbarButton variant="danger" onClick={clearFilters}>Clear All</ToolbarButton>
             </div>
-          {/if}
-        </div>
-      {/if}
-
-      {#if loading}
-        <div class="text-center py-8 text-sm text-muted">Loading activity...</div>
-      {:else if filteredEvents.length === 0}
-        <div class="text-center py-8">
-          <p class="text-sm text-muted font-sans">
-            {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
-          </p>
-          {#if hasActiveFilters}
-            <div class="mt-3">
-              <ToolbarButton variant="primary" onClick={clearFilters}>Clear Filters</ToolbarButton>
-            </div>
-          {/if}
-        </div>
-      {:else}
-        <div class="space-y-2">
-          {#each filteredEvents as event (event.id || event.timestamp)}
-            <div
-              class="flex items-start gap-3 p-3 bg-canvas rounded hover:bg-surface-2 transition-all"
-            >
-              <span class="text-base flex-shrink-0 mt-1">
-                {getEventIcon(event.event_type)}
-              </span>
-              <div class="flex-1 min-w-0">
-                <div class="text-sm text-body font-mono mb-1">
-                  {#if event.agent_name}
-                    <span
-                      class="inline-block px-2 py-0.5 mr-2 bg-accent text-canvas rounded text-sm font-semibold uppercase tracking-wide"
-                    >
-                      {event.agent_name}
-                    </span>
-                  {/if}
-                  <span>{event.description || event.event_type || 'Activity'}</span>
-                </div>
-                <div class="text-sm text-muted font-mono">
-                  {event.event_type} • {formatDateTime(event.timestamp)}
-                </div>
-              </div>
-            </div>
-          {/each}
-        </div>
-
-        <!-- Load More Button -->
-        {#if filteredEvents.length > 0 && filteredEvents.length >= eventsLimit && filteredEvents.length < recentEvents.length}
-          <div class="mt-4 text-center">
-            <ToolbarButton variant="primary" onClick={loadMoreEvents} disabled={loadingMore}>
-              {#if loadingMore}
-                <span class="inline-flex items-center gap-2">
-                  <span
-                    class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
-                  ></span>
-                  Loading...
-                </span>
-              {:else}
-                Load More (30 more events)
-              {/if}
-            </ToolbarButton>
-            <p class="mt-2 text-sm text-muted font-sans">
-              Showing {filteredEvents.length} of {recentEvents.length} events
-            </p>
           </div>
         {/if}
+      </div>
+    {/if}
+
+    {#if loading}
+      <div class="text-center py-8 text-sm text-muted">Loading activity...</div>
+    {:else if filteredEvents.length === 0}
+      <div class="text-center py-8 leading-relaxed">
+        <p class="text-sm text-body font-sans">
+          {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
+        </p>
+        {#if !hasActiveFilters}
+          <p class="text-xs text-muted mt-2 max-w-md mx-auto">
+            Each tool call (Read, Edit, Bash, etc.) Claude makes lands here in real time. Trigger
+            one and watch it stream in.
+          </p>
+        {/if}
+        {#if hasActiveFilters}
+          <div class="mt-3">
+            <ToolbarButton variant="primary" onClick={clearFilters}>Clear Filters</ToolbarButton>
+          </div>
+        {/if}
+      </div>
+    {:else}
+      <div class="space-y-2">
+        {#each filteredEvents as event (event.id || event.timestamp)}
+          <div
+            class="flex items-start gap-3 p-3 bg-canvas rounded hover:bg-surface-2 transition-all"
+          >
+            <span class="text-base flex-shrink-0 mt-1">
+              {getEventIcon(event.event_type)}
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-body font-mono mb-1">
+                {#if event.agent_name}
+                  <span
+                    class="inline-block px-2 py-0.5 mr-2 bg-accent text-canvas rounded text-sm font-semibold uppercase tracking-wide"
+                  >
+                    {event.agent_name}
+                  </span>
+                {/if}
+                <span>{event.description || event.event_type || 'Activity'}</span>
+              </div>
+              <div class="text-sm text-muted font-mono">
+                {event.event_type} • {formatDateTime(event.timestamp)}
+              </div>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Load More Button -->
+      {#if filteredEvents.length > 0 && filteredEvents.length >= eventsLimit && filteredEvents.length < recentEvents.length}
+        <div class="mt-4 text-center">
+          <ToolbarButton variant="primary" onClick={loadMoreEvents} disabled={loadingMore}>
+            {#if loadingMore}
+              <span class="inline-flex items-center gap-2">
+                <span
+                  class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                ></span>
+                Loading...
+              </span>
+            {:else}
+              Load More (30 more events)
+            {/if}
+          </ToolbarButton>
+          <p class="mt-2 text-sm text-muted font-sans">
+            Showing {filteredEvents.length} of {recentEvents.length} events
+          </p>
+        </div>
       {/if}
-    </section>
+    {/if}
+  </section>
 </PageLayout>

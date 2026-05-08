@@ -46,7 +46,13 @@
 
   // Costs & sub-agent state
   import { settings } from '../stores/settingsStore.js';
-  let sessionCosts = $state({ total_requests: 0, total_cost_usd: 0, total_input_tokens: 0, total_output_tokens: 0, total_cache_read_tokens: 0 });
+  let sessionCosts = $state({
+    total_requests: 0,
+    total_cost_usd: 0,
+    total_input_tokens: 0,
+    total_output_tokens: 0,
+    total_cache_read_tokens: 0
+  });
   let billingMode = $state(get(settings)?.billing?.mode || 'subscription');
   const unsubBilling = settings.subscribe(s => {
     billingMode = s?.billing?.mode || 'subscription';
@@ -56,6 +62,7 @@
   // Live activity feed — unified stream of all events
   let activityFeed = $state([]);
   let latestDiff = $state(null);
+  let latestDiffHidden = $state(false);
   let syntaxAlerts = $state([]);
   let workingAgents = $state(new Set());
   let workingAgentTimers = {};
@@ -63,7 +70,6 @@
   let lastDiffFilepath = '';
   let ephemeralTimers = []; // Track all short-lived timeouts for cleanup
   let riskScores = $state({}); // { [eventId]: { score, reason } }
-
 
   // Charts
   let trendChart = null;
@@ -147,8 +153,7 @@
         e => e.agent === a.agent_name && (e.event_type === 'tool_call' || e.file)
       );
       const action = describeAgentAction(lastEvent);
-      const fullCommand =
-        lastEvent?.file && lastEvent.file !== action ? lastEvent.file : null;
+      const fullCommand = lastEvent?.file && lastEvent.file !== action ? lastEvent.file : null;
       return {
         kind: 'top',
         key: `top:${a.agent_name}`,
@@ -205,7 +210,12 @@
 
   function getTypeColor(type) {
     // Per-subagent-type brand colors. design-system-allow: hex
-    const colors = { 'general-purpose': '#FF6B35', 'Explore': '#10A37F', 'Plan': '#4285F4', 'code-reviewer': '#F39C12' };
+    const colors = {
+      'general-purpose': '#FF6B35',
+      Explore: '#10A37F',
+      Plan: '#4285F4',
+      'code-reviewer': '#F39C12'
+    };
     return colors[type] || '#6b7280';
   }
 
@@ -246,7 +256,6 @@
       workingStates = rest;
     }, 8000);
   }
-
 
   function getAgentColorByName(name) {
     // Brand colors for agent identification — intentionally static, sourced
@@ -348,7 +357,10 @@
 
     let colorIdx = 0;
     const datasets = Object.entries(agentBuckets).map(([agent, data]) => {
-      const color = getAgentColor(agent, defaultAgentColors[colorIdx++ % defaultAgentColors.length]);
+      const color = getAgentColor(
+        agent,
+        defaultAgentColors[colorIdx++ % defaultAgentColors.length]
+      );
       return {
         label: agent,
         data,
@@ -466,14 +478,17 @@
       // Seed the Latest Change panel from the most recent file event so
       // it survives page reloads and persists between websocket events.
       // Only seed if we don't already have a (newer) live diff.
+      // Walk the list — binary/unchanged files return empty diffs, so fall
+      // through to the next candidate instead of leaving the panel blank.
       if (!latestDiff && recentFiles.length > 0) {
-        const recent = recentFiles.find(
-          f => f.filepath && f.change_type !== 'unlink'
-        );
-        if (recent) {
-          api
-            .get(`/file-diff/${encodeURIComponent(recent.filepath)}`)
-            .then(diffData => {
+        const candidates = recentFiles
+          .filter(f => f.filepath && f.change_type !== 'unlink')
+          .slice(0, 10);
+        (async () => {
+          for (const recent of candidates) {
+            if (latestDiff) return;
+            try {
+              const diffData = await api.get(`/file-diff/${encodeURIComponent(recent.filepath)}`);
               if (diffData?.diff && !latestDiff) {
                 latestDiff = {
                   filepath: diffData.filepath || recent.filepath,
@@ -482,12 +497,13 @@
                   agent_source: recent.agent_source,
                   timestamp: recent.timestamp
                 };
+                return;
               }
-            })
-            .catch(() => {
-              /* diff is supplementary */
-            });
-        }
+            } catch {
+              /* diff is supplementary — try the next candidate */
+            }
+          }
+        })();
       }
       agents = Array.isArray(data.agentsStatus) ? data.agentsStatus : [];
       agentStatus = agents[0] || null;
@@ -560,7 +576,11 @@
     // Debounced diff fetch — only fetch for the latest file, silently
     if (event.filepath && event.change_type !== 'unlink') {
       lastDiffFilepath = event.filepath;
-      const capturedEvent = { change_type: event.change_type, agent_source: event.agent_source, timestamp: event.timestamp };
+      const capturedEvent = {
+        change_type: event.change_type,
+        agent_source: event.agent_source,
+        timestamp: event.timestamp
+      };
       clearTimeout(diffDebounceTimer);
       diffDebounceTimer = setTimeout(() => {
         const fp = lastDiffFilepath;
@@ -711,7 +731,7 @@
     // The token-usage WS payload already contains everything we need to
     // increment the running today-total — no need for a fresh /costs/summary
     // round-trip on every event (was doing one HTTP call per inference).
-    const handleTokenUsage = (data) => {
+    const handleTokenUsage = data => {
       if (!data) return;
       // Filter to today only — the dashboard shows "today's session" cost.
       const ts = data.timestamp ? new Date(data.timestamp) : new Date();
@@ -730,19 +750,24 @@
       };
     };
     const handleSubagentSpawn = () => {
-      api.get('/subagents/recent?limit=8').then(d => { if (Array.isArray(d)) recentSubagents = d; }).catch(err => logger.debug('Subagents refresh failed:', err));
+      api
+        .get('/subagents/recent?limit=8')
+        .then(d => {
+          if (Array.isArray(d)) recentSubagents = d;
+        })
+        .catch(err => logger.debug('Subagents refresh failed:', err));
     };
     websocketService.on('token-usage', handleTokenUsage);
     websocketService.on('subagent-spawn', handleSubagentSpawn);
 
-    const handleProcessActivity = (data) => {
+    const handleProcessActivity = data => {
       processActivity = { ...processActivity, [data.agent_name]: data };
       // Auto-mark agent as working when it has activity
       if (data.activity_state === 'thinking' || data.activity_state === 'executing') {
         markAgentWorking(data.agent_name);
       }
     };
-    const handleApiLatencyEvent = (data) => {
+    const handleApiLatencyEvent = data => {
       latestApiLatency = data;
     };
     websocketService.on('process-activity', handleProcessActivity);
@@ -790,295 +815,396 @@
 </script>
 
 <PageLayout variant="dashboard">
-<div class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col">
-  <div class="mx-auto px-2 flex flex-col flex-1 min-h-0 w-full">
-    <div class="mb-3">
-      <PageHeader size="medium" title="Dashboard" description="Real-time monitoring">
-        {#snippet actions()}
-          <div class="flex items-center gap-3">
-            {#if agentStatus}
-              {@const pa = Object.values(processActivity)[0]}
-              <span class="flex items-center gap-2 text-sm font-mono">
-                <span
-                  class="w-2 h-2 rounded-full"
-                  class:bg-warning={pa?.activity_state === 'thinking'}
-                  class:activity-pulse={pa?.activity_state === 'thinking'}
-                  class:bg-success={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
-                  class:animate-pulse={pa?.activity_state === 'executing' || (!pa && agentStatus.is_running)}
-                  class:bg-muted={pa?.activity_state === 'idle' || (!pa && !agentStatus.is_running)}
-                ></span>
-                <span class="text-body">{agentStatus.agent_name}</span>
-                {#if pa?.activity_state === 'thinking'}
-                  <span class="text-[10px] text-warning">API call{pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}</span>
-                {:else if pa?.activity_state === 'executing'}
-                  <span class="text-[10px] text-success">Executing</span>
-                {:else if pa}
-                  <span class="text-[10px] text-muted">Idle</span>
-                {/if}
-                {#if pa?.network_connections}
-                  <span class="text-[9px] text-muted">{pa.network_connections} conn</span>
-                {/if}
-              </span>
-            {/if}
-            <span class="text-xs text-muted font-mono">{formatTime(lastUpdated)}</span>
-            <RefreshButton onClick={loadData} loading={loading} />
-          </div>
-        {/snippet}
-      </PageHeader>
-    </div>
-
-    <!-- Event Feed + AI Pulse -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
-      <div
-        class="bg-surface border border-border rounded-lg p-4 flex flex-col min-h-0"
-      >
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
-            Event Feed
-          </h3>
-          <span class="flex items-center gap-1.5 text-[10px] text-success font-mono">
-            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
-            Live
-          </span>
-        </div>
-        <div class="space-y-0.5 overflow-y-auto flex-1">
-          {#if activityFeed.length === 0 && recentFiles.length === 0}
-            <div class="text-center py-6 text-xs text-muted">
-              <span class="inline-block idle-breathing">Waiting for activity</span>
-            </div>
-          {:else}
-            {#each activityFeed.length > 0 ? activityFeed : recentFiles
-              .slice(0, 15)
-              .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
-              <div
-                class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
-                  ? 'feed-slide-in'
-                  : 'hover:bg-canvas'}"
-                style="border-left: 2px solid {item.color}; background: {item.icon === '+' ? 'var(--success-subtle)' : item.icon === '-' ? 'var(--error-subtle)' : 'transparent'}; {item._new
-                  ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
-                  : ''}"
-              >
-                <span
-                  class="w-4 text-center text-[9px] font-bold font-mono flex-shrink-0"
-                  style="color: {item.color}">{item.icon}</span
-                >
-                <div class="flex-1 min-w-0">
-                  <div class="text-[10px] font-mono truncate" style="color: {item.icon === '+' ? 'var(--success)' : item.icon === '-' ? 'var(--error)' : 'var(--text)'}">{item.text}</div>
-                </div>
-                {#if item.eventId && riskScores[item.eventId]}
-                  {@const rs = riskScores[item.eventId]}
+  <div class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col">
+    <div class="mx-auto px-2 flex flex-col flex-1 min-h-0 w-full">
+      <div class="mb-3">
+        <PageHeader size="medium" title="Dashboard" description="Real-time monitoring">
+          {#snippet actions()}
+            <div class="flex items-center gap-3">
+              {#if agentStatus}
+                {@const pa = Object.values(processActivity)[0]}
+                <span class="flex items-center gap-2 text-sm font-mono">
                   <span
-                    class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0"
-                    style="background: {rs.score >= 7 ? 'var(--error)' : rs.score >= 4 ? 'var(--warning)' : 'var(--success)'}"
-                    title={rs.reason}
-                  >
-                    {rs.score}
-                  </span>
-                {/if}
-                <span class="text-[9px] text-muted font-mono flex-shrink-0"
-                  >{formatTime(item.timestamp)}</span
-                >
+                    class="w-2 h-2 rounded-full"
+                    class:bg-warning={pa?.activity_state === 'thinking'}
+                    class:activity-pulse={pa?.activity_state === 'thinking'}
+                    class:bg-success={pa?.activity_state === 'executing' ||
+                      (!pa && agentStatus.is_running)}
+                    class:animate-pulse={pa?.activity_state === 'executing' ||
+                      (!pa && agentStatus.is_running)}
+                    class:bg-muted={pa?.activity_state === 'idle' ||
+                      (!pa && !agentStatus.is_running)}
+                  ></span>
+                  <span class="text-body">{agentStatus.agent_name}</span>
+                  {#if pa?.activity_state === 'thinking'}
+                    <span class="text-[10px] text-warning"
+                      >API call{pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}</span
+                    >
+                  {:else if pa?.activity_state === 'executing'}
+                    <span class="text-[10px] text-success">Executing</span>
+                  {:else if pa}
+                    <span class="text-[10px] text-muted">Idle</span>
+                  {/if}
+                  {#if pa?.network_connections}
+                    <span class="text-[9px] text-muted">{pa.network_connections} conn</span>
+                  {/if}
+                </span>
+              {/if}
+              <span class="text-xs text-muted font-mono">{formatTime(lastUpdated)}</span>
+              <RefreshButton onClick={loadData} {loading} />
+            </div>
+          {/snippet}
+        </PageHeader>
+      </div>
+
+      <!-- Event Feed + AI Pulse -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
+        <div class="bg-surface border border-border rounded-lg p-4 flex flex-col min-h-0">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Event Feed</h3>
+            <span class="flex items-center gap-1.5 text-[10px] text-success font-mono">
+              <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
+              Live
+            </span>
+          </div>
+          <div class="space-y-0.5 overflow-y-auto flex-1">
+            {#if activityFeed.length === 0 && recentFiles.length === 0}
+              <div class="text-center py-6 text-xs text-muted leading-relaxed">
+                <span class="inline-block idle-breathing">Waiting for activity</span>
+                <div class="mt-1.5 text-[10px]">
+                  Edit a file or kick off a Claude session — events stream in here.
+                </div>
               </div>
-            {/each}
-          {/if}
+            {:else}
+              {#each activityFeed.length > 0 ? activityFeed : recentFiles
+                    .slice(0, 15)
+                    .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
+                <div
+                  class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
+                    ? 'feed-slide-in'
+                    : 'hover:bg-canvas'}"
+                  style="border-left: 2px solid {item.color}; background: {item.icon === '+'
+                    ? 'var(--success-subtle)'
+                    : item.icon === '-'
+                      ? 'var(--error-subtle)'
+                      : 'transparent'}; {item._new
+                    ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
+                    : ''}"
+                >
+                  <span
+                    class="w-4 text-center text-[9px] font-bold font-mono flex-shrink-0"
+                    style="color: {item.color}">{item.icon}</span
+                  >
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-[10px] font-mono truncate"
+                      style="color: {item.icon === '+'
+                        ? 'var(--success)'
+                        : item.icon === '-'
+                          ? 'var(--error)'
+                          : 'var(--text)'}"
+                    >
+                      {item.text}
+                    </div>
+                  </div>
+                  {#if item.eventId && riskScores[item.eventId]}
+                    {@const rs = riskScores[item.eventId]}
+                    <span
+                      class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0"
+                      style="background: {rs.score >= 7
+                        ? 'var(--error)'
+                        : rs.score >= 4
+                          ? 'var(--warning)'
+                          : 'var(--success)'}"
+                      title={rs.reason}
+                    >
+                      {rs.score}
+                    </span>
+                  {/if}
+                  <span class="text-[9px] text-muted font-mono flex-shrink-0"
+                    >{formatTime(item.timestamp)}</span
+                  >
+                </div>
+              {/each}
+            {/if}
+          </div>
         </div>
-      </div>
-      <div>
-        <NebulaActivity />
-      </div>
-      <!-- Active Models column. GPU health lives in the global VitalsStrip
+        <div>
+          <NebulaActivity />
+        </div>
+        <!-- Active Models column. GPU health lives in the global VitalsStrip
            below the header now, so this column is dedicated to active
            models — scales cleanly as more models load. -->
-      <div class="flex flex-col min-h-0 overflow-auto">
-        <ActiveModelCard />
+        <div class="flex flex-col min-h-0 overflow-auto">
+          <ActiveModelCard />
+        </div>
       </div>
-    </div>
 
-    <!-- Compact Stats + Agents + System bar -->
-    <div class="flex flex-wrap items-center gap-2 mb-3 bg-surface border border-border rounded px-3 py-2">
-      <!-- Stats inline -->
-      {#each [
-        { key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' }
-      ] as stat (stat.key)}
-        <span class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}" title={stat.tip}>
-          <span class="text-muted">{stat.label}</span>
-          <span class="font-semibold" style="color: {stat.color || 'var(--text)'}">{formatNumber(stat.value)}</span>
-        </span>
-        <span class="text-border">|</span>
-      {/each}
-      <span class="text-[11px] font-mono" title="File events per minute, averaged across the 100 most recent file changes. Throughput, not an instant rate.">
-        <span class="text-muted">Rate</span>
-        <span class="font-semibold text-body">{eventsPerMin}/m</span>
-      </span>
-
-      {#if stats.app_errors > 0}
-        <span class="text-border">|</span>
-        <button
-          onclick={() => navigate('/system/errors')}
-          class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0"
-          title="Unresolved app errors caught by the global error handler. Click to view & clear."
-        >
-          <span class="text-error font-semibold">{stats.app_errors} errors</span>
-        </button>
-      {/if}
-
-      {#if latestApiLatency}
-        <span class="text-border">|</span>
-        <button
-          onclick={() => navigate('/analysis/network')}
-          class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
-          title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for the full network view."
-        >
-          <span class="text-muted">API</span>
-          <span class="font-semibold" style="color: {latestApiLatency.latency_ms > 30000 ? 'var(--error)' : latestApiLatency.latency_ms > 10000 ? 'var(--warning)' : 'var(--text)'}">
-            {(latestApiLatency.latency_ms / 1000).toFixed(1)}s
+      <!-- Compact Stats + Agents + System bar -->
+      <div
+        class="flex flex-wrap items-center gap-2 mb-3 bg-surface border border-border rounded px-3 py-2"
+      >
+        <!-- Stats inline -->
+        {#each [{ key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' }] as stat (stat.key)}
+          <span
+            class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}"
+            title={stat.tip}
+          >
+            <span class="text-muted">{stat.label}</span>
+            <span class="font-semibold" style="color: {stat.color || 'var(--text)'}"
+              >{formatNumber(stat.value)}</span
+            >
           </span>
-        </button>
-      {/if}
+          <span class="text-border">|</span>
+        {/each}
+        <span
+          class="text-[11px] font-mono"
+          title="File events per minute, averaged across the 100 most recent file changes. Throughput, not an instant rate."
+        >
+          <span class="text-muted">Rate</span>
+          <span class="font-semibold text-body">{eventsPerMin}/m</span>
+        </span>
 
-      <!-- Spacer -->
-      <div class="flex-1"></div>
+        {#if stats.app_errors > 0}
+          <span class="text-border">|</span>
+          <button
+            onclick={() => navigate('/system/errors')}
+            class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0"
+            title="Unresolved app errors caught by the global error handler. Click to view & clear."
+          >
+            <span class="text-error font-semibold">{stats.app_errors} errors</span>
+          </button>
+        {/if}
 
-      <!-- Token usage inline (right-aligned).
+        {#if latestApiLatency}
+          <span class="text-border">|</span>
+          <button
+            onclick={() => navigate('/analysis/network')}
+            class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
+            title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for the full network view."
+          >
+            <span class="text-muted">API</span>
+            <span
+              class="font-semibold"
+              style="color: {latestApiLatency.latency_ms > 30000
+                ? 'var(--error)'
+                : latestApiLatency.latency_ms > 10000
+                  ? 'var(--warning)'
+                  : 'var(--text)'}"
+            >
+              {(latestApiLatency.latency_ms / 1000).toFixed(1)}s
+            </span>
+          </button>
+        {/if}
+
+        <!-- Spacer -->
+        <div class="flex-1"></div>
+
+        <!-- Token usage inline (right-aligned).
            Claude prompt caching: most "input" actually flows through
            cache_read (~10% cost) or cache_creation (~125% cost). Counting
            only total_input_tokens missed ~99% of usage. -->
-      {#snippet tokenStats()}
-        {@const cIn = sessionCosts.total_input_tokens || 0}
-        {@const cOut = sessionCosts.total_output_tokens || 0}
-        {@const cCreate = sessionCosts.total_cache_creation_tokens || 0}
-        {@const cRead = sessionCosts.total_cache_read_tokens || 0}
-        {@const totalIn = cIn + cCreate + cRead}
-        <span
-          class="flex items-center gap-1"
-          title={billingMode === 'api'
-            ? 'Estimated total API cost today (USD), all input + cache + output.'
-            : 'Total tokens today across input, cache_creation, cache_read, and output. Click for the full cost breakdown.'}
-        >
-          <span class="text-muted">Tokens</span>
-          <span class="font-semibold text-accent">
-            {#if billingMode === 'api'}
-              {formatCost(sessionCosts.total_cost_usd)}
-            {:else}
-              {formatTokens(totalIn + cOut)}
-            {/if}
-          </span>
-        </span>
-        <span class="flex items-center gap-1" title="All input tokens today: new (uncached) + cache_creation + cache_read. Includes the prompt context Claude reads each turn.">
-          <span class="text-muted">In</span>
-          <span class="text-body">{formatTokens(totalIn)}</span>
-        </span>
-        {#if cRead > 0}
-          <span class="flex items-center gap-1" title="Tokens served from prompt cache (~10% of normal input cost). High = good — Claude reused context instead of paying full price.">
-            <span class="text-muted">Cached</span>
-            <span class="text-body">{formatTokens(cRead)}</span>
-          </span>
-        {/if}
-        <span class="flex items-center gap-1" title="Output tokens generated by Claude today. The work product, billed at the highest rate.">
-          <span class="text-muted">Out</span>
-          <span class="text-body">{formatTokens(cOut)}</span>
-        </span>
-      {/snippet}
-      <button onclick={() => navigate('/analysis/costs')} class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80">
-        {@render tokenStats()}
-      </button>
-
-    </div>
-
-    <!-- Sub-Agents + Latest Diff + Activity Trend -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
-      <!-- Agents — top-level + sub-agents in one list, most recent first -->
-      <div
-        class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col"
-        onclick={() => navigate('/analysis/monitoring')}
-        onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/monitoring')}
-        role="link"
-        tabindex="0"
-      >
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Agents</h3>
-          <span class="text-[10px] text-muted">{allAgents.length} · →</span>
-        </div>
-        {#if allAgents.length > 0}
-          <div class="space-y-1 overflow-y-auto flex-1">
-            {#each allAgents.slice(0, 10) as agent (agent.key)}
-              <div class="flex items-center gap-2 py-0.5">
-                <span
-                  class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0"
-                  style="background: {agent.color}"
-                  title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
-                >{agent.chip}</span>
-                <span class="text-[10px] text-body truncate flex-1" title={agent.labelTitle || agent.label}>{agent.label}</span>
-                {#if agent.detail}
-                  <span class="text-[9px] text-muted font-mono flex-shrink-0 hidden sm:inline">{agent.detail}</span>
-                {/if}
-                <span class="text-[9px] text-muted font-mono flex-shrink-0">{formatTime(agent.time)}</span>
-              </div>
-            {/each}
-          </div>
-        {:else}
-          <div class="text-xs text-muted py-2">No agents yet</div>
-        {/if}
-      </div>
-
-      <!-- Latest Diff -->
-      <div class="bg-surface border border-border rounded-lg overflow-hidden flex flex-col min-h-0">
-        <div class="flex justify-between items-center px-3 py-1.5 bg-canvas border-b border-border flex-shrink-0">
-          {#if latestDiff}
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"></span>
-              <span class="text-[10px] font-mono text-body truncate">{latestDiff.filepath}<span class="cursor-blink">|</span></span>
-            </div>
-            {#if latestDiff.agent_source}
-              <span class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0" style="background: {getAgentColorByName(latestDiff.agent_source)}">{latestDiff.agent_source}</span>
-            {/if}
-          {:else}
-            <span class="text-[10px] font-semibold text-muted uppercase tracking-wide">Latest Change</span>
-          {/if}
-        </div>
-        <div class="flex-1 overflow-auto">
-          {#if latestDiff}
-            <pre class="text-[10px] font-mono m-0 bg-surface leading-[1.6]">{#each latestDiff.diff.split('\n').slice(0, 20) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span class="text-success block px-2" style="background: var(--success-subtle)">{line.slice(1)}</span>{:else if c === '-'}<span class="text-error block px-2" style="background: var(--error-subtle)">{line.slice(1)}</span>{:else}<span class="text-muted block px-2">{c === ' ' ? line.slice(1) : line}</span>{/if}{/each}</pre>
-          {:else}
-            <div class="flex items-center justify-center h-full text-xs text-muted">Waiting for changes</div>
-          {/if}
-        </div>
-      </div>
-
-      <!-- Activity Trend -->
-      <div class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-0">
-        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">Agent Activity (5m)</h3>
-        <div class="flex-1 min-h-0">
-          <canvas id="chart-trend"></canvas>
-        </div>
-      </div>
-    </div>
-
-
-    <!-- Syntax Alerts Banner -->
-    {#if syntaxAlerts.length > 0}
-      <div class="mb-6 space-y-2">
-        {#each syntaxAlerts.slice(0, 3) as alert (alert._ts)}
-          <div
-            class="flex items-center gap-3 px-4 py-2 bg-error-subtle border border-error rounded-lg animate-pulse"
+        {#snippet tokenStats()}
+          {@const cIn = sessionCosts.total_input_tokens || 0}
+          {@const cOut = sessionCosts.total_output_tokens || 0}
+          {@const cCreate = sessionCosts.total_cache_creation_tokens || 0}
+          {@const cRead = sessionCosts.total_cache_read_tokens || 0}
+          {@const totalIn = cIn + cCreate + cRead}
+          <span
+            class="flex items-center gap-1"
+            title={billingMode === 'api'
+              ? 'Estimated total API cost today (USD), all input + cache + output.'
+              : 'Total tokens today across input, cache_creation, cache_read, and output. Click for the full cost breakdown.'}
           >
-            <span class="text-sm font-bold text-error">!!</span>
-            <span class="text-sm text-error font-mono flex-1"
-              >Syntax error in {alert.filepath} ({alert.count} issue{alert.count > 1
-                ? 's'
-                : ''})</span
+            <span class="text-muted">Tokens</span>
+            <span class="font-semibold text-accent">
+              {#if billingMode === 'api'}
+                {formatCost(sessionCosts.total_cost_usd)}
+              {:else}
+                {formatTokens(totalIn + cOut)}
+              {/if}
+            </span>
+          </span>
+          <span
+            class="flex items-center gap-1"
+            title="All input tokens today: new (uncached) + cache_creation + cache_read. Includes the prompt context Claude reads each turn."
+          >
+            <span class="text-muted">In</span>
+            <span class="text-body">{formatTokens(totalIn)}</span>
+          </span>
+          {#if cRead > 0}
+            <span
+              class="flex items-center gap-1"
+              title="Tokens served from prompt cache (~10% of normal input cost). High = good — Claude reused context instead of paying full price."
             >
-            <button
-              onclick={() => {
-                syntaxAlerts = syntaxAlerts.filter(a => a._ts !== alert._ts);
-              }}
-              class="text-error hover:opacity-70 text-xs">dismiss</button
-            >
-          </div>
-        {/each}
+              <span class="text-muted">Cached</span>
+              <span class="text-body">{formatTokens(cRead)}</span>
+            </span>
+          {/if}
+          <span
+            class="flex items-center gap-1"
+            title="Output tokens generated by Claude today. The work product, billed at the highest rate."
+          >
+            <span class="text-muted">Out</span>
+            <span class="text-body">{formatTokens(cOut)}</span>
+          </span>
+        {/snippet}
+        <button
+          onclick={() => navigate('/analysis/costs')}
+          class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
+        >
+          {@render tokenStats()}
+        </button>
       </div>
-    {/if}
-  </div>
-</div>
-</PageLayout>
 
+      <!-- Sub-Agents + Latest Diff + Activity Trend -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
+        <!-- Agents — top-level + sub-agents in one list, most recent first -->
+        <div
+          class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col"
+          onclick={() => navigate('/analysis/monitoring')}
+          onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/monitoring')}
+          role="link"
+          tabindex="0"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Agents</h3>
+            <span class="text-[10px] text-muted">{allAgents.length} · →</span>
+          </div>
+          {#if allAgents.length > 0}
+            <div class="space-y-1 overflow-y-auto flex-1">
+              {#each allAgents.slice(0, 10) as agent (agent.key)}
+                <div class="flex items-center gap-2 py-0.5">
+                  <span
+                    class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0"
+                    style="background: {agent.color}"
+                    title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
+                    >{agent.chip}</span
+                  >
+                  <span
+                    class="text-[10px] text-body truncate flex-1"
+                    title={agent.labelTitle || agent.label}>{agent.label}</span
+                  >
+                  {#if agent.detail}
+                    <span class="text-[9px] text-muted font-mono flex-shrink-0 hidden sm:inline"
+                      >{agent.detail}</span
+                    >
+                  {/if}
+                  <span class="text-[9px] text-muted font-mono flex-shrink-0"
+                    >{formatTime(agent.time)}</span
+                  >
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="text-xs text-muted py-2 leading-relaxed">
+              No agents yet.
+              <div class="text-[10px] mt-1">
+                Run <code class="font-mono text-body">claude</code> in any tracked project and it'll
+                appear here.
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Latest Diff -->
+        {#if !latestDiffHidden}
+          <div
+            class="bg-surface border border-border rounded-lg overflow-hidden flex flex-col min-h-0"
+          >
+            <div
+              class="flex justify-between items-center gap-2 px-3 py-1.5 bg-canvas border-b border-border flex-shrink-0"
+            >
+              {#if latestDiff}
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"
+                  ></span>
+                  <span class="text-[10px] font-mono text-body truncate"
+                    >{latestDiff.filepath}<span class="cursor-blink">|</span></span
+                  >
+                </div>
+                {#if latestDiff.agent_source}
+                  <span
+                    class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0"
+                    style="background: {getAgentColorByName(latestDiff.agent_source)}"
+                    >{latestDiff.agent_source}</span
+                  >
+                {/if}
+              {:else}
+                <span class="text-[10px] font-semibold text-muted uppercase tracking-wide flex-1"
+                  >Latest Change</span
+                >
+              {/if}
+              <button
+                type="button"
+                onclick={() => (latestDiffHidden = true)}
+                class="text-muted hover:text-body text-[12px] leading-none px-1 -mr-1 bg-transparent border-0 cursor-pointer flex-shrink-0"
+                aria-label="Hide latest change panel"
+                title="Hide">×</button
+              >
+            </div>
+            <div class="flex-1 overflow-auto">
+              {#if latestDiff}
+                <pre
+                  class="text-[10px] font-mono m-0 bg-surface leading-[1.6]">{#each latestDiff.diff
+                    .split('\n')
+                    .slice(0, 20) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span
+                        class="text-success block px-2"
+                        style="background: var(--success-subtle)">{line.slice(1)}</span
+                      >{:else if c === '-'}<span
+                        class="text-error block px-2"
+                        style="background: var(--error-subtle)">{line.slice(1)}</span
+                      >{:else}<span class="text-muted block px-2"
+                        >{c === ' ' ? line.slice(1) : line}</span
+                      >{/if}{/each}</pre>
+              {:else}
+                <div
+                  class="flex flex-col items-center justify-center h-full text-xs text-muted text-center px-3 leading-relaxed"
+                >
+                  <span>Waiting for changes</span>
+                  <span class="text-[10px] mt-1"
+                    >The next file Claude (or you) edits will land here as a live diff.</span
+                  >
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Activity Trend -->
+        <div class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-0">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">
+            Agent Activity (5m)
+          </h3>
+          <div class="flex-1 min-h-0">
+            <canvas id="chart-trend"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Syntax Alerts Banner -->
+      {#if syntaxAlerts.length > 0}
+        <div class="mb-6 space-y-2">
+          {#each syntaxAlerts.slice(0, 3) as alert (alert._ts)}
+            <div
+              class="flex items-center gap-3 px-4 py-2 bg-error-subtle border border-error rounded-lg animate-pulse"
+            >
+              <span class="text-sm font-bold text-error">!!</span>
+              <span class="text-sm text-error font-mono flex-1"
+                >Syntax error in {alert.filepath} ({alert.count} issue{alert.count > 1
+                  ? 's'
+                  : ''})</span
+              >
+              <button
+                onclick={() => {
+                  syntaxAlerts = syntaxAlerts.filter(a => a._ts !== alert._ts);
+                }}
+                class="text-error hover:opacity-70 text-xs">dismiss</button
+              >
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+</PageLayout>

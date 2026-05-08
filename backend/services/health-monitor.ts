@@ -6,6 +6,7 @@
 
 import { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
+import { resolveRavenPaths } from '../utils/paths.js';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
@@ -652,8 +653,9 @@ export class HealthMonitor {
 
     try {
       // Check critical directories
+      const { ravenDir } = resolveRavenPaths();
       const requiredDirs = [
-        { name: 'Database Directory', path: path.join(process.cwd(), '..', '.raven', 'db') },
+        { name: 'Database Directory', path: path.join(ravenDir, 'db') },
         { name: 'Logs Directory', path: path.join(process.cwd(), 'logs') }
       ];
 

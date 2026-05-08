@@ -1,8 +1,17 @@
 import prettierConfig from 'eslint-config-prettier';
+import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
     ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.js']
+  },
+  {
+    files: ['**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 'latest',
+      sourceType: 'module'
+    }
   },
   {
     languageOptions: {

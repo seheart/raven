@@ -8,7 +8,6 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join, basename, resolve } from 'path';
 import fs from 'fs/promises';
-import os from 'os';
 import type {
   ProjectName,
   ProjectManagerOptions,
@@ -18,6 +17,7 @@ import type {
   ProjectInfo
 } from '../types/index.js';
 import { logger } from '../utils/logger.js';
+import { resolveRavenPaths } from '../utils/paths.js';
 import { RavenDB } from '../db.js';
 import { FileWatcher } from '../modules/watcher.js';
 
@@ -338,9 +338,13 @@ export class ProjectManager {
       const data = await fs.readFile(this.PROJECTS_CONFIG_PATH, 'utf-8');
       return JSON.parse(data);
     } catch {
+      // First-run defaults. Use the watch path the rest of Raven resolved
+      // (parent of repo in dev mode, cwd in npx/installed mode) so that
+      // auto-discovery aligns with what the file watcher actually monitors.
+      const { watchPath } = resolveRavenPaths();
       return {
         autoDiscover: true,
-        basePath: join(os.homedir(), 'Projects'),
+        basePath: watchPath,
         projects: []
       };
     }

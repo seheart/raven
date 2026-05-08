@@ -57,6 +57,7 @@ interface SystemInfoDeps {
   projectManager: ProjectManagerLike;
   localModelWatcher: LocalModelWatcherLike;
   rateLimitStatus: RateLimitStatusMap;
+  hostIdentity?: { host_id: string; host_name: string };
 }
 
 /** Public health endpoint mounted at `/health` (no /api prefix). */
@@ -115,7 +116,10 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
         }))
       },
       database: deps.dbPath,
-      database_health: { status: dbHealthy ? 'healthy' : 'error', accessible: dbHealthy }
+      database_health: { status: dbHealthy ? 'healthy' : 'error', accessible: dbHealthy },
+      host: deps.hostIdentity
+        ? { id: deps.hostIdentity.host_id, name: deps.hostIdentity.host_name }
+        : undefined
     });
   });
 

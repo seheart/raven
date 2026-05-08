@@ -18,10 +18,12 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { randomUUID } from 'crypto';
-import { join, basename, dirname } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 import os from 'os';
+import { resolveRavenPaths } from './utils/paths.js';
+import { getHostIdentity } from './services/host-identity.js';
 
 // Import TypeScript modules
 import { RavenDB } from './db.js';
@@ -112,9 +114,13 @@ function scheduleAgentStatsBroadcast(): void {
   agentStatsBroadcastTimer.unref();
 }
 
-// Paths
-const RAVEN_DIR = process.env.RAVEN_DIR || join(process.cwd(), '..', '.raven');
-const WATCH_PATH = process.env.WATCH_PATH || join(process.cwd(), '..', '..');
+// Paths — resolved once. Dev mode locates the repo via an ancestor `.raven/`;
+// installed mode (`npx raven-monitor`) defaults data to `~/.raven` and watches
+// the directory the user invoked from.
+const ravenPaths = resolveRavenPaths();
+const RAVEN_DIR = ravenPaths.ravenDir;
+const WATCH_PATH = ravenPaths.watchPath;
+const PROJECT_NAME = ravenPaths.projectName;
 const SNAPSHOTS_DIR = join(RAVEN_DIR, 'snapshots');
 
 // ==================== Security Utilities ====================
@@ -125,8 +131,9 @@ const SNAPSHOTS_DIR = join(RAVEN_DIR, 'snapshots');
  */
 const DB_PATH = join(RAVEN_DIR, 'db', 'raven.db');
 
-// Extract project name - use parent of backend dir (the actual project root)
-const PROJECT_NAME = basename(join(process.cwd(), '..'));
+// Host identity — Phase 1 of multi-machine roll-up. Eagerly create host.json
+// so it's in place before the sync export endpoint accepts its first request.
+const HOST_IDENTITY = getHostIdentity(RAVEN_DIR);
 
 // Session ID
 const SESSION_ID = randomUUID();
@@ -309,8 +316,8 @@ const diffRiskRepository = createDiffRiskRepository(db);
 const diffAnnotationsRepository = createDiffAnnotationsRepository(db);
 const diffAnnotationService = createDiffAnnotationService(diffAnnotationsRepository);
 const digestService = createDigestService(db);
-const decisionsService = createDecisionsService(join(process.cwd(), '..'));
-const derivedDecisionsService = createDerivedDecisionsService(join(process.cwd(), '..'));
+const decisionsService = createDecisionsService(ravenPaths.repoRoot);
+const derivedDecisionsService = createDerivedDecisionsService(ravenPaths.repoRoot);
 const pluginRuntime = createPluginRuntime(join(RAVEN_DIR, 'plugins'));
 pluginRuntime.init();
 const baselinesService = createBaselinesService(db);
@@ -367,9 +374,10 @@ const projectManager = new ProjectManager({ ravenDir: RAVEN_DIR });
 // Local model watcher — detects Ollama, LM Studio, llama.cpp, etc.
 const localModelWatcher = new LocalModelWatcher(30000);
 
-// Git monitor uses the Raven project root (one level up from backend/)
+// Git monitor needs an actual git repo. In dev that's the Raven repo root;
+// in installed mode it's the cwd (which we treat as the user's project).
 const gitMonitor = new GitMonitor({
-  repoPath: join(process.cwd(), '..'),
+  repoPath: ravenPaths.repoRoot,
   pollIntervalMs: 5000,
   enableAutoPoll: false // Manual polling on file changes
 });
@@ -448,7 +456,8 @@ wireRoutes(app, {
   syntaxErrorsRepository,
   patternWarningsRepository,
   errorsRepository,
-  notificationsRepository
+  notificationsRepository,
+  hostIdentity: { host_id: HOST_IDENTITY.host_id, host_name: HOST_IDENTITY.host_name }
 });
 
 // Serve built frontend in production/npx mode (when frontend/dist exists)

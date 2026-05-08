@@ -8,6 +8,8 @@
 /.raven/raven.db
 /.raven/projects.json
 /.raven/log-positions-*.json
+/.raven/host.json
+/.raven/peers.json
 
 # Backend database files (avoid duplicate/orphaned files)
 /backend/*.db

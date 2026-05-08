@@ -92,6 +92,7 @@ import { createSessionActivityRouter } from './session-activity.js';
 import { createSessionsRouter } from './sessions.js';
 import { createStorageRouter } from './storage.js';
 import { createSubagentsRouter } from './subagents.js';
+import { createSyncRouter } from './sync.js';
 import { createSyntaxErrorsRouter } from './syntax-errors.js';
 import { createSystemInfoRouter, createPublicHealthRouter } from './system-info.js';
 import { createSystemRouter } from './system.js';
@@ -148,6 +149,7 @@ interface WireRoutesDeps {
   patternWarningsRepository: PatternWarningsRepository;
   errorsRepository: ErrorsRepository;
   notificationsRepository: NotificationsRepository;
+  hostIdentity?: { host_id: string; host_name: string };
 }
 
 /**
@@ -211,7 +213,8 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     metricsCollector,
     projectManager,
     localModelWatcher,
-    rateLimitStatus
+    rateLimitStatus,
+    hostIdentity: deps.hostIdentity
   };
 
   app.use('/health', createPublicHealthRouter(systemInfoDeps));
@@ -299,6 +302,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api/journey', createJourneyRouter(db));
   app.use('/api/agents', createBaselinesRouter(baselinesService));
   app.use('/api/milestones', createMilestonesRouter(milestonesService));
+  app.use('/api/sync', createSyncRouter(db, ravenDir));
   app.use('/api/wrapped', createWrappedRouter(wrappedService));
   app.use('/api/subagents', createSubagentsRouter(db));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
@@ -328,4 +332,3 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   // contract-drift check. Must run after all routes are mounted.
   selfAnalysisService.setExpressApp(app);
 }
-

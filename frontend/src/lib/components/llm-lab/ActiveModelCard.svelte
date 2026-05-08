@@ -136,12 +136,8 @@
       // than the default 15s — important because three cards share this poll.
       const [data, agentsData, procData, apiLat] = await Promise.all([
         dataService.fetch('/ollama/ps', { ttl: 3000, timeout: 5000 }),
-        dataService
-          .fetch('/agents-status', { ttl: 3000, timeout: 5000 })
-          .catch(() => []),
-        dataService
-          .fetch('/process-activity', { ttl: 3000, timeout: 5000 })
-          .catch(() => []),
+        dataService.fetch('/agents-status', { ttl: 3000, timeout: 5000 }).catch(() => []),
+        dataService.fetch('/process-activity', { ttl: 3000, timeout: 5000 }).catch(() => []),
         dataService
           .fetch('/api-latency?limit=20', { ttl: 5000, timeout: 5000 })
           .catch(() => ({ recent: [] }))
@@ -183,7 +179,10 @@
         if (!m) continue;
         if (m.includes('claude') && !modelMap['claude-code']) {
           modelMap['claude-code'] = row.model;
-        } else if ((m.includes('gpt') || m.includes('o1') || m.includes('o3')) && !modelMap['codex']) {
+        } else if (
+          (m.includes('gpt') || m.includes('o1') || m.includes('o3')) &&
+          !modelMap['codex']
+        ) {
           modelMap['codex'] = row.model;
         }
       }
@@ -203,7 +202,7 @@
     // models (`ollama-model`) are rendered below as resident-model rows.
     // Including ollama-model here also collides keys (every loaded model
     // shares agent_type 'ollama-model'), crashing the keyed each block.
-    return rows.filter((a) => {
+    return rows.filter(a => {
       if (!a?.is_running) return false;
       const type = (a.agent_type || '').toLowerCase();
       if (type === 'ollama' || type === 'ollama-model') return false;
@@ -268,9 +267,11 @@
     refresh();
     const refreshTimer = setInterval(refresh, 3000);
     // Tick `now` 4× per second for smooth eviction-bar drain.
-    const tickTimer = setInterval(() => { now = Date.now(); }, 250);
+    const tickTimer = setInterval(() => {
+      now = Date.now();
+    }, 250);
 
-    const onAgentEvent = (data) => {
+    const onAgentEvent = data => {
       if (data?.type !== 'inference') return;
       const name = data.agent_name;
       if (!name) return;
@@ -284,7 +285,7 @@
     };
     websocketService.on('agent-event', onAgentEvent);
 
-    const onProcessActivity = (data) => {
+    const onProcessActivity = data => {
       if (!data?.agent_name) return;
       processByName = {
         ...processByName,
@@ -340,8 +341,13 @@
       {/if}
     </div>
   {:else if models.length === 0 && apiAgents.length === 0}
-    <div class="text-xs text-[var(--muted)] italic py-4 text-center">
-      No models resident in VRAM
+    <div class="text-xs text-[var(--muted)] py-4 text-center leading-relaxed">
+      <div class="font-semibold text-body">Nothing in VRAM yet</div>
+      <div class="mt-1">VRAM is your GPU's working memory — models load here when running.</div>
+      <div class="mt-2 text-[11px]">
+        Try <code class="font-mono text-body">ollama run llama3</code> in a terminal and watch this card
+        light up.
+      </div>
     </div>
   {:else}
     {#if apiAgents.length > 0}
@@ -367,7 +373,9 @@
                   style="background: {brandColor};"
                   title={state ? `${state}` : 'Active'}
                 ></span>
-                <span class="font-mono text-sm text-[var(--text)] font-semibold truncate">{a.agent_name}</span>
+                <span class="font-mono text-sm text-[var(--text)] font-semibold truncate"
+                  >{a.agent_name}</span
+                >
                 {#if modelLabel}
                   <span
                     class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
@@ -377,10 +385,7 @@
                   </span>
                 {/if}
                 {#if state}
-                  <span
-                    class="text-[10px] font-mono"
-                    style="color: {stateColor};"
-                  >
+                  <span class="text-[10px] font-mono" style="color: {stateColor};">
                     {activityLabel(state, apiConns)}
                   </span>
                 {/if}
@@ -389,18 +394,27 @@
                 {/if}
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="text-[10px] text-[var(--muted)] font-mono">{formatRelative(a.last_seen)}</span>
+                <span class="text-[10px] text-[var(--muted)] font-mono"
+                  >{formatRelative(a.last_seen)}</span
+                >
               </div>
             </div>
-            <div class="relative mt-1 text-[11px] font-mono text-[var(--muted)] flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <div
+              class="relative mt-1 text-[11px] font-mono text-[var(--muted)] flex flex-wrap items-baseline gap-x-3 gap-y-0.5"
+            >
               {#if typeof proc?.cpu_usage === 'number'}
-                <span>CPU <span class="text-[var(--text)]">{proc.cpu_usage.toFixed(1)}%</span></span>
+                <span>CPU <span class="text-[var(--text)]">{proc.cpu_usage.toFixed(1)}%</span></span
+                >
               {/if}
               {#if proc?.memory_mb > 0}
                 <span>RAM <span class="text-[var(--text)]">{proc.memory_mb} MB</span></span>
               {/if}
               {#if a.requests_handled > 0}
-                <span>Calls <span class="text-[var(--text)]">{a.requests_handled.toLocaleString()}</span></span>
+                <span
+                  >Calls <span class="text-[var(--text)]"
+                    >{a.requests_handled.toLocaleString()}</span
+                  ></span
+                >
               {/if}
               <span class="ml-auto text-[10px]">cloud API</span>
             </div>
@@ -408,102 +422,116 @@
         {/each}
       </div>
     {/if}
-  {#if models.length > 0}
-    <!-- Auto-compact when 3+ models are loaded — single stats line, smaller
+    {#if models.length > 0}
+      <!-- Auto-compact when 3+ models are loaded — single stats line, smaller
          padding so a busy multi-model setup stays readable without scroll. -->
-    {@const dense = models.length >= 3}
-    <div class="{dense ? 'space-y-1' : 'space-y-2'}">
-      {#each models as m (m.name)}
-        {@const s = modelState[m.name] || { flashId: 0, tpsHistory: [] }}
-        {@const color = familyColor(m.family)}
-        {@const lastTps = s.tpsHistory[s.tpsHistory.length - 1]}
-        {@const evPct = evictionPct(m.expires_at)}
-        <div
-          class="model-row relative pl-3 py-1 rounded transition-colors"
-          style="border-left: 3px solid {color}; --pulse-color: {color};"
-        >
-          <!-- Pulse layer — re-keyed on each inference to retrigger animation -->
-          {#key s.flashId}
-            {#if s.flashId > 0}
-              <div class="pulse-overlay" style="background: {color};"></div>
-            {/if}
-          {/key}
-
-          <!-- Heading row -->
-          <div class="relative flex items-baseline justify-between gap-2">
-            <div class="flex items-baseline gap-2 flex-wrap min-w-0">
-              <span
-                class="inline-block w-2 h-2 rounded-full heartbeat flex-shrink-0"
-                style="background: {color};"
-                title="Resident"
-              ></span>
-              <span class="font-mono text-sm text-[var(--text)] font-semibold truncate">{m.name}</span>
-              <span class="text-[10px] text-[var(--muted)] font-mono">{m.parameter_size}</span>
-              <span class="text-[10px] text-[var(--muted)] font-mono">{m.quantization}</span>
-              {#if s.lastProject}
-                <span
-                  class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
-                  title={s.loadedBy
-                    ? `Last used by '${s.lastProject}'\nLoaded by: ${s.loadedBy.project ?? s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'}`
-                    : `Last used by '${s.lastProject}'`}
-                >
-                  {s.lastProject}
-                </span>
-              {:else if s.loadedBy && (s.loadedBy.project || s.loadedBy.cwd)}
-                <span
-                  class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--muted)]"
-                  title={`Loaded by ${s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'} — no inference yet`}
-                >
-                  loaded by {s.loadedBy.project ?? s.loadedBy.cwd?.split('/').pop() ?? '?'}
-                </span>
-              {/if}
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              {#if s.tpsHistory.length > 1}
-                <svg viewBox="0 0 80 20" class="w-20 h-5" preserveAspectRatio="none">
-                  <path
-                    d={sparklinePath(s.tpsHistory, 80, 20)}
-                    fill="none"
-                    stroke={tpsColor(lastTps)}
-                    stroke-width="1.4"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-                <span
-                  class="text-[11px] font-mono font-semibold tabular-nums"
-                  style="color: {tpsColor(lastTps)};"
-                >
-                  {lastTps.toFixed(1)}<span class="text-[var(--muted)] font-normal"> tps</span>
-                </span>
-              {:else}
-                <span class="text-[10px] font-mono text-[var(--muted)] italic">awaiting inference</span>
-              {/if}
-            </div>
-          </div>
-
-          <!-- Stats row — single line in dense mode, multi-stat in normal mode.
-               Disk + GPU offload available via title tooltip when dense. -->
+      {@const dense = models.length >= 3}
+      <div class={dense ? 'space-y-1' : 'space-y-2'}>
+        {#each models as m (m.name)}
+          {@const s = modelState[m.name] || { flashId: 0, tpsHistory: [] }}
+          {@const color = familyColor(m.family)}
+          {@const lastTps = s.tpsHistory[s.tpsHistory.length - 1]}
+          {@const evPct = evictionPct(m.expires_at)}
           <div
-            class="relative mt-1 text-[11px] font-mono text-[var(--muted)] flex flex-wrap items-baseline gap-x-3 gap-y-0.5"
-            title={dense ? `Disk ${formatBytes(m.size)} · GPU offload ${m.vram_pct_of_model}%` : undefined}
+            class="model-row relative pl-3 py-1 rounded transition-colors"
+            style="border-left: 3px solid {color}; --pulse-color: {color};"
           >
-            <span>VRAM <span class="text-[var(--text)]">{formatBytes(m.size_vram)}</span></span>
-            {#if !dense}
-              <span>Disk <span class="text-[var(--text)]">{formatBytes(m.size)}</span></span>
-              <span>GPU <span class="text-[var(--text)]">{m.vram_pct_of_model}%</span></span>
-            {/if}
-            <span class="ml-auto">Evicts <span style="color: {evictionColor(evPct)};">{formatExpiry(m.expires_at)}</span></span>
-          </div>
-          <div class="relative {dense ? 'h-0.5' : 'h-1'} bg-[var(--bg)] rounded overflow-hidden border border-[var(--border)] mt-1">
+            <!-- Pulse layer — re-keyed on each inference to retrigger animation -->
+            {#key s.flashId}
+              {#if s.flashId > 0}
+                <div class="pulse-overlay" style="background: {color};"></div>
+              {/if}
+            {/key}
+
+            <!-- Heading row -->
+            <div class="relative flex items-baseline justify-between gap-2">
+              <div class="flex items-baseline gap-2 flex-wrap min-w-0">
+                <span
+                  class="inline-block w-2 h-2 rounded-full heartbeat flex-shrink-0"
+                  style="background: {color};"
+                  title="Resident"
+                ></span>
+                <span class="font-mono text-sm text-[var(--text)] font-semibold truncate"
+                  >{m.name}</span
+                >
+                <span class="text-[10px] text-[var(--muted)] font-mono">{m.parameter_size}</span>
+                <span class="text-[10px] text-[var(--muted)] font-mono">{m.quantization}</span>
+                {#if s.lastProject}
+                  <span
+                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
+                    title={s.loadedBy
+                      ? `Last used by '${s.lastProject}'\nLoaded by: ${s.loadedBy.project ?? s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'}`
+                      : `Last used by '${s.lastProject}'`}
+                  >
+                    {s.lastProject}
+                  </span>
+                {:else if s.loadedBy && (s.loadedBy.project || s.loadedBy.cwd)}
+                  <span
+                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--muted)]"
+                    title={`Loaded by ${s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'} — no inference yet`}
+                  >
+                    loaded by {s.loadedBy.project ?? s.loadedBy.cwd?.split('/').pop() ?? '?'}
+                  </span>
+                {/if}
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                {#if s.tpsHistory.length > 1}
+                  <svg viewBox="0 0 80 20" class="w-20 h-5" preserveAspectRatio="none">
+                    <path
+                      d={sparklinePath(s.tpsHistory, 80, 20)}
+                      fill="none"
+                      stroke={tpsColor(lastTps)}
+                      stroke-width="1.4"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span
+                    class="text-[11px] font-mono font-semibold tabular-nums"
+                    style="color: {tpsColor(lastTps)};"
+                  >
+                    {lastTps.toFixed(1)}<span class="text-[var(--muted)] font-normal"> tps</span>
+                  </span>
+                {:else}
+                  <span class="text-[10px] font-mono text-[var(--muted)] italic"
+                    >awaiting inference</span
+                  >
+                {/if}
+              </div>
+            </div>
+
+            <!-- Stats row — single line in dense mode, multi-stat in normal mode.
+               Disk + GPU offload available via title tooltip when dense. -->
             <div
-              class="h-full transition-all duration-300 ease-linear"
-              style="width: {evPct}%; background: {evictionColor(evPct)};"
-            ></div>
+              class="relative mt-1 text-[11px] font-mono text-[var(--muted)] flex flex-wrap items-baseline gap-x-3 gap-y-0.5"
+              title={dense
+                ? `Disk ${formatBytes(m.size)} · GPU offload ${m.vram_pct_of_model}%`
+                : undefined}
+            >
+              <span>VRAM <span class="text-[var(--text)]">{formatBytes(m.size_vram)}</span></span>
+              {#if !dense}
+                <span>Disk <span class="text-[var(--text)]">{formatBytes(m.size)}</span></span>
+                <span>GPU <span class="text-[var(--text)]">{m.vram_pct_of_model}%</span></span>
+              {/if}
+              <span class="ml-auto"
+                >Evicts <span style="color: {evictionColor(evPct)};"
+                  >{formatExpiry(m.expires_at)}</span
+                ></span
+              >
+            </div>
+            <div
+              class="relative {dense
+                ? 'h-0.5'
+                : 'h-1'} bg-[var(--bg)] rounded overflow-hidden border border-[var(--border)] mt-1"
+            >
+              <div
+                class="h-full transition-all duration-300 ease-linear"
+                style="width: {evPct}%; background: {evictionColor(evPct)};"
+              ></div>
+            </div>
           </div>
-        </div>
-      {/each}
-    </div>
-  {/if}
+        {/each}
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -521,8 +549,14 @@
   }
 
   @keyframes pulse-fade {
-    0% { opacity: 0.35; transform: scale(0.985); }
-    100% { opacity: 0; transform: scale(1); }
+    0% {
+      opacity: 0.35;
+      transform: scale(0.985);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
   }
 
   .heartbeat {
@@ -531,9 +565,18 @@
   }
 
   @keyframes heartbeat {
-    0%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
-    20%      { box-shadow: 0 0 0 4px transparent; transform: scale(1.15); }
-    40%      { transform: scale(1); }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+      transform: scale(1);
+    }
+    20% {
+      box-shadow: 0 0 0 4px transparent;
+      transform: scale(1.15);
+    }
+    40% {
+      transform: scale(1);
+    }
   }
 
   /* Per-state rhythms — extend `heartbeat` with cadence that matches
@@ -544,19 +587,38 @@
   .rhythm-thinking {
     animation: rhythm-thinking 1.6s ease-in-out infinite;
   }
+
   @keyframes rhythm-thinking {
-    0%, 100% { box-shadow: 0 0 0 0 var(--pulse-color, var(--accent)); transform: scale(1); }
-    50%      { box-shadow: 0 0 0 6px transparent; transform: scale(1.25); }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 var(--pulse-color, var(--accent));
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 6px transparent;
+      transform: scale(1.25);
+    }
   }
 
   .rhythm-executing {
     animation: rhythm-executing 0.55s steps(1, end) infinite;
   }
+
   @keyframes rhythm-executing {
-    0%   { box-shadow: 0 0 0 0 var(--pulse-color, var(--accent)); transform: scale(1); }
-    20%  { box-shadow: 0 0 0 3px transparent; transform: scale(1.4); }
-    40%  { transform: scale(1); }
-    100% { transform: scale(1); }
+    0% {
+      box-shadow: 0 0 0 0 var(--pulse-color, var(--accent));
+      transform: scale(1);
+    }
+    20% {
+      box-shadow: 0 0 0 3px transparent;
+      transform: scale(1.4);
+    }
+    40% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 
   .rhythm-idle {
@@ -566,8 +628,14 @@
     animation: rhythm-idle 5.2s ease-in-out infinite;
     opacity: 0.7;
   }
+
   @keyframes rhythm-idle {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.08); }
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.08);
+    }
   }
 </style>
