@@ -25,7 +25,14 @@
   });
 
   // State
-  let summary = $state({ total_requests: 0, total_input_tokens: 0, total_output_tokens: 0, total_cache_creation_tokens: 0, total_cache_read_tokens: 0, total_cost_usd: 0 });
+  let summary = $state({
+    total_requests: 0,
+    total_input_tokens: 0,
+    total_output_tokens: 0,
+    total_cache_creation_tokens: 0,
+    total_cache_read_tokens: 0,
+    total_cost_usd: 0
+  });
   let byProject = $state([]);
   let byModel = $state([]);
   let bySessions = $state([]);
@@ -110,13 +117,15 @@
             }
             return t.bucket?.split('T')[0] || t.bucket;
           }),
-          datasets: [{
-            label: isApi ? 'Cost ($)' : 'Tokens',
-            data: timeline.map(t => isApi ? t.cost_usd : (t.input_tokens + t.output_tokens)),
-            backgroundColor: colors.accent + '80',
-            borderColor: colors.accent,
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: isApi ? 'Cost ($)' : 'Tokens',
+              data: timeline.map(t => (isApi ? t.cost_usd : t.input_tokens + t.output_tokens)),
+              backgroundColor: colors.accent + '80',
+              borderColor: colors.accent,
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -125,7 +134,8 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: ctx => isApi ? `$${ctx.parsed.y.toFixed(4)}` : `${formatTokens(ctx.parsed.y)} tokens`
+                label: ctx =>
+                  isApi ? `$${ctx.parsed.y.toFixed(4)}` : `${formatTokens(ctx.parsed.y)} tokens`
               }
             }
           },
@@ -133,7 +143,7 @@
             y: {
               beginAtZero: true,
               ticks: {
-                callback: v => isApi ? `$${Number(v).toFixed(3)}` : formatTokens(Number(v)),
+                callback: v => (isApi ? `$${Number(v).toFixed(3)}` : formatTokens(Number(v))),
                 color: colors.muted
               },
               grid: { color: colors.border }
@@ -155,11 +165,13 @@
         type: 'doughnut',
         data: {
           labels: byModel.map(m => m.model_family || m.model),
-          datasets: [{
-            data: byModel.map(m => isApi ? m.cost_usd : (m.input_tokens + m.output_tokens)),
-            backgroundColor: palette.slice(0, byModel.length),
-            borderWidth: 0
-          }]
+          datasets: [
+            {
+              data: byModel.map(m => (isApi ? m.cost_usd : m.input_tokens + m.output_tokens)),
+              backgroundColor: palette.slice(0, byModel.length),
+              borderWidth: 0
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -171,7 +183,10 @@
             },
             tooltip: {
               callbacks: {
-                label: ctx => isApi ? `${ctx.label || 'Unknown'}: $${(ctx.parsed || 0).toFixed(4)}` : `${ctx.label || 'Unknown'}: ${formatTokens(ctx.parsed || 0)} tokens`
+                label: ctx =>
+                  isApi
+                    ? `${ctx.label || 'Unknown'}: $${(ctx.parsed || 0).toFixed(4)}`
+                    : `${ctx.label || 'Unknown'}: ${formatTokens(ctx.parsed || 0)} tokens`
               }
             }
           }
@@ -233,205 +248,268 @@
       <div class="flex items-center gap-3">
         <div class="flex bg-surface border border-border rounded overflow-hidden">
           {#each [['today', 'Today'], ['7d', '7 Days'], ['30d', '30 Days'], ['all', 'All']] as [value, label] (value)}
-            <TabButton active={timeRange === value} onClick={() => setTimeRange(value)}>{label}</TabButton>
+            <TabButton active={timeRange === value} onClick={() => setTimeRange(value)}
+              >{label}</TabButton
+            >
           {/each}
         </div>
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
-        <RefreshButton onClick={loadData} loading={loading} />
+        <RefreshButton onClick={loadData} {loading} />
       </div>
     {/snippet}
   </PageHeader>
   <div class="flex items-center gap-2 -mt-4">
-    <span class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi ? 'bg-warning text-black' : 'bg-accent text-canvas'}">{isApi ? 'API Billing' : planName}</span>
+    <span
+      class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi
+        ? 'bg-warning text-black'
+        : 'bg-accent text-canvas'}">{isApi ? 'API Billing' : planName}</span
+    >
     <p class="text-sm text-muted font-sans">
       {isApi ? 'Estimated API costs and token consumption' : 'Token consumption across sessions'}
     </p>
   </div>
 
-    {#if loading && !summary.total_requests}
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {#each Array(4) as _, i (i)}
-          <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
-        {/each}
-      </div>
-    {:else}
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {#if isApi}
-          <div class="bg-surface border border-border rounded p-4">
-            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Est. Spend</div>
-            <div class="text-2xl font-bold text-accent font-mono">{formatCost(summary.total_cost_usd)}</div>
+  {#if loading && !summary.total_requests}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {#each Array(4) as _, i (i)}
+        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
+      {/each}
+    </div>
+  {:else}
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {#if isApi}
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+            Est. Spend
           </div>
-        {:else}
-          <div class="bg-surface border border-border rounded p-4">
-            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Tokens</div>
-            <div class="text-2xl font-bold text-accent font-mono">{formatTokens((summary.total_input_tokens || 0) + (summary.total_output_tokens || 0))}</div>
+          <div class="text-2xl font-bold text-accent font-mono">
+            {formatCost(summary.total_cost_usd)}
           </div>
-        {/if}
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Requests</div>
-          <div class="text-2xl font-bold text-body font-mono">{summary.total_requests?.toLocaleString()}</div>
         </div>
+      {:else}
         <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Input Tokens</div>
-          <div class="text-2xl font-bold text-body font-mono">{formatTokens(summary.total_input_tokens)}</div>
-          <div class="text-xs text-muted mt-1">+ {formatTokens(summary.total_cache_read_tokens)} cached</div>
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+            Total Tokens
+          </div>
+          <div class="text-2xl font-bold text-accent font-mono">
+            {formatTokens((summary.total_input_tokens || 0) + (summary.total_output_tokens || 0))}
+          </div>
         </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Output Tokens</div>
-          <div class="text-2xl font-bold text-body font-mono">{formatTokens(summary.total_output_tokens)}</div>
+      {/if}
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Requests</div>
+        <div class="text-2xl font-bold text-body font-mono">
+          {summary.total_requests?.toLocaleString()}
         </div>
       </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Input Tokens
+        </div>
+        <div class="text-2xl font-bold text-body font-mono">
+          {formatTokens(summary.total_input_tokens)}
+        </div>
+        <div class="text-xs text-muted mt-1">
+          + {formatTokens(summary.total_cache_read_tokens)} cached
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Output Tokens
+        </div>
+        <div class="text-2xl font-bold text-body font-mono">
+          {formatTokens(summary.total_output_tokens)}
+        </div>
+      </div>
+    </div>
 
-      <!-- Prompt cache panel: hit ratio + estimated savings vs uncached input.
+    <!-- Prompt cache panel: hit ratio + estimated savings vs uncached input.
            Anthropic charges cache reads at 0.1× input rate, so 1 cached token
            saves 90% of the input cost. Cache writes cost 1.25× input — netted in. -->
-      {#if isApi && (summary.total_cache_read_tokens || summary.total_cache_creation_tokens)}
-        {@const cIn = summary.total_input_tokens || 0}
-        {@const cCreate = summary.total_cache_creation_tokens || 0}
-        {@const cRead = summary.total_cache_read_tokens || 0}
-        {@const totalEffectiveInput = cIn + cCreate + cRead}
-        {@const hitRatio = totalEffectiveInput > 0 ? (cRead / totalEffectiveInput) * 100 : 0}
-        {@const ratioColor = hitRatio >= 60 ? 'text-success' : hitRatio >= 30 ? 'text-warning' : 'text-muted'}
-        {@const totalCost = summary.total_cost_usd || 0}
-        {@const totalInputCharge =
-          totalCost > 0 && totalEffectiveInput > 0
-            ? totalCost * (cIn + cCreate * 1.25 + cRead * 0.1) / (cIn + cCreate * 1.25 + cRead * 0.1 + (summary.total_output_tokens || 0) * 5)
-            : 0}
-        {@const savedTokenEquivalent = cRead * 0.9}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          <div class="bg-surface border border-border rounded p-4">
-            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Cache Hit Ratio</div>
-            <div class="text-2xl font-bold {ratioColor} font-mono">{hitRatio.toFixed(1)}%</div>
-            <div class="text-xs text-muted mt-1">{formatTokens(cRead)} of {formatTokens(totalEffectiveInput)} input tokens served from cache</div>
+    {#if isApi && (summary.total_cache_read_tokens || summary.total_cache_creation_tokens)}
+      {@const cIn = summary.total_input_tokens || 0}
+      {@const cCreate = summary.total_cache_creation_tokens || 0}
+      {@const cRead = summary.total_cache_read_tokens || 0}
+      {@const totalEffectiveInput = cIn + cCreate + cRead}
+      {@const hitRatio = totalEffectiveInput > 0 ? (cRead / totalEffectiveInput) * 100 : 0}
+      {@const ratioColor =
+        hitRatio >= 60 ? 'text-success' : hitRatio >= 30 ? 'text-warning' : 'text-muted'}
+      {@const savedTokenEquivalent = cRead * 0.9}
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+            Cache Hit Ratio
           </div>
-          <div class="bg-surface border border-border rounded p-4">
-            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Cache Writes</div>
-            <div class="text-2xl font-bold text-warning font-mono">{formatTokens(cCreate)}</div>
-            <div class="text-xs text-muted mt-1">First-time prompt caching (1.25× input rate)</div>
-          </div>
-          <div class="bg-surface border border-border rounded p-4">
-            <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Equivalent Tokens Saved</div>
-            <div class="text-2xl font-bold text-success font-mono">{formatTokens(savedTokenEquivalent)}</div>
-            <div class="text-xs text-muted mt-1">vs. {formatTokens(cRead)} reads at full input rate</div>
-          </div>
-        </div>
-      {/if}
-
-      <!-- Charts Row -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="md:col-span-2 bg-surface border border-border rounded p-4">
-          <h3 class="text-sm font-semibold text-heading mb-3">{isApi ? 'Cost Over Time' : 'Tokens Over Time'}</h3>
-          <div class="h-48">
-            <canvas bind:this={costChartCanvas}></canvas>
+          <div class="text-2xl font-bold {ratioColor} font-mono">{hitRatio.toFixed(1)}%</div>
+          <div class="text-xs text-muted mt-1">
+            {formatTokens(cRead)} of {formatTokens(totalEffectiveInput)} input tokens served from cache
           </div>
         </div>
         <div class="bg-surface border border-border rounded p-4">
-          <h3 class="text-sm font-semibold text-heading mb-3">By Model</h3>
-          <div class="h-48">
-            {#if byModel.length > 0}
-              <canvas bind:this={modelChartCanvas}></canvas>
-            {:else}
-              <div class="flex items-center justify-center h-full text-sm text-muted">No model data</div>
-            {/if}
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+            Cache Writes
+          </div>
+          <div class="text-2xl font-bold text-warning font-mono">{formatTokens(cCreate)}</div>
+          <div class="text-xs text-muted mt-1">First-time prompt caching (1.25× input rate)</div>
+        </div>
+        <div class="bg-surface border border-border rounded p-4">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+            Equivalent Tokens Saved
+          </div>
+          <div class="text-2xl font-bold text-success font-mono">
+            {formatTokens(savedTokenEquivalent)}
+          </div>
+          <div class="text-xs text-muted mt-1">
+            vs. {formatTokens(cRead)} reads at full input rate
           </div>
         </div>
       </div>
-
-      <!-- Model Breakdown -->
-      {#if byModel.length > 0}
-        <div class="bg-surface border border-border rounded p-4 mb-6">
-          <h3 class="text-sm font-semibold text-heading mb-3">Usage by Model</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm font-mono">
-              <thead>
-                <tr class="text-left text-xs text-muted uppercase tracking-wide border-b border-border">
-                  <th class="pb-2 pr-4">Model</th>
-                  <th class="pb-2 pr-4 text-right">Requests</th>
-                  <th class="pb-2 pr-4 text-right">Input</th>
-                  <th class="pb-2 pr-4 text-right">Output</th>
-                  {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
-                </tr>
-              </thead>
-              <tbody>
-                {#each byModel as model (model.model)}
-                  <tr class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors">
-                    <td class="py-2 pr-4 text-body">{model.model_family || model.model}</td>
-                    <td class="py-2 pr-4 text-right text-muted">{model.requests}</td>
-                    <td class="py-2 pr-4 text-right text-muted">{formatTokens(model.input_tokens)}</td>
-                    <td class="py-2 pr-4 text-right text-accent font-semibold">{formatTokens(model.output_tokens)}</td>
-                    {#if isApi}<td class="py-2 text-right text-accent font-semibold">{formatCost(model.cost_usd)}</td>{/if}
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {/if}
-
-      <!-- Project Breakdown -->
-      {#if byProject.length > 0}
-        <div class="bg-surface border border-border rounded p-4 mb-6">
-          <h3 class="text-sm font-semibold text-heading mb-3">Usage by Project</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm font-mono">
-              <thead>
-                <tr class="text-left text-xs text-muted uppercase tracking-wide border-b border-border">
-                  <th class="pb-2 pr-4">Project</th>
-                  <th class="pb-2 pr-4 text-right">Requests</th>
-                  <th class="pb-2 pr-4 text-right">Input</th>
-                  <th class="pb-2 pr-4 text-right">Output</th>
-                  {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
-                </tr>
-              </thead>
-              <tbody>
-                {#each byProject as project (project.project_name)}
-                  <tr class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors">
-                    <td class="py-2 pr-4 text-body">{project.project_name || '(unknown)'}</td>
-                    <td class="py-2 pr-4 text-right text-muted">{project.requests}</td>
-                    <td class="py-2 pr-4 text-right text-muted">{formatTokens(project.input_tokens)}</td>
-                    <td class="py-2 pr-4 text-right text-accent font-semibold">{formatTokens(project.output_tokens)}</td>
-                    {#if isApi}<td class="py-2 text-right text-accent font-semibold">{formatCost(project.cost_usd)}</td>{/if}
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {/if}
-
-      <!-- Recent Sessions -->
-      {#if bySessions.length > 0}
-        <div class="bg-surface border border-border rounded p-4">
-          <h3 class="text-sm font-semibold text-heading mb-3">Recent Sessions</h3>
-          <div class="space-y-2">
-            {#each bySessions as session (session.session_id)}
-              <div class="flex items-center justify-between py-2 px-3 rounded bg-canvas text-sm">
-                <div>
-                  <span class="text-body font-medium">{session.project_name || session.session_id?.slice(0, 8)}</span>
-                  <span class="text-muted text-xs ml-2">{session.requests} requests</span>
-                </div>
-                <div class="flex items-center gap-4">
-                  <span class="text-xs text-muted">{formatTokens(session.input_tokens + session.output_tokens)} tokens</span>
-                  {#if isApi}
-                    <span class="text-accent font-mono font-semibold">{formatCost(session.cost_usd)}</span>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-
-      {#if !loading && summary.total_requests === 0}
-        <div class="bg-surface border border-border rounded p-12 text-center">
-          <div class="text-4xl mb-4">💰</div>
-          <h3 class="text-lg font-semibold text-heading mb-2">No token usage recorded yet</h3>
-          <p class="text-sm text-muted">
-            Token usage will appear here as Claude Code sessions run.
-            Historical data from existing logs is imported on startup.
-          </p>
-        </div>
-      {/if}
     {/if}
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="md:col-span-2 bg-surface border border-border rounded p-4">
+        <h3 class="text-sm font-semibold text-heading mb-3">
+          {isApi ? 'Cost Over Time' : 'Tokens Over Time'}
+        </h3>
+        <div class="h-48">
+          <canvas bind:this={costChartCanvas}></canvas>
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <h3 class="text-sm font-semibold text-heading mb-3">By Model</h3>
+        <div class="h-48">
+          {#if byModel.length > 0}
+            <canvas bind:this={modelChartCanvas}></canvas>
+          {:else}
+            <div class="flex items-center justify-center h-full text-sm text-muted">
+              No model data
+            </div>
+          {/if}
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Breakdown -->
+    {#if byModel.length > 0}
+      <div class="bg-surface border border-border rounded p-4 mb-6">
+        <h3 class="text-sm font-semibold text-heading mb-3">Usage by Model</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm font-mono">
+            <thead>
+              <tr
+                class="text-left text-xs text-muted uppercase tracking-wide border-b border-border"
+              >
+                <th class="pb-2 pr-4">Model</th>
+                <th class="pb-2 pr-4 text-right">Requests</th>
+                <th class="pb-2 pr-4 text-right">Input</th>
+                <th class="pb-2 pr-4 text-right">Output</th>
+                {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
+              </tr>
+            </thead>
+            <tbody>
+              {#each byModel as model (model.model)}
+                <tr
+                  class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors"
+                >
+                  <td class="py-2 pr-4 text-body">{model.model_family || model.model}</td>
+                  <td class="py-2 pr-4 text-right text-muted">{model.requests}</td>
+                  <td class="py-2 pr-4 text-right text-muted">{formatTokens(model.input_tokens)}</td
+                  >
+                  <td class="py-2 pr-4 text-right text-accent font-semibold"
+                    >{formatTokens(model.output_tokens)}</td
+                  >
+                  {#if isApi}<td class="py-2 text-right text-accent font-semibold"
+                      >{formatCost(model.cost_usd)}</td
+                    >{/if}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Project Breakdown -->
+    {#if byProject.length > 0}
+      <div class="bg-surface border border-border rounded p-4 mb-6">
+        <h3 class="text-sm font-semibold text-heading mb-3">Usage by Project</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm font-mono">
+            <thead>
+              <tr
+                class="text-left text-xs text-muted uppercase tracking-wide border-b border-border"
+              >
+                <th class="pb-2 pr-4">Project</th>
+                <th class="pb-2 pr-4 text-right">Requests</th>
+                <th class="pb-2 pr-4 text-right">Input</th>
+                <th class="pb-2 pr-4 text-right">Output</th>
+                {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
+              </tr>
+            </thead>
+            <tbody>
+              {#each byProject as project (project.project_name)}
+                <tr
+                  class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors"
+                >
+                  <td class="py-2 pr-4 text-body">{project.project_name || '(unknown)'}</td>
+                  <td class="py-2 pr-4 text-right text-muted">{project.requests}</td>
+                  <td class="py-2 pr-4 text-right text-muted"
+                    >{formatTokens(project.input_tokens)}</td
+                  >
+                  <td class="py-2 pr-4 text-right text-accent font-semibold"
+                    >{formatTokens(project.output_tokens)}</td
+                  >
+                  {#if isApi}<td class="py-2 text-right text-accent font-semibold"
+                      >{formatCost(project.cost_usd)}</td
+                    >{/if}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Recent Sessions -->
+    {#if bySessions.length > 0}
+      <div class="bg-surface border border-border rounded p-4">
+        <h3 class="text-sm font-semibold text-heading mb-3">Recent Sessions</h3>
+        <div class="space-y-2">
+          {#each bySessions as session (session.session_id)}
+            <div class="flex items-center justify-between py-2 px-3 rounded bg-canvas text-sm">
+              <div>
+                <span class="text-body font-medium"
+                  >{session.project_name || session.session_id?.slice(0, 8)}</span
+                >
+                <span class="text-muted text-xs ml-2">{session.requests} requests</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <span class="text-xs text-muted"
+                  >{formatTokens(session.input_tokens + session.output_tokens)} tokens</span
+                >
+                {#if isApi}
+                  <span class="text-accent font-mono font-semibold"
+                    >{formatCost(session.cost_usd)}</span
+                  >
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    {#if !loading && summary.total_requests === 0}
+      <div class="bg-surface border border-border rounded p-12 text-center">
+        <div class="text-4xl mb-4">💰</div>
+        <h3 class="text-lg font-semibold text-heading mb-2">No token usage recorded yet</h3>
+        <p class="text-sm text-muted">
+          Token usage will appear here as Claude Code sessions run. Historical data from existing
+          logs is imported on startup.
+        </p>
+      </div>
+    {/if}
+  {/if}
 </PageLayout>

@@ -10,18 +10,9 @@
  */
 
 import express, { Request, Response, Router } from 'express';
-import type { RavenDB } from '../db.js';
+import type { TokenUsageRepository } from '../repositories/token-usage-repository.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { cacheMiddleware } from '../services/cache-service.js';
-
-interface SessionContextRow {
-  session_id: string;
-  model: string;
-  project_name: string | null;
-  last_seen: string;
-  input_tokens: number;
-  cache_read_tokens: number;
-}
 
 interface ContextWindow {
   session_id: string;
@@ -54,10 +45,10 @@ const LIMITS_BY_FAMILY: Record<string, number> = {
   'gpt-5': 200_000,
   'gpt-codex': 200_000,
   'qwen2.5-coder': 32_768,
-  'qwen3': 32_768,
+  qwen3: 32_768,
   'llama3.1': 128_000,
   'llama3.3': 128_000,
-  'gemma3': 8_192,
+  gemma3: 8_192,
   'nomic-embed-text': 2_048
 };
 
@@ -102,7 +93,7 @@ function bandFor(fraction: number): ContextWindow['band'] {
   return 'ok';
 }
 
-export function createContextWindowRouter(db: RavenDB): Router {
+export function createContextWindowRouter(tokenUsageRepo: TokenUsageRepository): Router {
   const router = express.Router();
 
   /**
@@ -120,32 +111,7 @@ export function createContextWindowRouter(db: RavenDB): Router {
       const limit = Math.min(parseInt(req.query.limit as string, 10) || 5, 20);
       const sinceIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-      // For each session active in the last 30 min, find the row with
-      // MAX(timestamp) — that's the latest turn whose input_tokens
-      // approximates the current context size.
-      const rows = db.db
-        .prepare(
-          `SELECT
-             tu.session_id   AS session_id,
-             tu.model        AS model,
-             tu.project_name AS project_name,
-             tu.timestamp    AS last_seen,
-             tu.input_tokens AS input_tokens,
-             tu.cache_read_tokens AS cache_read_tokens
-           FROM token_usage tu
-           INNER JOIN (
-             SELECT session_id, MAX(timestamp) AS max_ts
-             FROM token_usage
-             WHERE timestamp >= ?
-             GROUP BY session_id
-           ) latest
-             ON tu.session_id = latest.session_id
-            AND tu.timestamp = latest.max_ts
-           WHERE tu.session_id IS NOT NULL AND tu.session_id != ''
-           ORDER BY tu.timestamp DESC
-           LIMIT ?`
-        )
-        .all(sinceIso, limit) as SessionContextRow[];
+      const rows = tokenUsageRepo.recentSessionContexts(sinceIso, limit);
 
       const windows: ContextWindow[] = rows.map(r => {
         const family = familyOf(r.model || '');

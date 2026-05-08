@@ -26,15 +26,15 @@ import { logger } from '../utils/logger.js';
 const HANDLER_TIMEOUT_MS = 50;
 const TIMEOUT_DISABLE_THRESHOLD = 5;
 
-export type PluginEventType = 'file' | 'agent' | 'token-usage' | 'trigger';
+type PluginEventType = 'file' | 'agent' | 'token-usage' | 'trigger';
 
-export interface PluginLogEntry {
+interface PluginLogEntry {
   timestamp: string;
   level: 'info' | 'warn' | 'error';
   message: string;
 }
 
-export interface PluginManifest {
+interface PluginManifest {
   name: string;
   /** File path on disk (relative to .raven/plugins). */
   file: string;
@@ -104,9 +104,7 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
         try {
           const sev = payload?.severity;
           const severity: 'info' | 'warning' | 'error' =
-            sev === 'warning' || sev === 'error' ? sev :
-            sev === 'critical' ? 'error' :
-            'info';
+            sev === 'warning' || sev === 'error' ? sev : sev === 'critical' ? 'error' : 'info';
           EventBus.emitTriggerFired({
             ruleName: `plugin:${p.name}:${String(name).slice(0, 64)}`,
             message:
@@ -117,7 +115,11 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
             metadata: payload ?? undefined
           });
         } catch (err) {
-          appendLog(p, 'error', `trigger() failed: ${err instanceof Error ? err.message : String(err)}`);
+          appendLog(
+            p,
+            'error',
+            `trigger() failed: ${err instanceof Error ? err.message : String(err)}`
+          );
         }
       },
       log(...args: unknown[]) {
@@ -147,8 +149,25 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
       // Constrained API surface
       raven: api,
       // Curated standard globals (no require, no fs, no process, no fetch)
-      Math, JSON, Date, RegExp, Map, Set, Array, Object, String, Number, Boolean,
-      Symbol, Error, TypeError, RangeError, isNaN, isFinite, parseInt, parseFloat,
+      Math,
+      JSON,
+      Date,
+      RegExp,
+      Map,
+      Set,
+      Array,
+      Object,
+      String,
+      Number,
+      Boolean,
+      Symbol,
+      Error,
+      TypeError,
+      RangeError,
+      isNaN,
+      isFinite,
+      parseInt,
+      parseFloat,
       // console forwards to api.log so plugins can use either style
       console: {
         log: (...a: unknown[]) => api.log(...a),
@@ -165,7 +184,9 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
     try {
       source = readFileSync(abs, 'utf-8');
     } catch (err) {
-      logger.warn(`[plugin] failed to read ${file}: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `[plugin] failed to read ${file}: ${err instanceof Error ? err.message : String(err)}`
+      );
       return null;
     }
 
@@ -281,7 +302,7 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
     // Wire plugins into the EventBus. The sandbox receives the plain
     // event payload — never the emitter itself.
     EventBus.onFileEvent((ev: FileEvent) => dispatch('file', ev));
-    EventBus.onAgentEvent((ev) => dispatch('agent', ev));
+    EventBus.onAgentEvent(ev => dispatch('agent', ev));
     // (token-usage and trigger events are dispatched explicitly by callers)
   }
 
@@ -381,15 +402,4 @@ raven.on('file', (event) => {
     reload,
     readSource
   };
-}
-
-/** Allow non-EventBus callers (e.g. agent-event-handler-factory) to feed events. */
-export function dispatchTokenUsage(runtime: PluginRuntime, payload: unknown): void {
-  // Lazily access the runtime's dispatch via a private channel — runtime
-  // exposes the surface we need; for token-usage, we expose a helper.
-  // Using closure-captured `dispatch` would be cleaner but would tighten
-  // coupling. Instead, callers can use this thin shim if/when wired.
-  void runtime;
-  void payload;
-  // Reserved for future wiring; current MVP only dispatches file + agent.
 }

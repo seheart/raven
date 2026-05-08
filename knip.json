@@ -2,10 +2,26 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.{js,cjs}"],
+      "entry": ["scripts/**/*.{js,cjs}", "bin/**/*.{js,cjs}"],
       "ignore": ["e2e/**"],
       "ignoreBinaries": ["prettier"],
-      "ignoreDependencies": ["better-sqlite3"]
+      "ignoreDependencies": [
+        "chokidar",
+        "compression",
+        "cors",
+        "diff",
+        "express",
+        "express-rate-limit",
+        "helmet",
+        "jsonwebtoken",
+        "nanoid",
+        "simple-git",
+        "socket.io",
+        "systeminformation",
+        "toml",
+        "winston",
+        "zod"
+      ]
     },
     "backend": {
       "entry": [
@@ -16,32 +32,15 @@
         "migrations/**/*.{ts,js}"
       ],
       "project": ["**/*.{ts,js}"],
-      "ignore": [
-        "dist/**",
-        "__tests__/**",
-        "tests/**",
-        "test-shims/**",
-        "logs/**"
-      ],
+      "ignore": ["dist/**", "__tests__/**", "tests/**", "test-shims/**", "logs/**"],
       "ignoreDependencies": ["@types/.*", "jest"],
       "ignoreBinaries": ["open", "dot"]
     },
     "frontend": {
       "entry": ["src/NewApp.svelte"],
       "project": ["src/**/*.{js,ts,svelte}"],
-      "ignore": [
-        "dist/**",
-        "src/test/**",
-        "src/mocks/**",
-        "src/**/*.test.{js,ts}"
-      ],
-      "ignoreDependencies": [
-        "chart.js",
-        "dompurify",
-        "mermaid",
-        "msw",
-        "prettier-plugin-svelte"
-      ]
+      "ignore": ["dist/**", "src/test/**", "src/mocks/**", "src/**/*.test.{js,ts}"],
+      "ignoreDependencies": ["chart.js", "dompurify", "mermaid", "msw", "prettier-plugin-svelte"]
     }
   }
 }

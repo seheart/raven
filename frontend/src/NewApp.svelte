@@ -13,9 +13,6 @@
   // into the entry chunk (~150KB shell weight).
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
-  import KeyboardShortcuts from './lib/KeyboardShortcuts.svelte';
-  import WeeklyDigestModal from './lib/components/insights/WeeklyDigestModal.svelte';
-  import MilestoneModal from './lib/components/insights/MilestoneModal.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from './lib/dataService.js';
@@ -26,7 +23,6 @@
   // State
   let sessionId = $state('Loading...');
   let appVersion = $state('');
-  let showKeyboardShortcuts = $state(false);
 
   // Get current path from router
   const currentPath = $derived(getPath());
@@ -85,7 +81,7 @@
 
     // Surface model loads as toasts so the user notices when a new local
     // model becomes resident. Backend's local-model-callbacks emits 'model-loaded'.
-    const onModelLoaded = (data) => {
+    const onModelLoaded = data => {
       const model = data?.model || data?.name || 'unknown';
       const project = data?.project || data?.cwd?.split('/').pop();
       toasts.info(project ? `Model loaded: ${model} (by ${project})` : `Model loaded: ${model}`);
@@ -100,25 +96,10 @@
       document.documentElement.classList.remove('dark');
     }
 
-    // Add keyboard listener for ? key
-    const handleKeyPress = e => {
-      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        // Only show if not typing in an input
-        const target = e.target;
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          showKeyboardShortcuts = !showKeyboardShortcuts;
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
     return () => {
-      window.removeEventListener('keydown', handleKeyPress);
       dataService.stopBackgroundRefresh();
     };
   });
-
 
   function handleAboutClick() {
     navigate('/about');
@@ -156,11 +137,7 @@
 
 <div class="min-h-screen bg-[var(--bg)]">
   <!-- Header -->
-  <Header
-    {activeTab}
-    {activeSubTab}
-    onLogoutClick={handleLogoutClick}
-  />
+  <Header {activeTab} {activeSubTab} onLogoutClick={handleLogoutClick} />
   <!-- Today is the lightweight first-run view; the dense vitals strip
        belongs to the power-user dashboards, not the landing page. -->
   {#if activeTab !== 'today'}
@@ -570,20 +547,4 @@
 
   <!-- Toast Notifications -->
   <ToastContainer />
-
-  <!-- Keyboard Shortcuts Help -->
-  <KeyboardShortcuts
-    visible={showKeyboardShortcuts}
-    onClose={() => (showKeyboardShortcuts = false)}
-  />
-
-  <!-- Weekly Digest auto-shows on Monday or after a 7-day-quiet streak.
-       Manages its own visibility + dismiss state in localStorage. -->
-  <WeeklyDigestModal />
-
-  <!-- Milestone modals — first session, 7d/30d marks, 100/1000th edit,
-       anniversaries, project month-ones. One at a time, dismissed
-       permanently per id. -->
-  <MilestoneModal />
 </div>
-

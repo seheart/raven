@@ -13,7 +13,6 @@
   let now = $state(Date.now());
   let modelState = $state({});
   let ollamaOffline = $state(false);
-  let gpuMissing = $state(false);
 
   function ensure(name) {
     if (!modelState[name]) modelState[name] = { flashId: 0, tps: [] };
@@ -86,7 +85,6 @@
       // Shared /gpu cache via dataService (2s TTL == poll interval).
       const data = await dataService.fetch('/gpu', { ttl: 2000 });
       gpu = data.gpus?.[0] || null;
-      gpuMissing = !gpu;
       if (gpu) utilHistory = [...utilHistory, gpu.gpu_util_pct].slice(-30);
     } catch {}
   }

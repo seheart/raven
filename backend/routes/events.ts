@@ -4,20 +4,13 @@
  */
 
 import express, { Request, Response, Router } from 'express';
-import type { RavenDB } from '../db.js';
 import type { DashboardRepository } from '../repositories/dashboard-repository.js';
 import type { FileEventsRepository } from '../repositories/file-events-repository.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { asyncHandler } from '../middleware/async-handler.js';
-import {
-  parseLimit,
-  parseDateRange,
-  parseBoolean,
-  buildTimeFilterQuery
-} from '../utils/request-helpers.js';
+import { parseLimit, parseDateRange, parseBoolean } from '../utils/request-helpers.js';
 
 export function createEventsRouter(
-  db: RavenDB,
   fileEventsRepo: FileEventsRepository,
   dashboardRepo: DashboardRepository
 ): Router {
@@ -33,19 +26,7 @@ export function createEventsRouter(
       const limit = parseLimit(req);
       const { startTime, endTime } = parseDateRange(req);
       const includeDiff = parseBoolean(req, 'diff');
-
-      const fields = includeDiff
-        ? 'id, timestamp, filepath, change_type, diff, cpu, mem, session_id'
-        : 'id, timestamp, filepath, change_type, cpu, mem, session_id';
-
-      const { query, params } = buildTimeFilterQuery(`SELECT ${fields} FROM events`, {
-        startTime,
-        endTime,
-        orderBy: 'timestamp DESC',
-        limit
-      });
-
-      const events = db.db.prepare(query).all(...params);
+      const events = fileEventsRepo.listInTimeRange(startTime, endTime, limit, includeDiff);
       res.json(events);
     })
   );
@@ -87,17 +68,7 @@ export function createEventsRouter(
     cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       const limit = parseLimit(req, 10);
-      // Get most frequently modified files
-      const files = db.db
-        .prepare(
-          `SELECT filepath, COUNT(*) as change_count
-           FROM events
-           GROUP BY filepath
-           ORDER BY change_count DESC
-           LIMIT ?`
-        )
-        .all(limit);
-      res.json(files);
+      res.json(fileEventsRepo.topByFrequency(limit));
     })
   );
 
@@ -117,12 +88,7 @@ export function createEventsRouter(
       // endpoint does. Callers that need the diff (rollback preview, file
       // browser) explicitly opt in.
       const includeDiff = req.query.diff === '1' || req.query.diff === 'true';
-      const cols = includeDiff
-        ? 'id, timestamp, filepath, change_type, diff, cpu, mem, session_id'
-        : 'id, timestamp, filepath, change_type, cpu, mem, session_id';
-      const event = db.db
-        .prepare(`SELECT ${cols} FROM events WHERE id = ?`)
-        .get(eventId);
+      const event = fileEventsRepo.byId(eventId);
 
       if (!event) {
         return res.status(404).json({
@@ -134,7 +100,10 @@ export function createEventsRouter(
         });
       }
 
-      return res.json(event);
+      // Strip diff when not requested — matches the legacy column-list shape.
+      const out = includeDiff ? event : { ...event, diff: undefined };
+      delete (out as { diff?: unknown }).diff;
+      return res.json(includeDiff ? event : out);
     })
   );
 
@@ -158,17 +127,7 @@ export function createEventsRouter(
         });
       }
 
-      const events = db.db
-        .prepare(
-          `SELECT id, timestamp, filepath, change_type, cpu, mem
-           FROM events
-           WHERE filepath = ?
-           ORDER BY timestamp DESC
-           LIMIT ?`
-        )
-        .all(filepath, limit);
-
-      return res.json(events);
+      return res.json(fileEventsRepo.history(filepath, limit));
     })
   );
 
@@ -179,19 +138,11 @@ export function createEventsRouter(
   router.get(
     '/events/stats',
     cacheMiddleware(5000),
-    asyncHandler(async (req: Request, res: Response) => {
-      const totalEvents = db.db.prepare('SELECT COUNT(*) as count FROM events').get() as any;
-      const uniqueFiles = db.db
-        .prepare('SELECT COUNT(DISTINCT filepath) as count FROM events')
-        .get() as any;
-      const lastEvent = db.db
-        .prepare('SELECT MAX(timestamp) as timestamp FROM events')
-        .get() as any;
-
+    asyncHandler(async (_req: Request, res: Response) => {
       res.json({
-        total_events: totalEvents.count,
-        unique_files: uniqueFiles.count,
-        last_event: lastEvent.timestamp
+        total_events: fileEventsRepo.totalCount(),
+        unique_files: fileEventsRepo.distinctFilepathCount(),
+        last_event: fileEventsRepo.lastTimestamp()
       });
     })
   );

@@ -25,7 +25,7 @@ const ANOMALY_RATIO = 2.0;
 const MIN_BASELINE_SAMPLES = 5;
 const MIN_RECENT_SAMPLES = 3;
 
-export interface AgentBaseline {
+interface AgentBaseline {
   model: string;
   samples: number;
   /** Median, 95th percentile (ms). Null when samples < MIN_BASELINE_SAMPLES. */
@@ -42,7 +42,7 @@ export interface AgentBaseline {
   last_seen: string | null;
 }
 
-export interface AgentAnomaly {
+interface AgentAnomaly {
   model: string;
   /** Recent (30m) p95 vs baseline p95 ratios. */
   latency_ratio: number | null;
@@ -111,7 +111,9 @@ export function createBaselinesService(db: RavenDB): BaselinesService {
         `SELECT MIN(timestamp) AS first_seen, MAX(timestamp) AS last_seen
          FROM token_usage WHERE model = ? AND timestamp >= ?`
       )
-      .get(model, baselineStart) as { first_seen: string | null; last_seen: string | null } | undefined;
+      .get(model, baselineStart) as
+      | { first_seen: string | null; last_seen: string | null }
+      | undefined;
 
     const samples = Math.max(cost.length, output.length, lat.length);
 
@@ -137,29 +139,30 @@ export function createBaselinesService(db: RavenDB): BaselinesService {
       // (below), we exclude the recent window so it can't skew its
       // own threshold.
       const now = new Date().toISOString();
-      const baselineStart = new Date(
-        Date.now() - BASELINE_WINDOW_DAYS * 86_400_000
-      ).toISOString();
+      const baselineStart = new Date(Date.now() - BASELINE_WINDOW_DAYS * 86_400_000).toISOString();
       const models = distinctModels(baselineStart);
       return models.map(m => baselineFor(m, baselineStart, now));
     },
 
     anomalies() {
       const now = new Date().toISOString();
-      const recentStart = new Date(
-        Date.now() - RECENT_WINDOW_MINUTES * 60_000
-      ).toISOString();
+      const recentStart = new Date(Date.now() - RECENT_WINDOW_MINUTES * 60_000).toISOString();
       // Baseline ends at recentStart so the comparison window doesn't
       // pollute the threshold it's being tested against.
-      const baselineStart = new Date(
-        Date.now() - BASELINE_WINDOW_DAYS * 86_400_000
-      ).toISOString();
+      const baselineStart = new Date(Date.now() - BASELINE_WINDOW_DAYS * 86_400_000).toISOString();
       const models = distinctModels(recentStart);
 
       const out: AgentAnomaly[] = [];
       for (const m of models) {
         const baseline = baselineFor(m, baselineStart, recentStart);
-        const recentCost = loadSamples(db, m, 'token_usage', 'estimated_cost_usd', recentStart, now);
+        const recentCost = loadSamples(
+          db,
+          m,
+          'token_usage',
+          'estimated_cost_usd',
+          recentStart,
+          now
+        );
         const recentOutput = loadSamples(db, m, 'token_usage', 'output_tokens', recentStart, now);
         const recentLat = loadSamples(db, m, 'api_latency', 'latency_ms', recentStart, now);
         if (
@@ -170,13 +173,18 @@ export function createBaselinesService(db: RavenDB): BaselinesService {
           continue;
         }
 
-        const recCostP95 = recentCost.length >= MIN_RECENT_SAMPLES ? percentile(recentCost, 0.95) : null;
-        const recOutP95 = recentOutput.length >= MIN_RECENT_SAMPLES ? percentile(recentOutput, 0.95) : null;
-        const recLatP95 = recentLat.length >= MIN_RECENT_SAMPLES ? percentile(recentLat, 0.95) : null;
+        const recCostP95 =
+          recentCost.length >= MIN_RECENT_SAMPLES ? percentile(recentCost, 0.95) : null;
+        const recOutP95 =
+          recentOutput.length >= MIN_RECENT_SAMPLES ? percentile(recentOutput, 0.95) : null;
+        const recLatP95 =
+          recentLat.length >= MIN_RECENT_SAMPLES ? percentile(recentLat, 0.95) : null;
 
-        const costRatio = baseline.cost_p95_usd && recCostP95 ? recCostP95 / baseline.cost_p95_usd : null;
+        const costRatio =
+          baseline.cost_p95_usd && recCostP95 ? recCostP95 / baseline.cost_p95_usd : null;
         const outRatio = baseline.output_p95 && recOutP95 ? recOutP95 / baseline.output_p95 : null;
-        const latRatio = baseline.latency_p95_ms && recLatP95 ? recLatP95 / baseline.latency_p95_ms : null;
+        const latRatio =
+          baseline.latency_p95_ms && recLatP95 ? recLatP95 / baseline.latency_p95_ms : null;
 
         /** @type {Array<'latency' | 'cost' | 'output'>} */
         const flagged: Array<'latency' | 'cost' | 'output'> = [];
@@ -190,9 +198,11 @@ export function createBaselinesService(db: RavenDB): BaselinesService {
         const worst = allRatios.length ? Math.max(...allRatios) : null;
 
         const summaryParts: string[] = [];
-        if (flagged.includes('latency')) summaryParts.push(`latency ${latRatio?.toFixed(1)}× baseline`);
+        if (flagged.includes('latency'))
+          summaryParts.push(`latency ${latRatio?.toFixed(1)}× baseline`);
         if (flagged.includes('cost')) summaryParts.push(`cost ${costRatio?.toFixed(1)}× baseline`);
-        if (flagged.includes('output')) summaryParts.push(`output ${outRatio?.toFixed(1)}× baseline`);
+        if (flagged.includes('output'))
+          summaryParts.push(`output ${outRatio?.toFixed(1)}× baseline`);
 
         const summary = flagged.length
           ? `${m} drifting — ${summaryParts.join(', ')}`

@@ -36,6 +36,9 @@ export interface SyntaxErrorsRepository {
   /** Resolve any stale syntax errors recorded for Raven's own source paths. */
   resolveForRaven(): void;
   countUnresolved(): number;
+
+  /** Total row count across resolved + unresolved. */
+  totalCount(): number;
 }
 
 export function createSyntaxErrorsRepository(db: RavenDB): SyntaxErrorsRepository {
@@ -110,6 +113,13 @@ export function createSyntaxErrorsRepository(db: RavenDB): SyntaxErrorsRepositor
       const row = db.db
         .prepare(`SELECT COUNT(*) as count FROM syntax_errors WHERE resolved = 0`)
         .get() as { count: number } | undefined;
+      return row?.count ?? 0;
+    },
+
+    totalCount() {
+      const row = db.db.prepare(`SELECT COUNT(*) as count FROM syntax_errors`).get() as
+        | { count: number }
+        | undefined;
       return row?.count ?? 0;
     }
   };

@@ -232,7 +232,7 @@ export class FileWatcher {
 
         try {
           await operation;
-        } catch (readError) {
+        } catch {
           return;
         }
       } else if (eventType === 'unlink') {

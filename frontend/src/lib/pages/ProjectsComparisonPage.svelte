@@ -3,14 +3,19 @@
   import { logger } from '../logger.js';
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, EmptyState, LoadingState } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    EmptyState,
+    LoadingState
+  } from '../components/ui/index.js';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
    */
   import { createPageApi } from '../apiClient.js';
   import { dataService } from '../dataService.js';
-  const { api, abort: abortRequests } = createPageApi();
+  const { abort: abortRequests } = createPageApi();
 
   let projects = $state([]);
   let loading = $state(false);
@@ -47,33 +52,33 @@
     sorted.sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
-      case 'activity':
-        valA = a.last_activity ? new Date(a.last_activity).getTime() : 0;
-        valB = b.last_activity ? new Date(b.last_activity).getTime() : 0;
-        break;
-      case 'events':
-        valA = a.total_events || 0;
-        valB = b.total_events || 0;
-        break;
-      case 'files':
-        valA = a.file_count || 0;
-        valB = b.file_count || 0;
-        break;
-      case 'agent':
-        valA = a.agent_events || 0;
-        valB = b.agent_events || 0;
-        break;
-      case 'name':
-        valA = a.name;
-        valB = b.name;
-        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-      case 'path':
-        valA = a.path || '';
-        valB = b.path || '';
-        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-      default:
-        valA = 0;
-        valB = 0;
+        case 'activity':
+          valA = a.last_activity ? new Date(a.last_activity).getTime() : 0;
+          valB = b.last_activity ? new Date(b.last_activity).getTime() : 0;
+          break;
+        case 'events':
+          valA = a.total_events || 0;
+          valB = b.total_events || 0;
+          break;
+        case 'files':
+          valA = a.file_count || 0;
+          valB = b.file_count || 0;
+          break;
+        case 'agent':
+          valA = a.agent_events || 0;
+          valB = b.agent_events || 0;
+          break;
+        case 'name':
+          valA = a.name;
+          valB = b.name;
+          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+        case 'path':
+          valA = a.path || '';
+          valB = b.path || '';
+          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+        default:
+          valA = 0;
+          valB = 0;
       }
       return sortDesc ? valB - valA : valA - valB;
     });
@@ -233,187 +238,185 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <ToolbarButton onClick={exportCSV}>Export</ToolbarButton>
-        <RefreshButton onClick={() => loadProjects()} loading={loading} />
+        <RefreshButton onClick={() => loadProjects()} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    <!-- Controls -->
-    <div
-      class="bg-surface border border-border rounded-lg p-4 mb-6 flex flex-wrap gap-3 items-center"
+  <!-- Controls -->
+  <div
+    class="bg-surface border border-border rounded-lg p-4 mb-6 flex flex-wrap gap-3 items-center"
+  >
+    <input
+      type="text"
+      placeholder="Search projects..."
+      bind:value={searchQuery}
+      class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent"
+    />
+    <select
+      bind:value={filterStatus}
+      class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
     >
-      <input
-        type="text"
-        placeholder="Search projects..."
-        bind:value={searchQuery}
-        class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent"
-      />
-      <select
-        bind:value={filterStatus}
-        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
-      >
-        <option value="all">All Status</option>
-        <option value="active">Active</option>
-        <option value="recent">Recent</option>
-        <option value="idle">Idle</option>
-        <option value="never">Never</option>
-      </select>
-      <div class="text-xs text-muted font-mono">
-        {filteredProjects.length} of {projects.length} projects
+      <option value="all">All Status</option>
+      <option value="active">Active</option>
+      <option value="recent">Recent</option>
+      <option value="idle">Idle</option>
+      <option value="never">Never</option>
+    </select>
+    <div class="text-xs text-muted font-mono">
+      {filteredProjects.length} of {projects.length} projects
+    </div>
+  </div>
+
+  {#if loading}
+    <LoadingState message="Loading projects..." />
+  {:else if projects.length === 0}
+    <EmptyState
+      title="No projects found"
+      description="Projects are automatically discovered when you start monitoring code with Raven."
+    />
+  {:else if filteredProjects.length === 0}
+    <EmptyState
+      title="No projects match your filters"
+      description="Try adjusting your search or status filter."
+    />
+  {:else}
+    <!-- Table -->
+    <div class="bg-surface border border-border rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-canvas border-b border-border">
+            <tr class="text-left">
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
+                onclick={() => handleSort('name')}
+              >
+                Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
+              </th>
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
+                onclick={() => handleSort('path')}
+              >
+                Path {sortBy === 'path' ? (sortDesc ? '▼' : '▲') : ''}
+              </th>
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
+                onclick={() => handleSort('events')}
+              >
+                Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}
+              </th>
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
+                onclick={() => handleSort('files')}
+              >
+                Files {sortBy === 'files' ? (sortDesc ? '▼' : '▲') : ''}
+              </th>
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
+                onclick={() => handleSort('agent')}
+              >
+                Agent Events {sortBy === 'agent' ? (sortDesc ? '▼' : '▲') : ''}
+              </th>
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
+                onclick={() => handleSort('activity')}
+              >
+                Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
+              </th>
+              <th
+                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide font-sans"
+              >
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each sortedProjects as project (project.name)}
+              {@const status = getActivityStatus(project.last_activity)}
+              <tr class="border-b border-border hover:bg-canvas transition-colors">
+                <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
+                  {project.name}
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-muted font-mono truncate max-w-[28rem]">
+                      {project.path || 'N/A'}
+                    </span>
+                    {#if project.path}
+                      <button
+                        class="text-sm opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+                        onclick={() => copyPath(project.path)}
+                        title="Copy path"
+                      >
+                      </button>
+                    {/if}
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-sm font-semibold text-body font-mono text-right">
+                  {formatNumber(project.total_events)}
+                </td>
+                <td class="px-4 py-3 text-sm font-mono text-body text-right">
+                  {formatNumber(project.file_count)}
+                </td>
+                <td class="px-4 py-3 text-sm font-mono text-body text-right">
+                  {formatNumber(project.agent_events)}
+                </td>
+                <td class="px-4 py-3 text-sm text-body font-mono">
+                  {#if project.last_activity}
+                    {formatDateTime(project.last_activity)}
+                  {:else}
+                    Never
+                  {/if}
+                </td>
+                <td class="px-4 py-3">
+                  <span class="flex items-center gap-2 text-sm font-mono">
+                    <span
+                      class="w-2 h-2 rounded-full {status.class === 'active'
+                        ? 'bg-success'
+                        : status.class === 'recent'
+                          ? 'bg-info'
+                          : status.class === 'idle'
+                            ? 'bg-muted'
+                            : 'bg-border'}"
+                    ></span>
+                    <span class="text-body">{status.label}</span>
+                  </span>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </div>
 
-    {#if loading}
-      <LoadingState message="Loading projects..." />
-    {:else if projects.length === 0}
-      <EmptyState
-        title="No projects found"
-        description="Projects are automatically discovered when you start monitoring code with Raven."
-      />
-    {:else if filteredProjects.length === 0}
-      <EmptyState
-        title="No projects match your filters"
-        description="Try adjusting your search or status filter."
-      />
-    {:else}
-      <!-- Table -->
-      <div class="bg-surface border border-border rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas border-b border-border">
-              <tr class="text-left">
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
-                  onclick={() => handleSort('name')}
-                >
-                  Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
-                </th>
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
-                  onclick={() => handleSort('path')}
-                >
-                  Path {sortBy === 'path' ? (sortDesc ? '▼' : '▲') : ''}
-                </th>
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
-                  onclick={() => handleSort('events')}
-                >
-                  Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}
-                </th>
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
-                  onclick={() => handleSort('files')}
-                >
-                  Files {sortBy === 'files' ? (sortDesc ? '▼' : '▲') : ''}
-                </th>
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
-                  onclick={() => handleSort('agent')}
-                >
-                  Agent Events {sortBy === 'agent' ? (sortDesc ? '▼' : '▲') : ''}
-                </th>
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
-                  onclick={() => handleSort('activity')}
-                >
-                  Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
-                </th>
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide font-sans"
-                >
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each sortedProjects as project (project.name)}
-                {@const status = getActivityStatus(project.last_activity)}
-                <tr class="border-b border-border hover:bg-canvas transition-colors">
-                  <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
-                    {project.name}
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-muted font-mono truncate max-w-[28rem]">
-                        {project.path || 'N/A'}
-                      </span>
-                      {#if project.path}
-                        <button
-                          class="text-sm opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
-                          onclick={() => copyPath(project.path)}
-                          title="Copy path"
-                        >
-                        </button>
-                      {/if}
-                    </div>
-                  </td>
-                  <td
-                    class="px-4 py-3 text-sm font-semibold text-body font-mono text-right"
-                  >
-                    {formatNumber(project.total_events)}
-                  </td>
-                  <td class="px-4 py-3 text-sm font-mono text-body text-right">
-                    {formatNumber(project.file_count)}
-                  </td>
-                  <td class="px-4 py-3 text-sm font-mono text-body text-right">
-                    {formatNumber(project.agent_events)}
-                  </td>
-                  <td class="px-4 py-3 text-sm text-body font-mono">
-                    {#if project.last_activity}
-                      {formatDateTime(project.last_activity)}
-                    {:else}
-                      Never
-                    {/if}
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class="flex items-center gap-2 text-sm font-mono">
-                      <span
-                        class="w-2 h-2 rounded-full {status.class === 'active'
-                          ? 'bg-success'
-                          : status.class === 'recent'
-                            ? 'bg-info'
-                            : status.class === 'idle'
-                              ? 'bg-muted'
-                              : 'bg-border'}"
-                      ></span>
-                      <span class="text-body">{status.label}</span>
-                    </span>
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+    <!-- Summary -->
+    <div class="flex gap-6 mt-6 p-4 bg-surface border border-border rounded-lg">
+      <div class="text-xs font-mono">
+        <strong class="text-accent text-sm">{filteredProjects.length}</strong>
+        <span class="text-muted ml-1">displayed</span>
       </div>
-
-      <!-- Summary -->
-      <div class="flex gap-6 mt-6 p-4 bg-surface border border-border rounded-lg">
-        <div class="text-xs font-mono">
-          <strong class="text-accent text-sm">{filteredProjects.length}</strong>
-          <span class="text-muted ml-1">displayed</span>
-        </div>
-        <div class="text-xs font-mono">
-          <strong class="text-accent text-sm">
-            {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.total_events || 0), 0))}
-          </strong>
-          <span class="text-muted ml-1">total events</span>
-        </div>
-        <div class="text-xs font-mono">
-          <strong class="text-accent text-sm">
-            {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.agent_events || 0), 0))}
-          </strong>
-          <span class="text-muted ml-1">agent events</span>
-        </div>
-        <div class="text-xs font-mono">
-          <strong class="text-accent text-sm">
-            {filteredProjects.filter(
-              p =>
-                getActivityStatus(p.last_activity).class === 'active' ||
-                getActivityStatus(p.last_activity).class === 'recent'
-            ).length}
-          </strong>
-          <span class="text-muted ml-1">active</span>
-        </div>
+      <div class="text-xs font-mono">
+        <strong class="text-accent text-sm">
+          {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.total_events || 0), 0))}
+        </strong>
+        <span class="text-muted ml-1">total events</span>
       </div>
-    {/if}
+      <div class="text-xs font-mono">
+        <strong class="text-accent text-sm">
+          {formatNumber(filteredProjects.reduce((sum, p) => sum + (p.agent_events || 0), 0))}
+        </strong>
+        <span class="text-muted ml-1">agent events</span>
+      </div>
+      <div class="text-xs font-mono">
+        <strong class="text-accent text-sm">
+          {filteredProjects.filter(
+            p =>
+              getActivityStatus(p.last_activity).class === 'active' ||
+              getActivityStatus(p.last_activity).class === 'recent'
+          ).length}
+        </strong>
+        <span class="text-muted ml-1">active</span>
+      </div>
+    </div>
+  {/if}
 </PageLayout>

@@ -15,13 +15,13 @@ import { dirname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { logger } from '../utils/logger.js';
 
-export interface HostIdentity {
+interface HostIdentity {
   host_id: string;
   host_name: string;
   created_at: string;
 }
 
-export interface PeersConfig {
+interface PeersConfig {
   peers: Array<{
     host_id: string;
     name: string;

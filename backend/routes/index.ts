@@ -20,6 +20,10 @@ import { logger } from '../utils/logger.js';
 import { rateLimitStatus } from '../middleware/security.js';
 
 import type { ApiLatencyRepository } from '../repositories/api-latency-repository.js';
+import type { TokenUsageRepository } from '../repositories/token-usage-repository.js';
+import type { JourneyRepository } from '../repositories/journey-repository.js';
+import type { TodayNarrativeRepository } from '../repositories/today-narrative-repository.js';
+import type { SubagentsRepository } from '../repositories/subagents-repository.js';
 import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 import type { FileEventsRepository } from '../repositories/file-events-repository.js';
 import type { MetricsRepository } from '../repositories/metrics-repository.js';
@@ -131,6 +135,10 @@ interface WireRoutesDeps {
   scheduleAgentStatsBroadcast: () => void;
   // Repositories
   apiLatencyRepository: ApiLatencyRepository;
+  tokenUsageRepository: TokenUsageRepository;
+  journeyRepository: JourneyRepository;
+  todayNarrativeRepository: TodayNarrativeRepository;
+  subagentsRepository: SubagentsRepository;
   agentEventsRepository: AgentEventsRepository;
   fileEventsRepository: FileEventsRepository;
   metricsRepository: MetricsRepository;
@@ -182,6 +190,10 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     expensiveOpLimiter,
     scheduleAgentStatsBroadcast,
     apiLatencyRepository,
+    tokenUsageRepository,
+    journeyRepository,
+    todayNarrativeRepository,
+    subagentsRepository,
     agentEventsRepository,
     fileEventsRepository,
     metricsRepository,
@@ -222,7 +234,12 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
   app.use('/api', createAgentEventsRoutesRouter(agentEventsRepository, fileEventsRepository));
   app.use(
     '/api/projects',
-    createProjectsRouter({ db, ravenDir, projectsConfigService, projectManager })
+    createProjectsRouter({
+      fileEventsRepo: fileEventsRepository,
+      ravenDir,
+      projectsConfigService,
+      projectManager
+    })
   );
   app.use('/api', createPauseRouter(pauseManager, io));
   app.use(
@@ -232,18 +249,18 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
 
   app.use('/api/session', createLiveSessionRouter(db));
 
-  app.use('/api', createEventsRouter(db, fileEventsRepository, dashboardRepository));
+  app.use('/api', createEventsRouter(fileEventsRepository, dashboardRepository));
 
-  app.use('/api', createAgentsRouter(db, agentRegistry, agentEventsRepository));
+  app.use('/api', createAgentsRouter(fileEventsRepository, agentRegistry, agentEventsRepository));
 
   app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
 
   app.use('/api/insights', createInsightsRouter(insightsService, db, diffRiskRepository));
   app.use('/api/errors', createErrorsRouter(errorsRepository, io));
-  app.use('/api', createOllamaDetailRouter(agentEventsRepository, db));
+  app.use('/api', createOllamaDetailRouter(agentEventsRepository, metricsRepository));
   app.use('/api/conversations', createConversationsRouter(agentEventsRepository));
   app.use('/api/syntax-errors', createSyntaxErrorsRouter(syntaxErrorsRepository));
-  app.use('/api', createFilesRouter({ db, fileEventsRepo: fileEventsRepository, snapshotsDir }));
+  app.use('/api', createFilesRouter({ fileEventsRepo: fileEventsRepository, snapshotsDir }));
   app.use('/api/notifications', createNotificationsRouter(notificationsRepository));
   app.use('/api/local-models', createLocalModelsRouter(localModelWatcher));
   app.use('/api/dev', createDevRouter(io));
@@ -279,7 +296,14 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
       agentEventsRepo: agentEventsRepository
     })
   );
-  app.use('/api/health', createHealthProjectsRouter({ db, projectName }));
+  app.use(
+    '/api/health',
+    createHealthProjectsRouter({
+      fileEventsRepo: fileEventsRepository,
+      syntaxErrorsRepo: syntaxErrorsRepository,
+      projectName
+    })
+  );
   app.use(
     '/api',
     createDashboardRouter({
@@ -292,26 +316,34 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     })
   );
 
-  app.use('/api/costs', createCostsRouter(db));
-  app.use('/api/today', createTodayNarrativeRouter(db));
-  app.use('/api/diffs', createDiffsRouter(db, diffAnnotationsRepository, diffAnnotationService));
+  app.use('/api/costs', createCostsRouter(tokenUsageRepository));
+  app.use('/api/today', createTodayNarrativeRouter(todayNarrativeRepository));
+  app.use(
+    '/api/diffs',
+    createDiffsRouter(fileEventsRepository, diffAnnotationsRepository, diffAnnotationService)
+  );
   app.use('/api/digests', createDigestsRouter(digestService));
   app.use('/api/decisions', createDecisionsRouter(decisionsService, derivedDecisionsService));
-  app.use('/api/context', createContextWindowRouter(db));
+  app.use('/api/context', createContextWindowRouter(tokenUsageRepository));
   app.use('/api/plugins', createPluginsRouter(pluginRuntime));
-  app.use('/api/journey', createJourneyRouter(db));
+  app.use('/api/journey', createJourneyRouter(journeyRepository));
   app.use('/api/agents', createBaselinesRouter(baselinesService));
   app.use('/api/milestones', createMilestonesRouter(milestonesService));
   app.use('/api/sync', createSyncRouter(db, ravenDir));
   app.use('/api/wrapped', createWrappedRouter(wrappedService));
-  app.use('/api/subagents', createSubagentsRouter(db));
+  app.use('/api/subagents', createSubagentsRouter(subagentsRepository, tokenUsageRepository));
   app.use('/api/analysis/code-health', createSelfAnalysisRouter(selfAnalysisService));
   app.use('/api/session-activity', createSessionActivityRouter());
 
   app.use('/api/git', createGitRouter(gitMonitor));
   app.use(
     '/api',
-    createMetricsRouter(apiLatencyRepository, metricsRepository, dashboardRepository, db)
+    createMetricsRouter(
+      apiLatencyRepository,
+      metricsRepository,
+      dashboardRepository,
+      agentEventsRepository
+    )
   );
   app.use('/api', createTriggersRouter(triggerEngine));
   app.use(

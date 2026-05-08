@@ -11,16 +11,14 @@ import { join } from 'path';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { safeInt } from '../utils/request-helpers.js';
 import { createPatch } from '../modules/diff.js';
-import type { RavenDB } from '../db.js';
 import type { FileEventsRepository } from '../repositories/file-events-repository.js';
 
 interface FilesRouterDeps {
-  db: RavenDB;
   fileEventsRepo: FileEventsRepository;
   snapshotsDir: string;
 }
 
-export function createFilesRouter({ db, fileEventsRepo, snapshotsDir }: FilesRouterDeps): Router {
+export function createFilesRouter({ fileEventsRepo, snapshotsDir }: FilesRouterDeps): Router {
   const router = express.Router();
 
   // GET /api/file-events

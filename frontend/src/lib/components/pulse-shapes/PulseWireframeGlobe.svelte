@@ -6,7 +6,13 @@
    */
   import { onMount } from 'svelte';
   import { websocketService } from '../../services/websocket.js';
-  import { resolveThemeColors, rgba, TYPE_COLORS, eventToType, fileChangeToType } from './_shared.js';
+  import {
+    resolveThemeColors,
+    rgba,
+    TYPE_COLORS,
+    eventToType,
+    fileChangeToType
+  } from './_shared.js';
 
   let canvas;
   let ctx;
@@ -16,10 +22,9 @@
   let activity = 0;
   let yawAngle = 0;
   let pitchAngle = 0;
-  let time = 0;
   let colors = $state(resolveThemeColors());
 
-  const LATS = 7;   // parallels (excluding poles)
+  const LATS = 7; // parallels (excluding poles)
   const LONGS = 16; // meridians
 
   // Build grid vertex array. Index = lat * LONGS + lng.
@@ -82,24 +87,25 @@
 
   function rotate(v, yaw, pitch) {
     const [x, y, z] = v;
-    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    const cy = Math.cos(yaw),
+      sy = Math.sin(yaw);
     const x1 = x * cy + z * sy;
     const z1 = -x * sy + z * cy;
-    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const cp = Math.cos(pitch),
+      sp = Math.sin(pitch);
     return [x1, y * cp - z1 * sp, y * sp + z1 * cp];
   }
 
   function draw() {
     const dt = 0.016;
-    time += dt;
     activity *= 0.992;
     yawAngle += (0.32 + activity * 0.5) * dt;
-    pitchAngle += (0.10 + activity * 0.15) * dt;
+    pitchAngle += (0.1 + activity * 0.15) * dt;
 
     ctx.clearRect(0, 0, width, height);
     const cx = width / 2;
     const cy = height / 2;
-    const sphereR = Math.min(width, height) * 0.30 + activity * 8;
+    const sphereR = Math.min(width, height) * 0.3 + activity * 8;
     const camDepth = 3.5;
 
     const proj = VERTS.map((v, i) => {
@@ -118,7 +124,10 @@
 
     // Edges back-to-front
     const ed = EDGES.map(([a, b, kind]) => ({
-      a, b, kind, mid: (proj[a].depth + proj[b].depth) / 2
+      a,
+      b,
+      kind,
+      mid: (proj[a].depth + proj[b].depth) / 2
     })).sort((p, q) => p.mid - q.mid);
 
     for (const { a, b, kind, mid } of ed) {
@@ -127,12 +136,15 @@
       if (pa.f <= 0.1 || pb.f <= 0.1) continue;
       const t = (mid + 1) / 2;
       const glowBoost = (pa.glow + pb.glow) * 0.35;
-      const baseColor = (pa.glow + pb.glow) > 0.1 && (pa.glowColor || pb.glowColor)
-        ? (pa.glow > pb.glow ? pa.glowColor : pb.glowColor)
-        : colors.accent;
+      const baseColor =
+        pa.glow + pb.glow > 0.1 && (pa.glowColor || pb.glowColor)
+          ? pa.glow > pb.glow
+            ? pa.glowColor
+            : pb.glowColor
+          : colors.accent;
       // Meridians slightly brighter than parallels — gives the globe more
       // structure than a uniform grid.
-      const baseAlpha = kind === 'lng' ? 0.20 : 0.12;
+      const baseAlpha = kind === 'lng' ? 0.2 : 0.12;
       ctx.strokeStyle = rgba(baseColor, baseAlpha + t * 0.32 + glowBoost);
       ctx.lineWidth = 0.7 + t * 0.5;
       ctx.beginPath();
@@ -177,7 +189,9 @@
     websocketService.on('agent-event', onAgent);
     websocketService.on('file-changed', onFile);
 
-    const themeObs = new MutationObserver(() => { colors = resolveThemeColors(); });
+    const themeObs = new MutationObserver(() => {
+      colors = resolveThemeColors();
+    });
     themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     const resizeObs = new ResizeObserver(handleResize);
     resizeObs.observe(canvas.parentElement);
@@ -192,9 +206,13 @@
   });
 </script>
 
-<div class="relative w-full h-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]">
+<div
+  class="relative w-full h-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]"
+>
   <canvas bind:this={canvas} class="absolute inset-0 w-full h-full"></canvas>
   <div class="absolute top-3 left-4 pointer-events-none">
-    <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Wireframe Globe</span>
+    <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide"
+      >Wireframe Globe</span
+    >
   </div>
 </div>

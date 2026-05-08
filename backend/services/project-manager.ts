@@ -168,7 +168,7 @@ export class ProjectManager {
         existingIds.add(id);
         logger.info(`Discovered project: ${entry.name} (${projectPath})`);
       }
-    } catch (err) {
+    } catch {
       logger.warn(`Could not scan ${searchPath} for project discovery`);
     }
 

@@ -1,8 +1,8 @@
 import express, { Request, Response, Router } from 'express';
+import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 import type { ApiLatencyRepository } from '../repositories/api-latency-repository.js';
 import type { DashboardRepository } from '../repositories/dashboard-repository.js';
 import type { MetricsRepository } from '../repositories/metrics-repository.js';
-import type { RavenDB } from '../db.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { safeInt } from '../utils/request-helpers.js';
 
@@ -10,7 +10,7 @@ export function createMetricsRouter(
   apiLatencyRepo: ApiLatencyRepository,
   metricsRepo: MetricsRepository,
   dashboardRepo: DashboardRepository,
-  db: RavenDB
+  agentEventsRepo: AgentEventsRepository
 ): Router {
   const router = express.Router();
 
@@ -89,18 +89,8 @@ export function createMetricsRouter(
     try {
       const minutes = safeInt(req.query.minutes, 60);
       const cutoff = new Date(Date.now() - minutes * 60_000).toISOString();
-      const claudeRows = db.db
-        .prepare(
-          `SELECT model, latency_ms FROM api_latency
-           WHERE timestamp >= ? AND latency_ms IS NOT NULL`
-        )
-        .all(cutoff) as Array<{ model: string; latency_ms: number }>;
-      const ollamaRows = db.db
-        .prepare(
-          `SELECT agent as model, duration_ms as latency_ms FROM agent_events
-           WHERE timestamp >= ? AND event_type = 'inference' AND duration_ms IS NOT NULL`
-        )
-        .all(cutoff) as Array<{ model: string; latency_ms: number }>;
+      const claudeRows = apiLatencyRepo.latenciesByModelSince(cutoff);
+      const ollamaRows = agentEventsRepo.inferenceLatenciesSince(cutoff);
 
       const buckets = new Map<string, number[]>();
       for (const r of [...claudeRows, ...ollamaRows]) {

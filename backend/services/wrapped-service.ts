@@ -13,9 +13,9 @@
 
 import type { RavenDB } from '../db.js';
 
-export type CardTone = 'accent' | 'success' | 'info' | 'warning' | 'muted';
+type CardTone = 'accent' | 'success' | 'info' | 'warning' | 'muted';
 
-export interface WrappedCard {
+interface WrappedCard {
   /** Stable id so the frontend can swap individual cards. */
   id: string;
   /** Small uppercase label rendered above the headline. */
@@ -29,7 +29,7 @@ export interface WrappedCard {
   tone: CardTone;
 }
 
-export interface WrappedPayload {
+interface WrappedPayload {
   window_start: string;
   window_end: string;
   /** Days actually covered by the data (often less than 365). */
@@ -89,7 +89,13 @@ export function createWrappedService(db: RavenDB): WrappedService {
           WHERE timestamp >= ? AND timestamp <= ?`
       )
       .get(startIso, endIso) as
-      | { events: number; files: number; projects: number; first_ts: string | null; last_ts: string | null }
+      | {
+          events: number;
+          files: number;
+          projects: number;
+          first_ts: string | null;
+          last_ts: string | null;
+        }
       | undefined;
 
     const events = totalsRow?.events ?? 0;
@@ -97,9 +103,13 @@ export function createWrappedService(db: RavenDB): WrappedService {
     const projects = totalsRow?.projects ?? 0;
     const firstTs = totalsRow?.first_ts;
     const lastTs = totalsRow?.last_ts;
-    const spanDays = firstTs && lastTs
-      ? Math.max(1, Math.ceil((new Date(lastTs).getTime() - new Date(firstTs).getTime()) / 86_400_000))
-      : 0;
+    const spanDays =
+      firstTs && lastTs
+        ? Math.max(
+            1,
+            Math.ceil((new Date(lastTs).getTime() - new Date(firstTs).getTime()) / 86_400_000)
+          )
+        : 0;
 
     // ── Top project ──
     const topProj = db.db
@@ -122,7 +132,9 @@ export function createWrappedService(db: RavenDB): WrappedService {
            FROM token_usage
           WHERE timestamp >= ? AND timestamp <= ?`
       )
-      .get(startIso, endIso) as { cost: number; in_tok: number; out_tok: number; reqs: number } | undefined;
+      .get(startIso, endIso) as
+      | { cost: number; in_tok: number; out_tok: number; reqs: number }
+      | undefined;
     const topModel = db.db
       .prepare(
         `SELECT model AS m, COUNT(*) AS c, COALESCE(SUM(estimated_cost_usd), 0) AS cost
@@ -199,13 +211,15 @@ export function createWrappedService(db: RavenDB): WrappedService {
     cards.push({
       id: 'opener',
       label: 'Your year with Raven',
-      headline: spanDays > 0
-        ? `${spanDays} ${plural(spanDays, 'day', 'days')} of agent activity, captured.`
-        : 'Welcome to your year-in-review.',
+      headline:
+        spanDays > 0
+          ? `${spanDays} ${plural(spanDays, 'day', 'days')} of agent activity, captured.`
+          : 'Welcome to your year-in-review.',
       stat: events.toLocaleString(),
-      support: events > 0
-        ? `${plural(events, 'event', 'events')} logged across ${projects} ${plural(projects, 'project', 'projects')}.`
-        : 'Once you have a few weeks of events, this card will fill in.',
+      support:
+        events > 0
+          ? `${plural(events, 'event', 'events')} logged across ${projects} ${plural(projects, 'project', 'projects')}.`
+          : 'Once you have a few weeks of events, this card will fill in.',
       tone: 'accent'
     });
 
@@ -246,11 +260,13 @@ export function createWrappedService(db: RavenDB): WrappedService {
       cards.push({
         id: 'streak',
         label: 'Longest streak',
-        headline: longestStreak >= 14
-          ? `${longestStreak} days in a row coding — your longest stretch this year.`
-          : `${longestStreak} days in a row of activity.`,
+        headline:
+          longestStreak >= 14
+            ? `${longestStreak} days in a row coding — your longest stretch this year.`
+            : `${longestStreak} days in a row of activity.`,
         stat: `${longestStreak} ${plural(longestStreak, 'day', 'days')}`,
-        support: longestStreak >= 14 ? 'Two-week-plus streak — that\'s a habit, not a sprint.' : null,
+        support:
+          longestStreak >= 14 ? "Two-week-plus streak — that's a habit, not a sprint." : null,
         tone: longestStreak >= 14 ? 'success' : 'info'
       });
     }
@@ -267,9 +283,8 @@ export function createWrappedService(db: RavenDB): WrappedService {
     }
 
     if (topFile && topFile.c >= 5) {
-      const fileShort = topFile.f.length > 56
-        ? `…/${topFile.f.split('/').slice(-2).join('/')}`
-        : topFile.f;
+      const fileShort =
+        topFile.f.length > 56 ? `…/${topFile.f.split('/').slice(-2).join('/')}` : topFile.f;
       cards.push({
         id: 'top-file',
         label: 'Most-edited file',
@@ -283,11 +298,15 @@ export function createWrappedService(db: RavenDB): WrappedService {
     if (hourRows) {
       const hourNum = parseInt(hourRows.h, 10);
       const period =
-        hourNum < 6  ? 'before sunrise'
-      : hourNum < 12 ? 'in the morning'
-      : hourNum < 17 ? 'in the afternoon'
-      : hourNum < 21 ? 'in the evening'
-      :                'late at night';
+        hourNum < 6
+          ? 'before sunrise'
+          : hourNum < 12
+            ? 'in the morning'
+            : hourNum < 17
+              ? 'in the afternoon'
+              : hourNum < 21
+                ? 'in the evening'
+                : 'late at night';
       cards.push({
         id: 'time-of-day',
         label: 'Your peak hour',

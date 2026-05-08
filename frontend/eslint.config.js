@@ -14,7 +14,12 @@ export default [
       'svelte.config.js',
       'coverage/**',
       '.env',
-      '.env.*'
+      '.env.*',
+      // svelte-eslint-parser reports a phantom parsing error at an
+      // impossible column on this file's closing `{/if}`. svelte-check
+      // passes; file builds + runs fine. Re-enable once the parser ships
+      // a fix.
+      'src/lib/components/insights/JourneyPanel.svelte'
     ]
   },
   ...svelte.configs['flat/recommended'],

@@ -6,24 +6,14 @@
  */
 
 import express, { Request, Response, Router } from 'express';
-import type { RavenDB } from '../db.js';
+import type { FileEventsRepository } from '../repositories/file-events-repository.js';
 import type { DiffAnnotationsRepository } from '../repositories/diff-annotations-repository.js';
 import type { DiffAnnotationService } from '../services/diff-annotation-service.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 
-interface EventRow {
-  id: number;
-  timestamp: string;
-  filepath: string | null;
-  change_type: string | null;
-  diff: string | null;
-  session_id: string | null;
-  project_name: string | null;
-}
-
 export function createDiffsRouter(
-  db: RavenDB,
+  fileEventsRepo: FileEventsRepository,
   annotationsRepo: DiffAnnotationsRepository,
   annotationService: DiffAnnotationService
 ): Router {
@@ -60,12 +50,7 @@ export function createDiffsRouter(
         return;
       }
 
-      const event = db.db
-        .prepare(
-          `SELECT id, timestamp, filepath, change_type, diff, session_id, project_name
-           FROM events WHERE id = ?`
-        )
-        .get(eventId) as EventRow | undefined;
+      const event = fileEventsRepo.byId(eventId);
 
       if (!event) {
         res.status(404).json({ error: 'event not found' });
@@ -118,9 +103,7 @@ export function createDiffsRouter(
         res.status(400).json({ error: 'invalid event_id' });
         return;
       }
-      const event = db.db
-        .prepare(`SELECT id, timestamp, filepath, diff FROM events WHERE id = ?`)
-        .get(eventId) as { id: number; timestamp: string; filepath: string | null; diff: string | null } | undefined;
+      const event = fileEventsRepo.byId(eventId);
       if (!event) {
         res.status(404).json({ error: 'event not found' });
         return;

@@ -31,23 +31,6 @@ export function validateFilterValue(filterValue, availableProjects) {
 }
 
 /**
- * Check if a project name matches the current filter
- *
- * @param {string} projectName - The project name to check
- * @param {string} filterValue - The filter value ('all' or project name)
- * @returns {boolean} Whether the project matches the filter
- *
- * @example
- * matchesFilter('raven', 'all'); // true
- * matchesFilter('raven', 'raven'); // true
- * matchesFilter('raven', 'ant312'); // false
- */
-export function matchesFilter(projectName, filterValue) {
-  if (!projectName) return filterValue === ALL_PROJECTS;
-  return filterValue === ALL_PROJECTS || projectName === filterValue;
-}
-
-/**
  * Project color palette for visual coding
  * Uses a deterministic hash to assign consistent colors
  */

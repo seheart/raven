@@ -18,13 +18,9 @@
 
 import simpleGit, { type SimpleGit, type DefaultLogFields } from 'simple-git';
 
-export type DerivedKind =
-  | 'breaking'
-  | 'decision-marker'
-  | 'feat-architecture'
-  | 'refactor';
+type DerivedKind = 'breaking' | 'decision-marker' | 'feat-architecture' | 'refactor';
 
-export interface DerivedDecision {
+interface DerivedDecision {
   sha: string;
   /** Short SHA — first 7 chars. */
   short_sha: string;
@@ -45,7 +41,7 @@ export interface DerivedDecisionsService {
 
 const HEADLINE_PATTERNS: Array<{ kind: DerivedKind; rx: RegExp }> = [
   { kind: 'feat-architecture', rx: /^feat\((arch|architecture|infra|core|api|db|schema)\)/i },
-  { kind: 'refactor',          rx: /^refactor(\(|:)/i }
+  { kind: 'refactor', rx: /^refactor(\(|:)/i }
 ];
 
 const DECISION_MARKER = /^(decision|decided)\s*:\s*/im;
@@ -59,7 +55,10 @@ export function createDerivedDecisionsService(repoPath: string): DerivedDecision
     git = null;
   }
 
-  function classify(headline: string, body: string): {
+  function classify(
+    headline: string,
+    body: string
+  ): {
     kind: DerivedKind | null;
     breaking: boolean;
   } {
@@ -89,7 +88,10 @@ export function createDerivedDecisionsService(repoPath: string): DerivedDecision
     const trailerStart = body.search(/\n(Co-Authored-By|Signed-off-by|Reviewed-by):/i);
     const trimmed = trailerStart === -1 ? body : body.slice(0, trailerStart);
     // Take first paragraph (split on blank line).
-    const para = trimmed.split(/\n\s*\n/).map(p => p.trim()).find(p => p.length > 20);
+    const para = trimmed
+      .split(/\n\s*\n/)
+      .map(p => p.trim())
+      .find(p => p.length > 20);
     if (!para) return trimmed.trim().slice(0, 320);
     // Cap to 320 chars so the UI doesn't render a wall of text.
     return para.length > 320 ? `${para.slice(0, 319)}…` : para;

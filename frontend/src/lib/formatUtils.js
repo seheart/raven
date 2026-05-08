@@ -73,28 +73,6 @@ export function formatDurationMinutes(minutes) {
 }
 
 /**
- * Format timestamp to relative time (e.g., "5m ago", "2h ago")
- * @param {string|Date} timestamp - Timestamp to format
- * @returns {string} Relative time string
- */
-function formatRelativeTime(timestamp) {
-  const now = Date.now();
-  const then = new Date(timestamp).getTime();
-  const diff = now - then;
-
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  if (seconds > 5) return `${seconds}s ago`;
-  return 'just now';
-}
-
-/**
  * Format number with thousand separators
  * @param {number} num - Number to format
  * @returns {string} Formatted number

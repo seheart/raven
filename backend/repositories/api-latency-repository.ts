@@ -34,6 +34,9 @@ export interface ApiLatencyRepository {
   ): number;
   recent(limit?: number): ApiLatencyRow[];
   stats(minutes?: number): ApiLatencyStats;
+
+  /** Per-call latencies grouped by model, since `cutoffIso`. */
+  latenciesByModelSince(cutoffIso: string): Array<{ model: string; latency_ms: number }>;
 }
 
 export function createApiLatencyRepository(db: RavenDB): ApiLatencyRepository {
@@ -47,6 +50,11 @@ export function createApiLatencyRepository(db: RavenDB): ApiLatencyRepository {
     FROM api_latency
     ORDER BY timestamp DESC
     LIMIT ?
+  `);
+
+  const latenciesByModelSinceStmt = db.db.prepare(`
+    SELECT model, latency_ms FROM api_latency
+    WHERE timestamp >= ? AND latency_ms IS NOT NULL
   `);
 
   return {
@@ -88,6 +96,13 @@ export function createApiLatencyRepository(db: RavenDB): ApiLatencyRepository {
         count: values.length,
         requests_per_min: Math.round((values.length / minutes) * 10) / 10
       };
+    },
+
+    latenciesByModelSince(cutoffIso) {
+      return latenciesByModelSinceStmt.all(cutoffIso) as Array<{
+        model: string;
+        latency_ms: number;
+      }>;
     }
   };
 }

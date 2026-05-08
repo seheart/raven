@@ -8,19 +8,13 @@
  */
 
 import express, { Request, Response, Router } from 'express';
-import type { RavenDB } from '../db.js';
+import type {
+  TodayNarrativeRepository,
+  TodayProjectSlice,
+  WeekProjectSlice
+} from '../repositories/today-narrative-repository.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { cacheMiddleware } from '../services/cache-service.js';
-
-interface ProjectSlice {
-  project: string;
-  events: number;
-  files: number;
-}
-
-interface WeekProjectSlice extends ProjectSlice {
-  days_active: number;
-}
 
 interface ReturningProject {
   project: string;
@@ -31,7 +25,7 @@ interface NarrativeResponse {
   today: {
     events: number;
     files: number;
-    projects: ProjectSlice[];
+    projects: TodayProjectSlice[];
     top_project: string | null;
     longest_session_seconds: number;
   };
@@ -45,14 +39,9 @@ interface NarrativeResponse {
   returning: ReturningProject[];
 }
 
-export function createTodayNarrativeRouter(db: RavenDB): Router {
+export function createTodayNarrativeRouter(todayNarrativeRepo: TodayNarrativeRepository): Router {
   const router = express.Router();
 
-  /**
-   * GET /api/today/narrative
-   * Returns aggregations for today + this-week, plus "returning to"
-   * projects (first edit today after a >2-day gap).
-   */
   router.get(
     '/narrative',
     cacheMiddleware(15000),
@@ -64,112 +53,17 @@ export function createTodayNarrativeRouter(db: RavenDB): Router {
       const todayStart = new Date(now);
       todayStart.setHours(0, 0, 0, 0);
       const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - 6); // last 7 days inclusive
+      weekStart.setDate(weekStart.getDate() - 6);
 
       const todayIso = todayStart.toISOString();
       const weekIso = weekStart.toISOString();
 
-      // ── Today: per-project breakdown + totals ───────────────────
-      const todayProjects = db.db
-        .prepare(
-          `SELECT
-             COALESCE(project_name, '(unattributed)') AS project,
-             COUNT(*) AS events,
-             COUNT(DISTINCT filepath) AS files
-           FROM events
-           WHERE timestamp >= ?
-             AND project_name IS NOT NULL
-             AND project_name != ''
-           GROUP BY project_name
-           ORDER BY events DESC`
-        )
-        .all(todayIso) as ProjectSlice[];
-
-      const todayTotals = db.db
-        .prepare(
-          `SELECT
-             COUNT(*) AS events,
-             COUNT(DISTINCT filepath) AS files
-           FROM events
-           WHERE timestamp >= ?`
-        )
-        .get(todayIso) as { events: number; files: number } | undefined;
-
-      // ── Week: per-project breakdown + days_active ───────────────
-      const weekProjects = db.db
-        .prepare(
-          `SELECT
-             COALESCE(project_name, '(unattributed)') AS project,
-             COUNT(*) AS events,
-             COUNT(DISTINCT filepath) AS files,
-             COUNT(DISTINCT date(timestamp)) AS days_active
-           FROM events
-           WHERE timestamp >= ?
-             AND project_name IS NOT NULL
-             AND project_name != ''
-           GROUP BY project_name
-           ORDER BY events DESC`
-        )
-        .all(weekIso) as WeekProjectSlice[];
-
-      const weekTotals = db.db
-        .prepare(
-          `SELECT
-             COUNT(*) AS events,
-             COUNT(DISTINCT filepath) AS files,
-             COUNT(DISTINCT date(timestamp)) AS days_active
-           FROM events
-           WHERE timestamp >= ?`
-        )
-        .get(weekIso) as { events: number; files: number; days_active: number } | undefined;
-
-      // ── Longest session today ───────────────────────────────────
-      // Group events by session_id, take max span. Reasonable proxy for
-      // "longest stretch of work today". Sessions span midnight rarely
-      // enough that we cap to today's events for simplicity.
-      const longestSession = db.db
-        .prepare(
-          `SELECT
-             MAX(span_seconds) AS longest_seconds
-           FROM (
-             SELECT (julianday(MAX(timestamp)) - julianday(MIN(timestamp))) * 86400 AS span_seconds
-             FROM events
-             WHERE timestamp >= ? AND session_id IS NOT NULL
-             GROUP BY session_id
-             HAVING COUNT(*) > 1
-           )`
-        )
-        .get(todayIso) as { longest_seconds: number | null } | undefined;
-
-      // ── "Returning to" projects ─────────────────────────────────
-      // Projects that have an event today AND whose previous event was
-      // more than 2 days before today's start. The data answer-key:
-      // for each project active today, find max(timestamp) before today.
-      const returningRows = db.db
-        .prepare(
-          `SELECT
-             today.project_name AS project,
-             today.first_today AS first_today,
-             prev.last_before AS last_before
-           FROM (
-             SELECT project_name, MIN(timestamp) AS first_today
-             FROM events
-             WHERE timestamp >= ? AND project_name IS NOT NULL AND project_name != ''
-             GROUP BY project_name
-           ) AS today
-           LEFT JOIN (
-             SELECT project_name, MAX(timestamp) AS last_before
-             FROM events
-             WHERE timestamp < ? AND project_name IS NOT NULL AND project_name != ''
-             GROUP BY project_name
-           ) AS prev
-           ON today.project_name = prev.project_name`
-        )
-        .all(todayIso, todayIso) as Array<{
-          project: string;
-          first_today: string;
-          last_before: string | null;
-        }>;
+      const todayProjects = todayNarrativeRepo.projectsSince(todayIso);
+      const todayTotals = todayNarrativeRepo.totalsSince(todayIso);
+      const weekProjects = todayNarrativeRepo.projectsWithDaysActiveSince(weekIso);
+      const weekTotals = todayNarrativeRepo.totalsWithDaysActiveSince(weekIso);
+      const longestSeconds = todayNarrativeRepo.longestSessionSecondsSince(todayIso);
+      const returningRows = todayNarrativeRepo.returningSince(todayIso);
 
       // Calendar-day diff (not ms-diff) so "4 days ago at 10am" reads as
       // "4 days" not "3" — matches how users speak about elapsed time.
@@ -188,18 +82,18 @@ export function createTodayNarrativeRouter(db: RavenDB): Router {
 
       const response: NarrativeResponse = {
         today: {
-          events: todayTotals?.events ?? 0,
-          files: todayTotals?.files ?? 0,
+          events: todayTotals.events,
+          files: todayTotals.files,
           projects: todayProjects,
           top_project: todayProjects[0]?.project ?? null,
-          longest_session_seconds: Math.floor(longestSession?.longest_seconds ?? 0)
+          longest_session_seconds: longestSeconds
         },
         week: {
-          events: weekTotals?.events ?? 0,
-          files: weekTotals?.files ?? 0,
+          events: weekTotals.events,
+          files: weekTotals.files,
           projects: weekProjects,
           top_project: weekProjects[0]?.project ?? null,
-          days_active: weekTotals?.days_active ?? 0
+          days_active: weekTotals.days_active
         },
         returning
       };

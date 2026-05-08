@@ -1,5 +1,5 @@
 /* Shared keyframes and animation utilities.
-   Page-level <style> blocks are forbidden by validate-patterns.sh once a
+   Page-level \3c style> blocks are forbidden by validate-patterns.sh once a
    page has migrated to PageLayout — animations live here instead.
 
    Imported from src/app.css (global). */

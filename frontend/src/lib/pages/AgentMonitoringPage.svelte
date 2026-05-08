@@ -532,7 +532,7 @@
     {:else if runningAgents.length === 0}
       <div class="text-center py-8 leading-relaxed">
         <p class="text-sm text-body font-sans">No agents currently running</p>
-        <p class="text-xs text-muted mt-2 max-w-md mx-auto">
+        <p class="text-xs text-muted mt-2 max-w-[28rem] mx-auto">
           An "agent" here is a CLI like Claude Code, Codex, or a local Ollama session. Start one and
           it'll appear with live process stats.
         </p>
@@ -593,7 +593,7 @@
     {:else if agentsStatus.length === 0}
       <div class="text-center py-8 leading-relaxed">
         <p class="text-sm text-body font-sans">No agents detected yet</p>
-        <p class="text-xs text-muted mt-2 max-w-md mx-auto">
+        <p class="text-xs text-muted mt-2 max-w-[28rem] mx-auto">
           Raven discovers agents from their log files (Claude Code, Codex) or live processes. Run
           one once and it'll be remembered here.
         </p>
@@ -752,7 +752,7 @@
           {hasActiveFilters ? 'No events match your filters' : 'No recent activity'}
         </p>
         {#if !hasActiveFilters}
-          <p class="text-xs text-muted mt-2 max-w-md mx-auto">
+          <p class="text-xs text-muted mt-2 max-w-[28rem] mx-auto">
             Each tool call (Read, Edit, Bash, etc.) Claude makes lands here in real time. Trigger
             one and watch it stream in.
           </p>

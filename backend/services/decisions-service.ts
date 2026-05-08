@@ -10,19 +10,19 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-export interface ResolvedDecision {
+interface ResolvedDecision {
   q: string;
   decision: string;
   alternatives: string;
   livesAt: string;
 }
 
-export interface OpenQuestion {
+interface OpenQuestion {
   q: string;
   note: string;
 }
 
-export interface DecisionsPayload {
+interface DecisionsPayload {
   resolved: ResolvedDecision[];
   open: OpenQuestion[];
   /** Path the parser read from, for debugging. */

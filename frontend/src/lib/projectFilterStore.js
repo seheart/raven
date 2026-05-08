@@ -7,12 +7,7 @@ import { logger } from './logger.js';
  * "all" means show data from all projects, or select a specific project name.
  */
 
-import {
-  ALL_PROJECTS,
-  matchesFilter,
-  validateFilterValue,
-  addRecentProject
-} from './utils/projectFilter.js';
+import { ALL_PROJECTS, validateFilterValue, addRecentProject } from './utils/projectFilter.js';
 
 // Available projects (will be populated from API)
 export const availableProjects = writable([]);

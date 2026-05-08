@@ -24,7 +24,7 @@ describe('LibraryCard', () => {
   it('renders the empty-state when no models are installed', async () => {
     mockApiGet.mockResolvedValue({ models: [], count: 0, ollama_status: 'online' });
     render(LibraryCard);
-    expect(await screen.findByText('No models installed')).toBeTruthy();
+    expect(await screen.findByText('No models on disk')).toBeTruthy();
   });
 
   it('renders models sorted by size (largest first)', async () => {

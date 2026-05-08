@@ -22,12 +22,31 @@
   let rightLines = [];
 
   $: {
+    // Reset both shapes before re-parsing — without this, switching from a
+    // contents-based diff (populates leftLines/rightLines) to a unified-diff
+    // (populates diffLines) leaves the prior pane's lines stale, which then
+    // bleeds into the side-by-side fallback when the new unified parse
+    // produces nothing.
+    diffLines = [];
+    leftLines = [];
+    rightLines = [];
     if (diff) {
       parseDiff(diff);
     } else if (oldContent || newContent) {
       parseContents(oldContent, newContent);
     }
   }
+
+  // Side-by-side mode renders one row per parsed line; if oldContent equals
+  // newContent (or both sides are blank), parseContents still produces context
+  // rows with empty content, which paints a panel full of empty divs. Only
+  // render side-by-side when at least one row has visible content AND there's
+  // actually a diff to show (an add/remove on either side).
+  $: hasSideBySideContent =
+    leftLines.some(l => l.content && l.content.trim()) ||
+    rightLines.some(l => l.content && l.content.trim());
+  $: hasSideBySideDiff =
+    leftLines.some(l => l.type === 'remove') || rightLines.some(l => l.type === 'add');
 
   // Index annotations by new-file line number. Line 0 is reserved for
   // file-level findings (e.g. "this is an .env edit").
@@ -105,20 +124,28 @@
   /** @param {string} sev */
   function severityClass(sev) {
     switch (sev) {
-      case 'critical': return 'bg-[var(--error)]/15 text-[var(--error)] border-[var(--error)]/30';
-      case 'warning': return 'bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30';
-      case 'info': return 'bg-[var(--info)]/15 text-[var(--info)] border-[var(--info)]/30';
-      default: return 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]';
+      case 'critical':
+        return 'bg-[var(--error)]/15 text-[var(--error)] border-[var(--error)]/30';
+      case 'warning':
+        return 'bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30';
+      case 'info':
+        return 'bg-[var(--info)]/15 text-[var(--info)] border-[var(--info)]/30';
+      default:
+        return 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]';
     }
   }
 
   /** @param {string} sev */
   function severityGlyph(sev) {
     switch (sev) {
-      case 'critical': return '!';
-      case 'warning': return '⚠';
-      case 'info': return 'i';
-      default: return '·';
+      case 'critical':
+        return '!';
+      case 'warning':
+        return '⚠';
+      case 'info':
+        return 'i';
+      default:
+        return '·';
     }
   }
 </script>
@@ -131,13 +158,22 @@
       <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Diff</span>
       {#if highestSeverity}
         <span
-          class="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold px-2 py-0.5 rounded border {severityClass(highestSeverity)}"
-          title="{annotations.length} risk annotation{annotations.length === 1 ? '' : 's'} on this diff"
+          class="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold px-2 py-0.5 rounded border {severityClass(
+            highestSeverity
+          )}"
+          title="{annotations.length} risk annotation{annotations.length === 1
+            ? ''
+            : 's'} on this diff"
         >
           <span aria-hidden="true">{severityGlyph(highestSeverity)}</span>
           <span class="uppercase tracking-wide">{highestSeverity}</span>
           <span class="font-normal opacity-80">
-            {#if severityCounts.critical}{severityCounts.critical}c{/if}{#if severityCounts.warning}{severityCounts.critical ? ' ' : ''}{severityCounts.warning}w{/if}{#if severityCounts.info}{severityCounts.critical || severityCounts.warning ? ' ' : ''}{severityCounts.info}i{/if}
+            {#if severityCounts.critical}{severityCounts.critical}c{/if}{#if severityCounts.warning}{severityCounts.critical
+                ? ' '
+                : ''}{severityCounts.warning}w{/if}{#if severityCounts.info}{severityCounts.critical ||
+              severityCounts.warning
+                ? ' '
+                : ''}{severityCounts.info}i{/if}
           </span>
         </span>
       {/if}
@@ -150,9 +186,14 @@
       {#each fileLevel as a (a.rule_id + a.message)}
         <div class="flex items-start gap-2 text-xs font-sans">
           <span
-            class="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold border flex-shrink-0 {severityClass(a.severity)}"
-            aria-hidden="true">{severityGlyph(a.severity)}</span>
-          <span class="text-[var(--text)]"><span class="font-semibold">{a.rule_name}:</span> {a.message}</span>
+            class="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold border flex-shrink-0 {severityClass(
+              a.severity
+            )}"
+            aria-hidden="true">{severityGlyph(a.severity)}</span
+          >
+          <span class="text-[var(--text)]"
+            ><span class="font-semibold">{a.rule_name}:</span> {a.message}</span
+          >
         </div>
       {/each}
     </div>
@@ -160,19 +201,30 @@
 
   {#if diffLines.length > 0}
     <pre
-      class="text-xs font-mono p-0 overflow-auto max-h-96 m-0">{#each diffLines as line, idx (idx)}{@const ann = line.newLineNo ? annotationsByLine.get(line.newLineNo) : null}<span
+      class="text-xs font-mono p-0 overflow-auto max-h-96 m-0">{#each diffLines as line, idx (idx)}{@const ann =
+          line.newLineNo ? annotationsByLine.get(line.newLineNo) : null}<span
           class={(line.type === 'add'
             ? 'flex bg-[var(--success-subtle)] text-[var(--success)]'
             : line.type === 'remove'
               ? 'flex bg-[var(--error-subtle)] text-[var(--error)]'
               : 'flex text-[var(--text)]') + (ann ? ' annotated' : '')}
-        ><span class="inline-block w-7 flex-shrink-0 text-right pr-2 text-[var(--muted)] select-none">{line.newLineNo ?? ''}</span><span class="inline-block w-5 flex-shrink-0 text-center">{#if ann}<span
-              class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border {severityClass(ann[0].severity)}"
-              title={ann.map(x => `${x.rule_name}: ${x.message}`).join('\n')}
-              aria-label="{ann.length} risk annotation{ann.length === 1 ? '' : 's'}: {ann.map(x => x.rule_name).join(', ')}"
-              >{severityGlyph(ann[0].severity)}</span>{/if}</span><span class="flex-1 px-2 whitespace-pre-wrap">{line.content}</span></span>
-{/each}</pre>
-  {:else if leftLines.length > 0}
+          ><span
+            class="inline-block w-7 flex-shrink-0 text-right pr-2 text-[var(--muted)] select-none"
+            >{line.newLineNo ?? ''}</span
+          ><span class="inline-block w-5 flex-shrink-0 text-center"
+            >{#if ann}<span
+                class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border {severityClass(
+                  ann[0].severity
+                )}"
+                title={ann.map(x => `${x.rule_name}: ${x.message}`).join('\n')}
+                aria-label="{ann.length} risk annotation{ann.length === 1 ? '' : 's'}: {ann
+                  .map(x => x.rule_name)
+                  .join(', ')}">{severityGlyph(ann[0].severity)}</span
+              >{/if}</span
+          ><span class="flex-1 px-2 whitespace-pre-wrap">{line.content}</span></span
+        >
+      {/each}</pre>
+  {:else if leftLines.length > 0 && hasSideBySideContent && hasSideBySideDiff}
     <div
       class="grid grid-cols-2 divide-x divide-[var(--border)] text-xs font-mono overflow-auto max-h-96"
     >
@@ -200,10 +252,13 @@
             <span class="inline-block w-5 text-center">
               {#if ann}
                 <span
-                  class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border {severityClass(ann[0].severity)}"
+                  class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border {severityClass(
+                    ann[0].severity
+                  )}"
                   title={ann.map(x => `${x.rule_name}: ${x.message}`).join('\n')}
                   aria-label="risk: {ann.map(x => x.rule_name).join(', ')}"
-                >{severityGlyph(ann[0].severity)}</span>
+                  >{severityGlyph(ann[0].severity)}</span
+                >
               {/if}
             </span>
             <span class="flex-1 whitespace-pre-wrap">{line.content}</span>
@@ -212,6 +267,12 @@
       </div>
     </div>
   {:else}
-    <div class="p-6 text-center text-sm text-[var(--muted)]">No diff available</div>
+    <div class="p-6 text-center text-sm text-[var(--muted)] leading-relaxed">
+      <div class="font-semibold text-body">No diff to show</div>
+      <div class="mt-1 text-xs">
+        Either the file is binary, the change was whitespace-only, or both versions are identical.
+        The event was still recorded — open another row.
+      </div>
+    </div>
   {/if}
 </div>

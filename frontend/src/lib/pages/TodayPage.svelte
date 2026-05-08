@@ -10,6 +10,8 @@
   import TokenStream from '../components/today/TokenStream.svelte';
   import ContextVessel from '../components/today/ContextVessel.svelte';
   import AnomalyBanner from '../components/today/AnomalyBanner.svelte';
+  import MilestonesPanel from '../components/today/MilestonesPanel.svelte';
+  import WeekRecap from '../components/today/WeekRecap.svelte';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
   import { navigate } from '../utils/router.svelte.js';
@@ -711,6 +713,15 @@
 
     <!-- Anomaly banner — only renders when an agent is drifting. -->
     <AnomalyBanner />
+
+    <!-- Milestone card — once-in-a-lifetime moments (first session, week-1,
+         month-1, 100/1000th edit, anniversaries). Inline, not modal.
+         Self-renders only when there's an unviewed milestone. -->
+    <MilestonesPanel />
+
+    <!-- Week recap — Mon-anchored ISO-week digest with lead + supporting
+         beats. Inline, replaces the auto-popup modal. -->
+    <WeekRecap />
 
     <!-- Narrative beats — second-person, data-driven sentences. -->
     {#if beats.length > 0}

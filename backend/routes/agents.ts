@@ -4,14 +4,14 @@
  */
 
 import express, { Request, Response, Router } from 'express';
-import type { RavenDB } from '../db.js';
 import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
+import type { FileEventsRepository } from '../repositories/file-events-repository.js';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { asyncHandler } from '../middleware/async-handler.js';
-import { parseLimit, parseDateRange, buildTimeFilterQuery } from '../utils/request-helpers.js';
+import { parseLimit, parseDateRange } from '../utils/request-helpers.js';
 
 export function createAgentsRouter(
-  db: RavenDB,
+  fileEventsRepo: FileEventsRepository,
   agentRegistry: Map<string, any>,
   agentEventsRepo: AgentEventsRepository
 ): Router {
@@ -49,19 +49,7 @@ export function createAgentsRouter(
     asyncHandler(async (req: Request, res: Response) => {
       const limit = parseLimit(req);
       const { startTime, endTime } = parseDateRange(req);
-
-      const { query, params } = buildTimeFilterQuery(
-        `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
-         FROM agent_events`,
-        {
-          startTime,
-          endTime,
-          orderBy: 'timestamp DESC',
-          limit
-        }
-      );
-
-      const events = db.db.prepare(query).all(...params);
+      const events = agentEventsRepo.listInTimeRange(startTime, endTime, limit);
       res.json(events);
     })
   );
@@ -92,36 +80,13 @@ export function createAgentsRouter(
 
       // Use a 30-day window to avoid full table scan on large datasets
       const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const fileStats = db.db
-        .prepare(
-          `
-        SELECT
-          COUNT(*) as total_file_changes,
-          COUNT(DISTINCT filepath) as unique_files,
-          SUM(CASE WHEN change_type IN ('change', 'modified') THEN 1 ELSE 0 END) as edit_count,
-          SUM(CASE WHEN change_type = 'add' THEN 1 ELSE 0 END) as create_count,
-          SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as delete_count,
-          MIN(timestamp) as first_seen,
-          MAX(timestamp) as last_active
-        FROM events
-        WHERE timestamp > ?
-      `
-        )
-        .get(cutoff) as any;
+      const fileStats = fileEventsRepo.statsSince(cutoff);
 
       // Per-agent tool breakdown. Earlier this was a single global GROUP BY,
       // so every agent in the response showed the same top-10 list — every
       // page reading agent_stats was rendering identical (and wrong) tool
       // breakdowns. Now group by (agent, message) and assemble per agent.
-      const toolBreakdownRows = db.db
-        .prepare(
-          `SELECT agent, message, COUNT(*) as count
-           FROM agent_events
-           WHERE event_type = 'tool_call' AND agent IS NOT NULL
-           GROUP BY agent, message
-           ORDER BY agent, count DESC`
-        )
-        .all() as Array<{ agent: string; message: string; count: number }>;
+      const toolBreakdownRows = agentEventsRepo.toolBreakdown();
 
       const toolBreakdownByAgent = new Map<string, Array<{ message: string; count: number }>>();
       for (const row of toolBreakdownRows) {
@@ -193,29 +158,10 @@ export function createAgentsRouter(
     cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       // Get all agent events grouped by agent
-      const agents = db.db
-        .prepare(
-          `SELECT
-            agent,
-            COUNT(*) as event_count,
-            MIN(timestamp) as first_seen,
-            MAX(timestamp) as last_seen,
-            COUNT(DISTINCT file) as unique_files
-          FROM agent_events
-          GROUP BY agent
-          ORDER BY event_count DESC`
-        )
-        .all() as any[];
+      const agents = agentEventsRepo.agentProfiles() as any[];
 
       // Get event type distribution for all agents in a single query
-      const allEventTypes = db.db
-        .prepare(
-          `SELECT agent, event_type, COUNT(*) as count
-          FROM agent_events
-          GROUP BY agent, event_type
-          ORDER BY agent, count DESC`
-        )
-        .all() as any[];
+      const allEventTypes = agentEventsRepo.eventTypeDistribution() as any[];
 
       // Group by agent name
       const eventTypesByAgent = new Map<string, any[]>();

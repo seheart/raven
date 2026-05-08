@@ -57,6 +57,10 @@ import { createAgentEventsRepository } from './repositories/agent-events-reposit
 import { createFileEventsRepository } from './repositories/file-events-repository.js';
 import { createDashboardRepository } from './repositories/dashboard-repository.js';
 import { createApiLatencyRepository } from './repositories/api-latency-repository.js';
+import { createTokenUsageRepository } from './repositories/token-usage-repository.js';
+import { createJourneyRepository } from './repositories/journey-repository.js';
+import { createTodayNarrativeRepository } from './repositories/today-narrative-repository.js';
+import { createSubagentsRepository } from './repositories/subagents-repository.js';
 import { createSyntaxErrorsRepository } from './repositories/syntax-errors-repository.js';
 import { createPatternWarningsRepository } from './repositories/pattern-warnings-repository.js';
 import { createMetricsRepository } from './repositories/metrics-repository.js';
@@ -308,6 +312,10 @@ scheduleDaily(18, () => {
 const agentRegistry = new Map<string, AgentInfo>();
 
 const apiLatencyRepository = createApiLatencyRepository(db);
+const tokenUsageRepository = createTokenUsageRepository(db);
+const journeyRepository = createJourneyRepository(db);
+const todayNarrativeRepository = createTodayNarrativeRepository(db);
+const subagentsRepository = createSubagentsRepository(db);
 const agentEventsRepository = createAgentEventsRepository(db);
 const fileEventsRepository = createFileEventsRepository(db);
 const metricsRepository = createMetricsRepository(db);
@@ -439,6 +447,10 @@ wireRoutes(app, {
   expensiveOpLimiter,
   scheduleAgentStatsBroadcast,
   apiLatencyRepository,
+  tokenUsageRepository,
+  journeyRepository,
+  todayNarrativeRepository,
+  subagentsRepository,
   agentEventsRepository,
   fileEventsRepository,
   metricsRepository,

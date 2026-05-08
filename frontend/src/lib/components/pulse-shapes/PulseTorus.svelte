@@ -5,14 +5,19 @@
    */
   import { onMount } from 'svelte';
   import { websocketService } from '../../services/websocket.js';
-  import { resolveThemeColors, rgba, TYPE_COLORS, eventToType, fileChangeToType } from './_shared.js';
+  import {
+    resolveThemeColors,
+    rgba,
+    TYPE_COLORS,
+    eventToType,
+    fileChangeToType
+  } from './_shared.js';
 
   let canvas;
   let ctx;
   let animId;
   let width = 0;
   let height = 0;
-  let time = 0;
   let activity = 0;
   let torusYaw = 0;
   let colors = $state(resolveThemeColors());
@@ -25,7 +30,7 @@
       u: Math.random() * Math.PI * 2,
       v: Math.random() * Math.PI * 2,
       uSpeed: 0.005 + Math.random() * 0.018,
-      vSpeed: 0.003 + Math.random() * 0.010,
+      vSpeed: 0.003 + Math.random() * 0.01,
       color: colors.accent,
       colorLife: 0
     }));
@@ -46,7 +51,6 @@
 
   function draw() {
     const dt = 0.016;
-    time += dt;
     activity *= 0.992;
     torusYaw += (0.32 + activity * 0.4) * dt;
     ctx.clearRect(0, 0, width, height);
@@ -54,7 +58,7 @@
     const cx = width / 2;
     const cy = height / 2;
     const minSide = Math.min(width, height);
-    const R = minSide * 0.20;
+    const R = minSide * 0.2;
     const r = minSide * 0.07;
     const tilt = 1.05; // ~60° — see torus from above-the-plane
     const ct = Math.cos(tilt);
@@ -68,8 +72,10 @@
       p.v += p.vSpeed + activity * 0.003;
       p.colorLife *= 0.97;
 
-      const cu = Math.cos(p.u), su = Math.sin(p.u);
-      const cv = Math.cos(p.v), sv = Math.sin(p.v);
+      const cu = Math.cos(p.u),
+        su = Math.sin(p.u);
+      const cv = Math.cos(p.v),
+        sv = Math.sin(p.v);
       const x = (R + r * cv) * cu;
       const y = (R + r * cv) * su;
       const z = r * sv;
@@ -136,7 +142,9 @@
     websocketService.on('agent-event', onAgent);
     websocketService.on('file-changed', onFile);
 
-    const themeObs = new MutationObserver(() => { colors = resolveThemeColors(); });
+    const themeObs = new MutationObserver(() => {
+      colors = resolveThemeColors();
+    });
     themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     const resizeObs = new ResizeObserver(handleResize);
     resizeObs.observe(canvas.parentElement);
@@ -151,7 +159,9 @@
   });
 </script>
 
-<div class="relative w-full h-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]">
+<div
+  class="relative w-full h-full rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--surface)]"
+>
   <canvas bind:this={canvas} class="absolute inset-0 w-full h-full"></canvas>
   <div class="absolute top-3 left-4 pointer-events-none">
     <span class="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide">Torus</span>

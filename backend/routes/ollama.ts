@@ -13,7 +13,7 @@ import express, { Request, Response, Router } from 'express';
 import { spawn } from 'child_process';
 import { cacheMiddleware } from '../services/cache-service.js';
 import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
-import type { RavenDB } from '../db.js';
+import type { MetricsRepository } from '../repositories/metrics-repository.js';
 
 // Read lazily so the transparent-ollama-proxy EADDRINUSE fallback (which
 // mutates OLLAMA_URL after a port conflict) takes effect without a restart.
@@ -44,7 +44,7 @@ interface OllamaTagsModel {
 
 export function createOllamaDetailRouter(
   agentEventsRepo: AgentEventsRepository,
-  db: RavenDB
+  metricsRepo: MetricsRepository
 ): Router {
   const router = express.Router();
 
@@ -114,15 +114,7 @@ export function createOllamaDetailRouter(
         Math.min(1440, parseInt((req.query.minutes as string) || '60', 10) || 60)
       );
       const cutoff = new Date(Date.now() - minutes * 60_000).toISOString();
-      const rows = db.db
-        .prepare(
-          `SELECT timestamp, gpu_index, name, vram_used_mib, vram_total_mib, vram_pct,
-                  gpu_util_pct, mem_util_pct, temp_c, power_draw_w, power_limit_w
-           FROM gpu_metrics
-           WHERE timestamp >= ?
-           ORDER BY timestamp ASC`
-        )
-        .all(cutoff);
+      const rows = metricsRepo.gpuMetricsSince(cutoff);
       return res.json({ minutes, samples: rows });
     } catch (error) {
       return res.status(500).json({

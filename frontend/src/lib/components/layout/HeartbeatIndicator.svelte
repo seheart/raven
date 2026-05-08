@@ -41,10 +41,14 @@
     let best = { state: 'idle', score: priority.idle, name: fresh[0].agent_name };
     for (const r of fresh) {
       const s = (r.activity_state || '').toLowerCase();
-      const norm = s === 'executing' ? 'executing'
-        : s === 'thinking' ? 'thinking'
-        : (r.network_connections || 0) > 0 ? 'active'
-        : 'idle';
+      const norm =
+        s === 'executing'
+          ? 'executing'
+          : s === 'thinking'
+            ? 'thinking'
+            : (r.network_connections || 0) > 0
+              ? 'active'
+              : 'idle';
       const score = priority[norm] ?? 0;
       if (score > best.score) {
         best = { state: norm, score, name: r.agent_name };
@@ -74,21 +78,31 @@
 
   const stateLabel = $derived.by(() => {
     switch (state) {
-      case 'executing': return 'Executing';
-      case 'thinking':  return 'Thinking';
-      case 'active':    return 'Active';
-      case 'idle':      return 'Idle';
-      default:          return 'No agent';
+      case 'executing':
+        return 'Executing';
+      case 'thinking':
+        return 'Thinking';
+      case 'active':
+        return 'Active';
+      case 'idle':
+        return 'Idle';
+      default:
+        return 'No agent';
     }
   });
 
   const stateColor = $derived.by(() => {
     switch (state) {
-      case 'executing': return 'var(--success)';
-      case 'thinking':  return 'var(--warning)';
-      case 'active':    return 'var(--accent)';
-      case 'idle':      return 'var(--muted)';
-      default:          return 'var(--muted)';
+      case 'executing':
+        return 'var(--success)';
+      case 'thinking':
+        return 'var(--warning)';
+      case 'active':
+        return 'var(--accent)';
+      case 'idle':
+        return 'var(--muted)';
+      default:
+        return 'var(--muted)';
     }
   });
 
@@ -106,10 +120,7 @@
   title={tooltip}
   aria-label={tooltip}
 >
-  <span
-    class="hb hb-{state} flex-shrink-0"
-    style="--hb-color: {stateColor};"
-    aria-hidden="true"
+  <span class="hb hb-{state} flex-shrink-0" style="--hb-color: {stateColor};" aria-hidden="true"
   ></span>
   <span class="text-[var(--muted)]">{stateLabel}</span>
 </div>
@@ -127,37 +138,72 @@
   .hb-executing {
     animation: hb-tick 0.55s steps(1, end) infinite;
   }
+
   @keyframes hb-tick {
-    0%   { box-shadow: 0 0 0 0 var(--hb-color); transform: scale(1); }
-    20%  { box-shadow: 0 0 0 3px transparent; transform: scale(1.45); }
-    40%  { transform: scale(1); }
-    100% { transform: scale(1); }
+    0% {
+      box-shadow: 0 0 0 0 var(--hb-color);
+      transform: scale(1);
+    }
+    20% {
+      box-shadow: 0 0 0 3px transparent;
+      transform: scale(1.45);
+    }
+    40% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
   /* Slow breath while reasoning. */
   .hb-thinking {
     animation: hb-breath 1.6s ease-in-out infinite;
   }
+
   @keyframes hb-breath {
-    0%, 100% { box-shadow: 0 0 0 0 var(--hb-color); transform: scale(1); }
-    50%      { box-shadow: 0 0 0 5px transparent; transform: scale(1.25); }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 var(--hb-color);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 5px transparent;
+      transform: scale(1.25);
+    }
   }
   /* "Active" — somewhere between thinking and idle. Gentle. */
   .hb-active {
     animation: hb-pulse 2.4s ease-out infinite;
   }
+
   @keyframes hb-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
-    20%      { box-shadow: 0 0 0 4px transparent; transform: scale(1.15); }
-    40%      { transform: scale(1); }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+      transform: scale(1);
+    }
+    20% {
+      box-shadow: 0 0 0 4px transparent;
+      transform: scale(1.15);
+    }
+    40% {
+      transform: scale(1);
+    }
   }
   /* Honest stillness — a barely-perceptible breath, lower opacity. */
   .hb-idle {
     animation: hb-still 5.2s ease-in-out infinite;
     opacity: 0.65;
   }
+
   @keyframes hb-still {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.08); }
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.08);
+    }
   }
   /* Offline — completely still + dim, but never invisible. */
   .hb-offline {

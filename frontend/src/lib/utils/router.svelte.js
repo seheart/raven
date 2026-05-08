@@ -55,7 +55,3 @@ export function navigate(path) {
 export function getPath() {
   return router.path;
 }
-
-function isActive(path) {
-  return router.isActive(path);
-}

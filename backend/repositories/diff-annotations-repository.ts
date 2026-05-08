@@ -8,7 +8,7 @@
 
 import type { RavenDB } from '../db.js';
 
-export interface DiffAnnotationRow {
+interface DiffAnnotationRow {
   id: number;
   event_id: number;
   filepath: string;
@@ -37,7 +37,7 @@ export interface NewDiffAnnotation {
   timestamp?: string;
 }
 
-export interface FileAnnotationSummary {
+interface FileAnnotationSummary {
   filepath: string;
   event_id: number;
   timestamp: string;
@@ -88,9 +88,7 @@ export function createDiffAnnotationsRepository(db: RavenDB): DiffAnnotationsRep
      LIMIT ?`
   );
 
-  const deleteByEventStmt = db.db.prepare(
-    `DELETE FROM diff_annotations WHERE event_id = ?`
-  );
+  const deleteByEventStmt = db.db.prepare(`DELETE FROM diff_annotations WHERE event_id = ?`);
 
   const countStmt = db.db.prepare(`SELECT COUNT(*) AS c FROM diff_annotations`);
 
@@ -138,9 +136,13 @@ export function createDiffAnnotationsRepository(db: RavenDB): DiffAnnotationsRep
       return rows.map(r => ({
         ...r,
         highest_severity:
-          r.critical_count > 0 ? 'critical' :
-          r.warning_count > 0 ? 'warning' :
-          r.info_count > 0 ? 'info' : null
+          r.critical_count > 0
+            ? 'critical'
+            : r.warning_count > 0
+              ? 'warning'
+              : r.info_count > 0
+                ? 'info'
+                : null
       }));
     },
 

@@ -12,7 +12,7 @@
 
 import type { RavenDB } from '../db.js';
 
-export type MilestoneKind =
+type MilestoneKind =
   | 'first_session'
   | 'seven_days'
   | 'thirty_days'
@@ -21,7 +21,7 @@ export type MilestoneKind =
   | 'anniversary'
   | 'project_first_month';
 
-export interface Milestone {
+interface Milestone {
   /** Unique ID — used as the localStorage dismiss key. */
   id: string;
   kind: MilestoneKind;
@@ -47,18 +47,18 @@ function plural(n: number, s: string, p: string): string {
 
 export function createMilestonesService(db: RavenDB): MilestonesService {
   function reachedDays(daysAgo: number): boolean {
-    const earliestRow = db.db
-      .prepare(`SELECT MIN(timestamp) AS first_ts FROM events`)
-      .get() as { first_ts: string | null } | undefined;
+    const earliestRow = db.db.prepare(`SELECT MIN(timestamp) AS first_ts FROM events`).get() as
+      | { first_ts: string | null }
+      | undefined;
     if (!earliestRow?.first_ts) return false;
     const ageMs = Date.now() - new Date(earliestRow.first_ts).getTime();
     return ageMs >= daysAgo * 86_400_000;
   }
 
   function eventsCount(): number {
-    const row = db.db
-      .prepare(`SELECT COUNT(*) AS c FROM events`)
-      .get() as { c: number } | undefined;
+    const row = db.db.prepare(`SELECT COUNT(*) AS c FROM events`).get() as
+      | { c: number }
+      | undefined;
     return row?.c ?? 0;
   }
 
@@ -73,9 +73,9 @@ export function createMilestonesService(db: RavenDB): MilestonesService {
   }
 
   function firstSessionTimestamp(): string | null {
-    const row = db.db
-      .prepare(`SELECT MIN(timestamp) AS first_ts FROM events`)
-      .get() as { first_ts: string | null } | undefined;
+    const row = db.db.prepare(`SELECT MIN(timestamp) AS first_ts FROM events`).get() as
+      | { first_ts: string | null }
+      | undefined;
     return row?.first_ts ?? null;
   }
 
@@ -203,9 +203,10 @@ export function createMilestonesService(db: RavenDB): MilestonesService {
           kind: 'anniversary',
           reached_at: date,
           title: y === 1 ? 'One year with Raven.' : `${y} years with Raven.`,
-          body: y === 1
-            ? 'A full year of agent activity, projects come and gone, and the running cost meter you can actually trust. Raven Wrapped knows where to look.'
-            : `${y} years and counting. The audit trail goes deep — the Insights page can compare any two arbitrary windows now.`,
+          body:
+            y === 1
+              ? 'A full year of agent activity, projects come and gone, and the running cost meter you can actually trust. Raven Wrapped knows where to look.'
+              : `${y} years and counting. The audit trail goes deep — the Insights page can compare any two arbitrary windows now.`,
           project: null,
           stats: { events: eventsCount(), days: Math.floor(ageMs / 86_400_000) }
         });

@@ -69,10 +69,10 @@ const ConfigSchema = z
     basePath: z.string().min(1).max(4096)
   })
   .partial();
-import type { RavenDB } from '../db.js';
+import type { FileEventsRepository } from '../repositories/file-events-repository.js';
 
 interface ProjectsRouterDeps {
-  db: RavenDB;
+  fileEventsRepo: FileEventsRepository;
   ravenDir: string;
   projectsConfigService: {
     load(): Promise<ProjectsConfig>;
@@ -85,7 +85,7 @@ interface ProjectsRouterDeps {
 }
 
 export function createProjectsRouter({
-  db,
+  fileEventsRepo,
   ravenDir,
   projectsConfigService,
   projectManager
@@ -97,23 +97,9 @@ export function createProjectsRouter({
     try {
       const config = await projectsConfigService.load();
 
-      // Single GROUP BY query instead of one COUNT(*) per project. With N
-      // projects this is O(N) → O(1) round-trips. Catch swallows the
-      // "table missing" case the same way the per-project version did.
-      const counts = new Map<string, number>();
-      try {
-        const rows = db.db
-          .prepare<
-            unknown[],
-            { project_name: string | null; count: number }
-          >('SELECT project_name, COUNT(*) as count FROM events GROUP BY project_name')
-          .all();
-        for (const r of rows) {
-          if (r.project_name) counts.set(r.project_name, r.count);
-        }
-      } catch {
-        /* table missing or query failed — every count stays 0 */
-      }
+      // Single GROUP BY query instead of one COUNT(*) per project — owned
+      // by the repo. Missing-table case keeps every count at 0.
+      const counts = fileEventsRepo.eventCountsByProject();
 
       const projects = config.projects.map(project => ({
         ...project,
@@ -310,8 +296,14 @@ export function createProjectsRouter({
       const probed = await Promise.all(
         candidates.map(async ({ name, projectPath }) => {
           const [hasGit, hasPackageJson] = await Promise.all([
-            fs.access(join(projectPath, '.git')).then(() => true).catch(() => false),
-            fs.access(join(projectPath, 'package.json')).then(() => true).catch(() => false)
+            fs
+              .access(join(projectPath, '.git'))
+              .then(() => true)
+              .catch(() => false),
+            fs
+              .access(join(projectPath, 'package.json'))
+              .then(() => true)
+              .catch(() => false)
           ]);
           return { name, projectPath, isProject: hasGit || hasPackageJson };
         })

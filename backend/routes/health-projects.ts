@@ -9,37 +9,28 @@
 import express, { Request, Response, Router } from 'express';
 import { logger } from '../utils/logger.js';
 import { cacheMiddleware } from '../services/cache-service.js';
-import type { RavenDB } from '../db.js';
+import type { FileEventsRepository } from '../repositories/file-events-repository.js';
+import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
 
 interface HealthProjectsDeps {
-  db: RavenDB;
+  fileEventsRepo: FileEventsRepository;
+  syntaxErrorsRepo: SyntaxErrorsRepository;
   projectName: string;
 }
 
-export function createHealthProjectsRouter({ db, projectName }: HealthProjectsDeps): Router {
+export function createHealthProjectsRouter({
+  fileEventsRepo,
+  syntaxErrorsRepo,
+  projectName
+}: HealthProjectsDeps): Router {
   const router = express.Router();
 
   router.get('/projects', cacheMiddleware(5000), (_req: Request, res: Response) => {
     try {
-      const totalEvents = db.db.prepare('SELECT COUNT(*) as count FROM events').get() as
-        | { count: number }
-        | undefined;
-      const recentEvents = db.db
-        .prepare(
-          `SELECT COUNT(*) as count FROM events
-           WHERE datetime(timestamp) >= datetime('now', '-24 hours')`
-        )
-        .get() as { count: number } | undefined;
-      const lastActivity = db.db.prepare('SELECT MAX(timestamp) as timestamp FROM events').get() as
-        | { timestamp: string | null }
-        | undefined;
-      const syntaxErrors = db.db.prepare('SELECT COUNT(*) as count FROM syntax_errors').get() as
-        | { count: number }
-        | undefined;
-
-      const recent = recentEvents?.count ?? 0;
-      const errorCount = syntaxErrors?.count ?? 0;
-      const lastActivityTs = lastActivity?.timestamp ?? null;
+      const totalEventsCount = fileEventsRepo.totalCount();
+      const recent = fileEventsRepo.countSinceHours(24);
+      const lastActivityTs = fileEventsRepo.lastTimestamp();
+      const errorCount = syntaxErrorsRepo.totalCount();
 
       const activityScore = Math.min(recent, 100);
       const errorPenalty = Math.min(errorCount * 5, 50);
@@ -71,7 +62,7 @@ export function createHealthProjectsRouter({ db, projectName }: HealthProjectsDe
         recent_projects: projects.filter(p => p.status === 'recent').length,
         // Kept for legacy callers — `total_events` was reported alongside the
         // project entries in the original handler.
-        total_events: totalEvents?.count ?? 0
+        total_events: totalEventsCount
       });
     } catch (error) {
       logger.error('❌ Multi-project health error:', error as Error);

@@ -45,6 +45,20 @@ interface MetricsStatsRow {
   sample_count: number;
 }
 
+interface GpuSampleRow {
+  timestamp: string;
+  gpu_index: number;
+  name: string;
+  vram_used_mib: number;
+  vram_total_mib: number;
+  vram_pct: number;
+  gpu_util_pct: number;
+  mem_util_pct: number;
+  temp_c: number;
+  power_draw_w: number;
+  power_limit_w: number;
+}
+
 export interface MetricsRepository {
   insertSystemMetrics(
     timestamp: string,
@@ -90,6 +104,9 @@ export interface MetricsRepository {
 
   /** Latest process activity per tracked agent. */
   latestProcessActivity(): ProcessMetricsRow[];
+
+  /** GPU metrics samples since `cutoffIso`, ordered ASC by timestamp. */
+  gpuMetricsSince(cutoffIso: string): GpuSampleRow[];
 }
 
 export function createMetricsRepository(db: RavenDB): MetricsRepository {
@@ -162,6 +179,14 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
       FROM process_metrics
       GROUP BY agent_name
     ) latest ON pm.agent_name = latest.agent_name AND pm.timestamp = latest.max_ts
+  `);
+
+  const gpuMetricsSinceStmt = db.db.prepare(`
+    SELECT timestamp, gpu_index, name, vram_used_mib, vram_total_mib, vram_pct,
+           gpu_util_pct, mem_util_pct, temp_c, power_draw_w, power_limit_w
+    FROM gpu_metrics
+    WHERE timestamp >= ?
+    ORDER BY timestamp ASC
   `);
 
   return {
@@ -257,6 +282,10 @@ export function createMetricsRepository(db: RavenDB): MetricsRepository {
 
     latestProcessActivity() {
       return latestProcessStmt.all() as ProcessMetricsRow[];
+    },
+
+    gpuMetricsSince(cutoffIso) {
+      return gpuMetricsSinceStmt.all(cutoffIso) as GpuSampleRow[];
     }
   };
 }

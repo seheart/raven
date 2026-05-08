@@ -58,6 +58,52 @@ export interface FileEventsRepository {
 
   /** Most recent N rows for a given filepath. */
   history(filepath: string, limit: number): unknown[];
+
+  /** Total event count grouped by project_name. NULL projects are excluded. */
+  eventCountsByProject(): Map<string, number>;
+
+  /**
+   * Single event by id with the columns needed for diff inspection.
+   * Returns undefined if no row matches.
+   */
+  byId(id: number): FileEventRow | undefined;
+
+  /** Total event count across all projects. */
+  totalCount(): number;
+
+  /** Count of events whose timestamp is within the last `hours` hours. */
+  countSinceHours(hours: number): number;
+
+  /** Latest timestamp in the events table; null if empty. */
+  lastTimestamp(): string | null;
+
+  /** Aggregate event statistics for events newer than `cutoffIso`. */
+  statsSince(cutoffIso: string): {
+    total_file_changes: number;
+    unique_files: number;
+    edit_count: number;
+    create_count: number;
+    delete_count: number;
+    first_seen: string | null;
+    last_active: string | null;
+  };
+
+  /**
+   * Time-bounded events list. Both bounds optional. Bound parameters are
+   * always parameterized; no SQL injection risk in the dynamic WHERE clause.
+   */
+  listInTimeRange(
+    startTime: string | undefined,
+    endTime: string | undefined,
+    limit: number,
+    includeDiff: boolean
+  ): unknown[];
+
+  /** Most frequently changed filepaths, ordered by change_count DESC. */
+  topByFrequency(limit: number): Array<{ filepath: string; change_count: number }>;
+
+  /** Distinct filepath count across the events table. */
+  distinctFilepathCount(): number;
 }
 
 export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
@@ -72,6 +118,72 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
     WHERE session_id = ?
     ORDER BY timestamp ASC
   `);
+
+  const byIdStmt = db.db.prepare(`
+    SELECT id, timestamp, filepath, change_type, diff, cpu, mem, session_id, file_hash, event_size, project_name, agent_source
+    FROM events WHERE id = ?
+  `);
+
+  const totalCountStmt = db.db.prepare('SELECT COUNT(*) as count FROM events');
+  const countSinceHoursStmt = db.db.prepare(
+    `SELECT COUNT(*) as count FROM events
+     WHERE datetime(timestamp) >= datetime('now', ?)`
+  );
+  const lastTimestampStmt = db.db.prepare('SELECT MAX(timestamp) as timestamp FROM events');
+
+  const statsSinceStmt = db.db.prepare(`
+    SELECT
+      COUNT(*) as total_file_changes,
+      COUNT(DISTINCT filepath) as unique_files,
+      SUM(CASE WHEN change_type IN ('change', 'modified') THEN 1 ELSE 0 END) as edit_count,
+      SUM(CASE WHEN change_type = 'add' THEN 1 ELSE 0 END) as create_count,
+      SUM(CASE WHEN change_type = 'unlink' THEN 1 ELSE 0 END) as delete_count,
+      MIN(timestamp) as first_seen,
+      MAX(timestamp) as last_active
+    FROM events
+    WHERE timestamp > ?
+  `);
+
+  const topByFrequencyStmt = db.db.prepare(`
+    SELECT filepath, COUNT(*) as change_count
+    FROM events
+    GROUP BY filepath
+    ORDER BY change_count DESC
+    LIMIT ?
+  `);
+
+  const distinctFilepathCountStmt = db.db.prepare(
+    'SELECT COUNT(DISTINCT filepath) as count FROM events'
+  );
+
+  // Time-bounded list — parameter positions adjust by which bounds are set.
+  // Two SELECT shapes (with/without diff) since `diff` is a heavyweight column.
+  const listColsNoDiff = 'id, timestamp, filepath, change_type, cpu, mem, session_id';
+  const listColsDiff = 'id, timestamp, filepath, change_type, diff, cpu, mem, session_id';
+  const listAllNoDiff = db.db.prepare(
+    `SELECT ${listColsNoDiff} FROM events ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listAllDiff = db.db.prepare(
+    `SELECT ${listColsDiff} FROM events ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listFromNoDiff = db.db.prepare(
+    `SELECT ${listColsNoDiff} FROM events WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listFromDiff = db.db.prepare(
+    `SELECT ${listColsDiff} FROM events WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listUntilNoDiff = db.db.prepare(
+    `SELECT ${listColsNoDiff} FROM events WHERE timestamp <= ? ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listUntilDiff = db.db.prepare(
+    `SELECT ${listColsDiff} FROM events WHERE timestamp <= ? ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listBetweenNoDiff = db.db.prepare(
+    `SELECT ${listColsNoDiff} FROM events WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listBetweenDiff = db.db.prepare(
+    `SELECT ${listColsDiff} FROM events WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?`
+  );
 
   const trackedFilesStmt = db.db.prepare(`
     SELECT DISTINCT filepath
@@ -181,6 +293,93 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
            LIMIT ?`
         )
         .all(filepath, limit);
+    },
+
+    eventCountsByProject() {
+      const counts = new Map<string, number>();
+      try {
+        const rows = db.db
+          .prepare<
+            unknown[],
+            { project_name: string | null; count: number }
+          >('SELECT project_name, COUNT(*) as count FROM events GROUP BY project_name')
+          .all();
+        for (const r of rows) {
+          if (r.project_name) counts.set(r.project_name, r.count);
+        }
+      } catch {
+        // Table missing or query failed — empty map preserves the original
+        // route behavior of "every count stays 0".
+      }
+      return counts;
+    },
+
+    byId(id) {
+      return byIdStmt.get(id) as FileEventRow | undefined;
+    },
+
+    totalCount() {
+      return (totalCountStmt.get() as { count: number } | undefined)?.count ?? 0;
+    },
+
+    countSinceHours(hours) {
+      const arg = `-${Math.max(0, hours)} hours`;
+      return (countSinceHoursStmt.get(arg) as { count: number } | undefined)?.count ?? 0;
+    },
+
+    lastTimestamp() {
+      return (
+        (lastTimestampStmt.get() as { timestamp: string | null } | undefined)?.timestamp ?? null
+      );
+    },
+
+    statsSince(cutoffIso) {
+      const row = statsSinceStmt.get(cutoffIso) as
+        | {
+            total_file_changes: number;
+            unique_files: number;
+            edit_count: number;
+            create_count: number;
+            delete_count: number;
+            first_seen: string | null;
+            last_active: string | null;
+          }
+        | undefined;
+      return (
+        row ?? {
+          total_file_changes: 0,
+          unique_files: 0,
+          edit_count: 0,
+          create_count: 0,
+          delete_count: 0,
+          first_seen: null,
+          last_active: null
+        }
+      );
+    },
+
+    listInTimeRange(startTime, endTime, limit, includeDiff) {
+      if (startTime && endTime) {
+        return (includeDiff ? listBetweenDiff : listBetweenNoDiff).all(startTime, endTime, limit);
+      }
+      if (startTime) {
+        return (includeDiff ? listFromDiff : listFromNoDiff).all(startTime, limit);
+      }
+      if (endTime) {
+        return (includeDiff ? listUntilDiff : listUntilNoDiff).all(endTime, limit);
+      }
+      return (includeDiff ? listAllDiff : listAllNoDiff).all(limit);
+    },
+
+    topByFrequency(limit) {
+      return topByFrequencyStmt.all(limit) as Array<{
+        filepath: string;
+        change_count: number;
+      }>;
+    },
+
+    distinctFilepathCount() {
+      return (distinctFilepathCountStmt.get() as { count: number } | undefined)?.count ?? 0;
     }
   };
 }

@@ -19,24 +19,18 @@ import type { RavenDB } from '../db.js';
 import { randomUUID } from 'node:crypto';
 
 // ── Types ─────────────────────────────────────────────────────────
-export interface WeeklyDigestBeat {
+interface WeeklyDigestBeat {
   glyph: string;
   tone: 'accent' | 'success' | 'info' | 'warning' | 'muted';
   text: string;
 }
 
-export interface WeeklyDigestLead {
-  kind:
-    | 'returning'
-    | 'streak'
-    | 'focus'
-    | 'cost-surge'
-    | 'top-project'
-    | 'quiet-week';
+interface WeeklyDigestLead {
+  kind: 'returning' | 'streak' | 'focus' | 'cost-surge' | 'top-project' | 'quiet-week';
   text: string;
 }
 
-export interface WeeklyDigest {
+interface WeeklyDigest {
   /** ISO week key, e.g. "2026-W19". Unique per Mon-anchored week. */
   week_key: string;
   /** ISO date for Monday of the week (UTC). */
@@ -213,7 +207,9 @@ export function createDigestService(db: RavenDB): DigestService {
          FROM token_usage
          WHERE timestamp >= ? AND timestamp <= ?`
       )
-      .get(prevWeekStart.toISOString(), prevWeekEnd.toISOString()) as { cost_usd: number } | undefined;
+      .get(prevWeekStart.toISOString(), prevWeekEnd.toISOString()) as
+      | { cost_usd: number }
+      | undefined;
 
     // Streak: consecutive days ending on the most recent active day in the week.
     const dayRows = db.db
@@ -260,10 +256,10 @@ export function createDigestService(db: RavenDB): DigestService {
          ON cur.project_name = prev.project_name`
       )
       .all(startIso, endIso, startIso) as Array<{
-        project: string;
-        first_in_week: string;
-        last_before: string | null;
-      }>;
+      project: string;
+      first_in_week: string;
+      last_before: string | null;
+    }>;
     let returning: { project: string; days_since_last: number } | null = null;
     for (const r of returningRows) {
       if (!r.last_before) continue;

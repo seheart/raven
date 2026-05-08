@@ -26,7 +26,10 @@ module.exports = {
           '\\.spec\\.(js|ts)$',
           'migrations/',
           'scripts/',
-          'test-shims/'
+          'test-shims/',
+          // Docker container probe — invoked by HEALTHCHECK in Dockerfile
+          // and depends_on in docker-compose, never imported by app code.
+          '^healthcheck\\.js$'
         ]
       },
       to: {}
@@ -83,8 +86,13 @@ module.exports = {
     {
       name: 'routes-not-coupled',
       severity: 'warn',
-      comment: 'Route modules should not import each other — share via services/ or modules/.',
-      from: { path: '^routes/[^/]+\\.(ts|js)$' },
+      comment:
+        'Route modules should not import each other — share via services/ or modules/. ' +
+        'routes/index.ts is the wiring aggregator and is exempt by design.',
+      from: {
+        path: '^routes/[^/]+\\.(ts|js)$',
+        pathNot: '^routes/index\\.(ts|js)$'
+      },
       to: { path: '^routes/' }
     },
     {

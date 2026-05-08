@@ -1,17 +1,10 @@
 import prettierConfig from 'eslint-config-prettier';
 import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 export default [
   {
     ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.js']
-  },
-  {
-    files: ['**/*.ts'],
-    languageOptions: {
-      parser: tsParser,
-      ecmaVersion: 'latest',
-      sourceType: 'module'
-    }
   },
   {
     languageOptions: {
@@ -40,6 +33,36 @@ export default [
       indent: ['error', 2],
       'comma-dangle': ['error', 'never'],
       'eol-last': ['error', 'always']
+    }
+  },
+  {
+    // TS-specific: the plain JS `no-unused-vars` rule doesn't understand TS
+    // interface declarations — every unused param in an interface fires a
+    // warning. Use the TS-aware variant which ignores declaration-only
+    // contexts. Block must come AFTER the general block so its overrides win.
+    files: ['**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 'latest',
+      sourceType: 'module'
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+      ]
+    }
+  },
+  {
+    // CLI scripts use console as their primary user-facing output. Don't
+    // flag console statements there.
+    files: ['scripts/**/*.{ts,js}', 'migrations/**/*.{ts,js}'],
+    rules: {
+      'no-console': 'off'
     }
   },
   {

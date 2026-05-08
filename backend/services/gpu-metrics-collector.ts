@@ -85,7 +85,6 @@ export class GpuMetricsCollector {
   private intervalMs: number;
   // better-sqlite3's `Statement.run` is variadic-but-typed; an unknown[]
   // signature doesn't slot in cleanly. `any` here is scoped to one field.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private insertStmt: any = null;
   private supported = true;
 

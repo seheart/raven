@@ -3,7 +3,7 @@ import { homedir } from 'os';
 import { basename, dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-export interface RavenPaths {
+interface RavenPaths {
   ravenDir: string;
   watchPath: string;
   projectName: string;

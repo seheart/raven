@@ -119,6 +119,36 @@ export interface AgentEventsRepository {
     by_type: Record<string, number>;
     by_project: Record<string, number>;
   };
+
+  /**
+   * Per-inference latencies grouped by agent (= local model name) since
+   * `cutoffIso`. Counterpart to ApiLatencyRepository.latenciesByModelSince
+   * for hosted-API calls; together they cover every observed model.
+   */
+  inferenceLatenciesSince(cutoffIso: string): Array<{ model: string; latency_ms: number }>;
+
+  /**
+   * Agent events list with optional time-range filter. Returns the columns
+   * needed by the /api/events endpoint (no SQL injection risk; the time
+   * range is parameterized).
+   */
+  listInTimeRange(
+    startTime: string | undefined,
+    endTime: string | undefined,
+    limit: number
+  ): unknown[];
+
+  /**
+   * Per-(agent, message) tool-call counts across all of agent_events. Used
+   * to render the per-agent tool-breakdown card. Ordered agent ASC, count DESC.
+   */
+  toolBreakdown(): Array<{ agent: string; message: string; count: number }>;
+
+  /** Aggregated activity profile per agent: counts, first/last seen, file count. */
+  agentProfiles(): unknown[];
+
+  /** Per-(agent, event_type) counts. Used to render the event-type distribution. */
+  eventTypeDistribution(): Array<{ agent: string; event_type: string; count: number }>;
 }
 
 const AGENT_TOTALS_TTL_MS = 2000;
@@ -251,6 +281,64 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
      GROUP BY project_name`
   );
 
+  const inferenceLatenciesSinceStmt = db.db.prepare(
+    `SELECT agent as model, duration_ms as latency_ms FROM agent_events
+     WHERE timestamp >= ? AND event_type = 'inference' AND duration_ms IS NOT NULL`
+  );
+
+  const toolBreakdownStmt = db.db.prepare(
+    `SELECT agent, message, COUNT(*) as count
+     FROM agent_events
+     WHERE event_type = 'tool_call' AND agent IS NOT NULL
+     GROUP BY agent, message
+     ORDER BY agent, count DESC`
+  );
+
+  const agentProfilesStmt = db.db.prepare(
+    `SELECT
+       agent,
+       COUNT(*) as event_count,
+       MIN(timestamp) as first_seen,
+       MAX(timestamp) as last_seen,
+       COUNT(DISTINCT file) as unique_files
+     FROM agent_events
+     GROUP BY agent
+     ORDER BY event_count DESC`
+  );
+
+  const eventTypeDistributionStmt = db.db.prepare(
+    `SELECT agent, event_type, COUNT(*) as count
+     FROM agent_events
+     GROUP BY agent, event_type
+     ORDER BY agent, count DESC`
+  );
+
+  // Time-bounded list. Both bounds optional; ASC param positions adjust by
+  // building the WHERE clause in code rather than a string-templated query.
+  const listAllStmt = db.db.prepare(
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+     FROM agent_events
+     ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listFromStmt = db.db.prepare(
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+     FROM agent_events
+     WHERE timestamp >= ?
+     ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listUntilStmt = db.db.prepare(
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+     FROM agent_events
+     WHERE timestamp <= ?
+     ORDER BY timestamp DESC LIMIT ?`
+  );
+  const listBetweenStmt = db.db.prepare(
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+     FROM agent_events
+     WHERE timestamp >= ? AND timestamp <= ?
+     ORDER BY timestamp DESC LIMIT ?`
+  );
+
   return {
     insert(
       timestamp,
@@ -338,6 +426,40 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
       for (const r of projectRows) by_project[r.project_name] = r.count;
 
       return { total: totalRow?.total ?? 0, by_type, by_project };
+    },
+
+    inferenceLatenciesSince(cutoffIso) {
+      return inferenceLatenciesSinceStmt.all(cutoffIso) as Array<{
+        model: string;
+        latency_ms: number;
+      }>;
+    },
+
+    listInTimeRange(startTime, endTime, limit) {
+      if (startTime && endTime) return listBetweenStmt.all(startTime, endTime, limit);
+      if (startTime) return listFromStmt.all(startTime, limit);
+      if (endTime) return listUntilStmt.all(endTime, limit);
+      return listAllStmt.all(limit);
+    },
+
+    toolBreakdown() {
+      return toolBreakdownStmt.all() as Array<{
+        agent: string;
+        message: string;
+        count: number;
+      }>;
+    },
+
+    agentProfiles() {
+      return agentProfilesStmt.all();
+    },
+
+    eventTypeDistribution() {
+      return eventTypeDistributionStmt.all() as Array<{
+        agent: string;
+        event_type: string;
+        count: number;
+      }>;
     }
   };
 }

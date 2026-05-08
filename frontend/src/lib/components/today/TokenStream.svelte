@@ -33,7 +33,6 @@
   let events = $state([]);
   let connected = $state(false);
   let totalThisSession = $state({ events: 0, output: 0, input: 0, cost: 0 });
-  let lastEventAge = $state(Number.POSITIVE_INFINITY);
   /** Animation tick — re-derive relative time labels. */
   let now = $state(Date.now());
 
@@ -65,7 +64,6 @@
       output: totalThisSession.output + ev.output_tokens,
       cost: totalThisSession.cost + ev.estimated_cost_usd
     };
-    lastEventAge = 0;
   }
 
   function fmtTokens(n) {
@@ -109,13 +107,16 @@
 
   onMount(() => {
     connected = websocketService.isConnected();
-    websocketService.on('connect', () => { connected = true; });
-    websocketService.on('disconnect', () => { connected = false; });
+    websocketService.on('connect', () => {
+      connected = true;
+    });
+    websocketService.on('disconnect', () => {
+      connected = false;
+    });
     websocketService.on('token-usage', handleTokenUsage);
 
     tick = setInterval(() => {
       now = Date.now();
-      lastEventAge = now - (events[0]?.arrived_at ?? -Infinity);
       // Drop events older than FADE_AFTER_MS so the panel never grows
       // into an audit trail; that's what /analysis/costs is for.
       events = events.filter(e => now - e.arrived_at < FADE_AFTER_MS);
@@ -132,16 +133,19 @@
   <header class="flex items-baseline justify-between gap-3 mb-3">
     <div>
       <div class="text-xs font-mono uppercase tracking-wide text-muted">Token stream · live</div>
-      <p class="text-xs font-sans text-muted/80 mt-1 max-w-md leading-relaxed">
-        Each row is one inference resolving — what was sent, what came back, what it cost. Watch alongside the cost number above to feel the unit price of an answer.
+      <p class="text-xs font-sans text-muted/80 mt-1 max-w-[28rem] leading-relaxed">
+        Each row is one inference resolving — what was sent, what came back, what it cost. Watch
+        alongside the cost number above to feel the unit price of an answer.
       </p>
     </div>
-    <span class="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide flex-shrink-0">
+    <span
+      class="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wide flex-shrink-0"
+    >
       <span
         class="w-1.5 h-1.5 rounded-full {connected ? 'bg-success animate-pulse' : 'bg-warning'}"
         aria-hidden="true"
       ></span>
-      <span class="{connected ? 'text-success' : 'text-warning'}">
+      <span class={connected ? 'text-success' : 'text-warning'}>
         {connected ? 'connected' : 'offline'}
       </span>
     </span>
@@ -164,9 +168,9 @@
           <span class="text-muted w-8 flex-shrink-0">{relAge(age)}</span>
           <span
             class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide flex-shrink-0"
-            style="background:hsl({hue}deg 70% 35% / 0.18);color:hsl({hue}deg 80% 70%)"
-            title={ev.model}
-          >{shortModel(ev.model)}</span>
+            style="background:hsla({hue}, 70%, 35%, 0.18);color:hsl({hue}, 80%, 70%)"
+            title={ev.model}>{shortModel(ev.model)}</span
+          >
 
           <!-- Input → output flow visualization -->
           <span class="flex items-center gap-1 flex-1 min-w-0">
@@ -175,7 +179,7 @@
               <span class="text-muted">→</span>
               <span
                 class="inline-block h-1.5 rounded-full"
-                style="width:{burstWidth(ev.output_tokens)}px;background:hsl({hue}deg 80% 60%)"
+                style="width:{burstWidth(ev.output_tokens)}px;background:hsl({hue}, 80%, 60%)"
                 aria-hidden="true"
               ></span>
             </span>
@@ -196,8 +200,13 @@
   {/if}
 
   {#if totalThisSession.events > 0}
-    <footer class="mt-3 pt-3 border-t border-border text-[10px] font-mono text-muted/70 flex items-baseline justify-between gap-2 flex-wrap">
-      <span>This session: {totalThisSession.events} {totalThisSession.events === 1 ? 'inference' : 'inferences'}</span>
+    <footer
+      class="mt-3 pt-3 border-t border-border text-[10px] font-mono text-muted/70 flex items-baseline justify-between gap-2 flex-wrap"
+    >
+      <span
+        >This session: {totalThisSession.events}
+        {totalThisSession.events === 1 ? 'inference' : 'inferences'}</span
+      >
       <span class="tabular-nums">
         {fmtTokens(totalThisSession.input)}↑ /
         {fmtTokens(totalThisSession.output)}↓ ·
