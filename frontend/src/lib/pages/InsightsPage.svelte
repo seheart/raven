@@ -243,7 +243,10 @@
           {advancedOpen ? '▾' : '▸'} Advanced
         </button>
       </div>
-      <p class="text-sm text-muted leading-snug max-w-2xl">
+      <p
+        class="text-sm text-muted leading-snug max-w-2xl"
+        style="display: block; width: 100%; white-space: normal; word-spacing: normal; word-break: normal;"
+      >
         Four kinds of stories about your activity. Pick whichever sounds useful — Raven will read
         your recent events and write it for you.
       </p>
