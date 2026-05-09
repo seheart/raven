@@ -2,7 +2,12 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, EmptyState, LoadingState } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    EmptyState,
+    LoadingState
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
   /**
@@ -56,33 +61,33 @@
     sorted.sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
-      case 'agent_name':
-        valA = a.agent_name || '';
-        valB = b.agent_name || '';
-        return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-      case 'total_events':
-        valA = a.total_events || 0;
-        valB = b.total_events || 0;
-        break;
-      case 'lines_changed':
-        valA = a.lines_changed || 0;
-        valB = b.lines_changed || 0;
-        break;
-      case 'files_modified':
-        valA = a.files_modified || 0;
-        valB = b.files_modified || 0;
-        break;
-      case 'total_duration_seconds':
-        valA = a.total_duration_seconds || 0;
-        valB = b.total_duration_seconds || 0;
-        break;
-      case 'last_active':
-        valA = a.last_active ? new Date(a.last_active).getTime() : 0;
-        valB = b.last_active ? new Date(b.last_active).getTime() : 0;
-        break;
-      default:
-        valA = 0;
-        valB = 0;
+        case 'agent_name':
+          valA = a.agent_name || '';
+          valB = b.agent_name || '';
+          return sortDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+        case 'total_events':
+          valA = a.total_events || 0;
+          valB = b.total_events || 0;
+          break;
+        case 'lines_changed':
+          valA = a.lines_changed || 0;
+          valB = b.lines_changed || 0;
+          break;
+        case 'files_modified':
+          valA = a.files_modified || 0;
+          valB = b.files_modified || 0;
+          break;
+        case 'total_duration_seconds':
+          valA = a.total_duration_seconds || 0;
+          valB = b.total_duration_seconds || 0;
+          break;
+        case 'last_active':
+          valA = a.last_active ? new Date(a.last_active).getTime() : 0;
+          valB = b.last_active ? new Date(b.last_active).getTime() : 0;
+          break;
+        default:
+          valA = 0;
+          valB = 0;
       }
       return sortDesc ? valB - valA : valA - valB;
     });
@@ -146,33 +151,11 @@
     return 'mixed';
   }
 
-  function getMoodEmoji(mood) {
-    const moods = {
-      aggressive: '',
-      conservative: '',
-      balanced: ''
-    };
-    return moods[mood] || '';
-  }
-
-  function getStyleEmoji(style) {
-    const styles = {
-      builder: '',
-      cleanup: '',
-      refactorer: '',
-      mixed: ''
-    };
-    return styles[style] || '';
-  }
-
-  // function handleSort(newSortBy) {
-  // if (sortBy === newSortBy) {
-  // sortDesc = !sortDesc;
-  // } else {
-  // sortBy = newSortBy;
-  // sortDesc = true;
-  // }
-  // }
+  // getMoodEmoji / getStyleEmoji used to map labels to emoji glyphs;
+  // those got stripped per project rules and the helpers became "return
+  // ''" — leaking leading whitespace into chips. Removed entirely; the
+  // labels alone read fine. Same for the commented-out handleSort —
+  // dead since the table moved to a different sort flow.
 
   function exportCSV() {
     const headers = [
@@ -314,9 +297,9 @@
       agentStats = stats.map(agent => {
         const daysSinceFirst = agent.first_seen
           ? Math.max(
-            1,
-            Math.ceil((new Date() - new Date(agent.first_seen)) / (1000 * 60 * 60 * 24))
-          )
+              1,
+              Math.ceil((new Date() - new Date(agent.first_seen)) / (1000 * 60 * 60 * 24))
+            )
           : 1;
         const totalChanges =
           (agent.edit_count || 0) + (agent.create_count || 0) + (agent.delete_count || 0);
@@ -326,9 +309,9 @@
         const totalDurationSec =
           agent.first_seen && agent.last_active
             ? Math.round(
-              (new Date(agent.last_active).getTime() - new Date(agent.first_seen).getTime()) /
+                (new Date(agent.last_active).getTime() - new Date(agent.first_seen).getTime()) /
                   1000
-            )
+              )
             : 0;
 
         return {
@@ -392,300 +375,306 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Agent Performance" description="Per-agent activity, runtime, and cost breakdown">
+  <PageHeader
+    title="Agent Performance"
+    description="How each of your AI tools has been working — what they touch, how often, and at what pace. The mood and style chips on each row describe how that agent edits in plain language; hover them for the definitions."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
-        <RefreshButton onClick={loadStats} loading={loading} />
+        <RefreshButton onClick={loadStats} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    {#if error}
-      <div
-        class="bg-error-subtle border border-error rounded-lg p-4 mb-6 flex justify-between items-center"
-      >
-        <span class="text-sm text-error font-sans"
-          >Failed to load agent stats: {error}</span
-        >
-        <ToolbarButton variant="danger" onClick={loadStats}>Retry</ToolbarButton>
-      </div>
-    {/if}
+  {#if error}
+    <div
+      class="bg-error-subtle border border-error rounded-lg p-4 mb-6 flex justify-between items-center"
+    >
+      <span class="text-sm text-error font-sans">Failed to load agent stats: {error}</span>
+      <ToolbarButton variant="danger" onClick={loadStats}>Retry</ToolbarButton>
+    </div>
+  {/if}
 
-    <!-- Summary Cards -->
-    {#if loading}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {#each Array(5) as _, i (i)}
-          <div
-            class="h-24 bg-surface border border-border rounded-lg animate-pulse"
-          ></div>
-        {/each}
-      </div>
-    {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Agents
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(summaryStats.total_agents)}
-          </div>
+  <!-- Summary Cards -->
+  {#if loading}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      {#each Array(5) as _, i (i)}
+        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
+      {/each}
+    </div>
+  {:else}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Total Agents
         </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Events
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(summaryStats.total_events)}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            File Changes
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(summaryStats.total_lines)}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Files Modified
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatNumber(summaryStats.total_files)}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Duration
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatDuration(summaryStats.total_duration)}
-          </div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(summaryStats.total_agents)}
         </div>
       </div>
-    {/if}
-
-    <!-- Controls -->
-    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
-      <div class="flex flex-wrap gap-3 mb-3">
-        <input
-          type="text"
-          placeholder="Search agents..."
-          bind:value={searchQuery}
-          class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-sm text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent font-mono"
-        />
-
-        <RefreshButton onClick={loadStats} loading={loading} />
-
-        <ToolbarButton onClick={exportCSV}>CSV</ToolbarButton>
-        <ToolbarButton onClick={exportJSON}>JSON</ToolbarButton>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Total Events
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(summaryStats.total_events)}
+        </div>
       </div>
-
-      <div class="flex items-center gap-4 text-sm font-mono">
-        <span class="text-muted">
-          Sorted by: <strong class="text-accent">{sortBy}</strong> ({sortDesc
-            ? 'desc'
-            : 'asc'})
-        </span>
-        <span class="text-muted">•</span>
-        <span
-          class="text-muted"
-          class:text-warning={showNewEventAnimation}
-          class:font-bold={showNewEventAnimation}
-        >
-          {#if showNewEventAnimation}
-            New Event!
-          {:else}
-            Updated {timeAgo}
-          {/if}
-        </span>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          File Changes
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(summaryStats.total_lines)}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Files Modified
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatNumber(summaryStats.total_files)}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Total Duration
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatDuration(summaryStats.total_duration)}
+        </div>
       </div>
     </div>
+  {/if}
 
-    {#if loading}
-      <LoadingState message="Loading agent statistics..." />
-    {:else if agentStats.length === 0}
-      <EmptyState
-        title="No agent statistics available"
-        description="Agent activity will appear here once detected by Raven."
+  <!-- Controls -->
+  <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+    <div class="flex flex-wrap gap-3 mb-3">
+      <input
+        type="text"
+        placeholder="Search agents..."
+        bind:value={searchQuery}
+        class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-sm text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent font-mono"
       />
-    {:else if filteredStats.length === 0}
-      <EmptyState title="No agents match your search" description="Try adjusting your search query." />
-    {:else}
-      <div class="text-sm text-muted mb-3 font-mono">
-        Showing <strong class="text-accent">{filteredStats.length}</strong> of
-        <strong class="text-accent">{agentStats.length}</strong> agents
-      </div>
 
-      <!-- Agent Cards with Enhanced Details -->
-      <div class="space-y-4">
-        {#each sortedStats as agent (agent.agent_name)}
-          {@const config = getAgentConfig(agent.agent_name)}
-          {@const mood = calculateMood(agent)}
-          {@const style = calculateStyle(agent)}
-          {@const totalChanges =
-            (agent.create_count || 0) + (agent.edit_count || 0) + (agent.delete_count || 0)}
-          {@const createRate = totalChanges > 0 ? (agent.create_count || 0) / totalChanges : 0}
-          {@const modifyRate = totalChanges > 0 ? (agent.edit_count || 0) / totalChanges : 0}
-          {@const deleteRate = totalChanges > 0 ? (agent.delete_count || 0) / totalChanges : 0}
+      <RefreshButton onClick={loadStats} {loading} />
 
-          <div
-            class="bg-surface border border-border rounded-lg p-5 hover:border-accent transition-all"
-            style="border-left: 4px solid {config.color}"
-          >
-            <!-- Agent Header -->
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-bold text-heading font-mono">
-                      {agent.agent_name || 'Unknown'}
-                    </h3>
-                    <span
-                      class="px-2 py-0.5 rounded text-xs font-semibold font-mono"
-                      style="background-color: {config.color}20; color: {config.color}"
+      <ToolbarButton onClick={exportCSV}>CSV</ToolbarButton>
+      <ToolbarButton onClick={exportJSON}>JSON</ToolbarButton>
+    </div>
+
+    <div class="flex items-center gap-4 text-sm font-mono">
+      <span class="text-muted">
+        Sorted by: <strong class="text-accent">{sortBy}</strong> ({sortDesc ? 'desc' : 'asc'})
+      </span>
+      <span class="text-muted">•</span>
+      <span
+        class="text-muted"
+        class:text-warning={showNewEventAnimation}
+        class:font-bold={showNewEventAnimation}
+      >
+        {#if showNewEventAnimation}
+          New Event!
+        {:else}
+          Updated {timeAgo}
+        {/if}
+      </span>
+    </div>
+  </div>
+
+  {#if loading}
+    <LoadingState message="Loading agent statistics..." />
+  {:else if agentStats.length === 0}
+    <EmptyState
+      title="No agent statistics available"
+      description="Agent activity will appear here once detected by Raven."
+    />
+  {:else if filteredStats.length === 0}
+    <EmptyState
+      title="No agents match your search"
+      description="Try adjusting your search query."
+    />
+  {:else}
+    <div class="text-sm text-muted mb-3 font-mono">
+      Showing <strong class="text-accent">{filteredStats.length}</strong> of
+      <strong class="text-accent">{agentStats.length}</strong> agents
+    </div>
+
+    <!-- Agent Cards with Enhanced Details -->
+    <div class="space-y-4">
+      {#each sortedStats as agent (agent.agent_name)}
+        {@const config = getAgentConfig(agent.agent_name)}
+        {@const mood = calculateMood(agent)}
+        {@const style = calculateStyle(agent)}
+        {@const totalChanges =
+          (agent.create_count || 0) + (agent.edit_count || 0) + (agent.delete_count || 0)}
+        {@const createRate = totalChanges > 0 ? (agent.create_count || 0) / totalChanges : 0}
+        {@const modifyRate = totalChanges > 0 ? (agent.edit_count || 0) / totalChanges : 0}
+        {@const deleteRate = totalChanges > 0 ? (agent.delete_count || 0) / totalChanges : 0}
+
+        <div
+          class="bg-surface border border-border rounded-lg p-5 hover:border-accent transition-all"
+          style="border-left: 4px solid {config.color}"
+        >
+          <!-- Agent Header -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-heading font-mono">
+                    {agent.agent_name || 'Unknown'}
+                  </h3>
+                  <span
+                    class="px-2 py-0.5 rounded text-xs font-semibold font-mono"
+                    style="background-color: {config.color}20; color: {config.color}"
+                  >
+                    {config.name}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 mt-1 text-sm text-muted font-sans">
+                  <span
+                    title="Mood — how aggressively this agent edits. 'Aggressive' = lots of large changes; 'conservative' = small, careful ones."
+                    >{mood}</span
+                  >
+                  <span>•</span>
+                  <span
+                    title="Style — what this agent mostly does. 'Builder' = adds new code; 'cleanup' = removes; 'refactorer' = restructures; 'mixed' = a bit of everything."
+                    >{style}</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-muted font-sans">Last Active</div>
+              <div class="text-sm font-semibold text-body font-mono">
+                {formatDateTime(agent.last_active)}
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+            <div class="bg-canvas border border-border rounded p-3">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                Events
+              </div>
+              <div class="text-sm font-mono text-body">
+                {formatNumber(agent.total_events)}
+              </div>
+            </div>
+            <div class="bg-canvas border border-border rounded p-3">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                File Changes
+              </div>
+              <div class="text-sm font-mono text-body">
+                {formatNumber(agent.lines_changed)}
+              </div>
+            </div>
+            <div class="bg-canvas border border-border rounded p-3">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                Files Modified
+              </div>
+              <div class="text-sm font-mono text-body">
+                {formatNumber(agent.files_modified)}
+              </div>
+            </div>
+            <div class="bg-canvas border border-border rounded p-3">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                Changes/Day
+              </div>
+              <div class="text-sm font-mono text-body">
+                {agent.changes_per_day || 0}
+              </div>
+            </div>
+            <div class="bg-canvas border border-border rounded p-3">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                Avg Files/Op
+              </div>
+              <div class="text-sm font-mono text-body">
+                {agent.avg_change_size || 0}
+              </div>
+            </div>
+            <div class="bg-canvas border border-border rounded p-3">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                Duration
+              </div>
+              <div class="text-sm font-mono text-body">
+                {formatDuration(agent.total_duration_seconds)}
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart and Distribution -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <!-- Activity Breakdown Chart -->
+            <div class="space-y-2">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide">
+                Activity Breakdown
+              </div>
+              <div class="h-40 flex items-center justify-center bg-canvas rounded p-2">
+                <canvas id="pie-{(agent.agent_name || 'unknown').replace(/[^a-zA-Z0-9]/g, '-')}"
+                ></canvas>
+              </div>
+              <div class="flex justify-around text-xs font-sans">
+                <span class="text-success">Create: {agent.create_count || 0}</span>
+                <span class="text-warning">Edit: {agent.edit_count || 0}</span>
+                <span class="text-error">Delete: {agent.delete_count || 0}</span>
+              </div>
+            </div>
+
+            <!-- Change Distribution Bar -->
+            <div class="space-y-2">
+              <div class="text-xs font-semibold text-muted uppercase tracking-wide">
+                Change Distribution
+              </div>
+              <div class="h-40 flex flex-col justify-center">
+                <div class="flex h-8 rounded overflow-hidden bg-canvas mb-2">
+                  {#if createRate > 0}
+                    <div
+                      class="bg-success flex items-center justify-center text-white text-xs font-semibold"
+                      style="width: {createRate * 100}%"
+                      title="Created: {(createRate * 100).toFixed(0)}%"
                     >
-                      {config.name}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-3 mt-1 text-sm text-muted font-sans">
-                    <span title="Mood">{getMoodEmoji(mood)} {mood}</span>
-                    <span>•</span>
-                    <span title="Style">{getStyleEmoji(style)} {style}</span>
-                  </div>
+                      {#if createRate > 0.15}
+                        {(createRate * 100).toFixed(0)}%
+                      {/if}
+                    </div>
+                  {/if}
+                  {#if modifyRate > 0}
+                    <div
+                      class="bg-warning flex items-center justify-center text-white text-xs font-semibold"
+                      style="width: {modifyRate * 100}%"
+                      title="Modified: {(modifyRate * 100).toFixed(0)}%"
+                    >
+                      {#if modifyRate > 0.15}
+                        {(modifyRate * 100).toFixed(0)}%
+                      {/if}
+                    </div>
+                  {/if}
+                  {#if deleteRate > 0}
+                    <div
+                      class="bg-error flex items-center justify-center text-white text-xs font-semibold"
+                      style="width: {deleteRate * 100}%"
+                      title="Deleted: {(deleteRate * 100).toFixed(0)}%"
+                    >
+                      {#if deleteRate > 0.15}
+                        {(deleteRate * 100).toFixed(0)}%
+                      {/if}
+                    </div>
+                  {/if}
                 </div>
-              </div>
-              <div class="text-right">
-                <div class="text-sm text-muted font-sans">Last Active</div>
-                <div class="text-sm font-semibold text-body font-mono">
-                  {formatDateTime(agent.last_active)}
-                </div>
-              </div>
-            </div>
-
-            <!-- Metrics Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-              <div class="bg-canvas border border-border rounded p-3">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  Events
-                </div>
-                <div class="text-sm font-mono text-body">
-                  {formatNumber(agent.total_events)}
-                </div>
-              </div>
-              <div class="bg-canvas border border-border rounded p-3">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  File Changes
-                </div>
-                <div class="text-sm font-mono text-body">
-                  {formatNumber(agent.lines_changed)}
-                </div>
-              </div>
-              <div class="bg-canvas border border-border rounded p-3">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  Files Modified
-                </div>
-                <div class="text-sm font-mono text-body">
-                  {formatNumber(agent.files_modified)}
-                </div>
-              </div>
-              <div class="bg-canvas border border-border rounded p-3">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  Changes/Day
-                </div>
-                <div class="text-sm font-mono text-body">
-                  {agent.changes_per_day || 0}
-                </div>
-              </div>
-              <div class="bg-canvas border border-border rounded p-3">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  Avg Files/Op
-                </div>
-                <div class="text-sm font-mono text-body">
-                  {agent.avg_change_size || 0}
-                </div>
-              </div>
-              <div class="bg-canvas border border-border rounded p-3">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                  Duration
-                </div>
-                <div class="text-sm font-mono text-body">
-                  {formatDuration(agent.total_duration_seconds)}
-                </div>
-              </div>
-            </div>
-
-            <!-- Chart and Distribution -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <!-- Activity Breakdown Chart -->
-              <div class="space-y-2">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide">
-                  Activity Breakdown
-                </div>
-                <div class="h-40 flex items-center justify-center bg-canvas rounded p-2">
-                  <canvas id="pie-{(agent.agent_name || 'unknown').replace(/[^a-zA-Z0-9]/g, '-')}"
-                  ></canvas>
-                </div>
-                <div class="flex justify-around text-xs font-sans">
-                  <span class="text-success">Create: {agent.create_count || 0}</span>
-                  <span class="text-warning">Edit: {agent.edit_count || 0}</span>
-                  <span class="text-error">Delete: {agent.delete_count || 0}</span>
-                </div>
-              </div>
-
-              <!-- Change Distribution Bar -->
-              <div class="space-y-2">
-                <div class="text-xs font-semibold text-muted uppercase tracking-wide">
-                  Change Distribution
-                </div>
-                <div class="h-40 flex flex-col justify-center">
-                  <div class="flex h-8 rounded overflow-hidden bg-canvas mb-2">
-                    {#if createRate > 0}
-                      <div
-                        class="bg-success flex items-center justify-center text-white text-xs font-semibold"
-                        style="width: {createRate * 100}%"
-                        title="Created: {(createRate * 100).toFixed(0)}%"
-                      >
-                        {#if createRate > 0.15}
-                          {(createRate * 100).toFixed(0)}%
-                        {/if}
-                      </div>
-                    {/if}
-                    {#if modifyRate > 0}
-                      <div
-                        class="bg-warning flex items-center justify-center text-white text-xs font-semibold"
-                        style="width: {modifyRate * 100}%"
-                        title="Modified: {(modifyRate * 100).toFixed(0)}%"
-                      >
-                        {#if modifyRate > 0.15}
-                          {(modifyRate * 100).toFixed(0)}%
-                        {/if}
-                      </div>
-                    {/if}
-                    {#if deleteRate > 0}
-                      <div
-                        class="bg-error flex items-center justify-center text-white text-xs font-semibold"
-                        style="width: {deleteRate * 100}%"
-                        title="Deleted: {(deleteRate * 100).toFixed(0)}%"
-                      >
-                        {#if deleteRate > 0.15}
-                          {(deleteRate * 100).toFixed(0)}%
-                        {/if}
-                      </div>
-                    {/if}
-                  </div>
-                  <div class="text-xs text-muted font-sans space-y-1">
-                    <div>Total Changes: {totalChanges}</div>
-                    <div>Create Rate: {(createRate * 100).toFixed(1)}%</div>
-                    <div>Modify Rate: {(modifyRate * 100).toFixed(1)}%</div>
-                    <div>Delete Rate: {(deleteRate * 100).toFixed(1)}%</div>
-                  </div>
+                <div class="text-xs text-muted font-sans space-y-1">
+                  <div>Total Changes: {totalChanges}</div>
+                  <div>Create Rate: {(createRate * 100).toFixed(1)}%</div>
+                  <div>Modify Rate: {(modifyRate * 100).toFixed(1)}%</div>
+                  <div>Delete Rate: {(deleteRate * 100).toFixed(1)}%</div>
                 </div>
               </div>
             </div>
           </div>
-        {/each}
-      </div>
-    {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
 </PageLayout>

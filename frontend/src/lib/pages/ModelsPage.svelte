@@ -4,7 +4,7 @@
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState, DataFetchError } from '../components/ui/index.js';
 
   let models = $state([]);
   let latencyByModel = $state([]);
@@ -33,9 +33,13 @@
     return `${(ms / 1000).toFixed(1)}s`;
   }
 
+  /** @type {string|null} */
+  let loadError = $state(null);
+
   async function loadData(force = false) {
     try {
       loading = true;
+      loadError = null;
       const [data, latency] = await Promise.all([
         dataService.fetch('/models', { ttl: 5000, forceRefresh: force }),
         dataService
@@ -45,7 +49,11 @@
       models = Array.isArray(data) ? data : [];
       latencyByModel = latency?.models || [];
     } catch (err) {
+      // Was logger.error-only; failed loads left the user on a blank
+      // grid with no signal. Latency sub-fetch keeps its silent fallback
+      // (empty list) so a flaky latency endpoint doesn't blank the rest.
       logger.error('Failed to load models:', err);
+      loadError = err?.message || String(err);
     } finally {
       loading = false;
     }
@@ -60,6 +68,15 @@
       <RefreshButton onClick={() => loadData(true)} {loading} />
     {/snippet}
   </PageHeader>
+
+  {#if loadError}
+    <DataFetchError
+      endpoint="/api/models"
+      message="Couldn't load model data"
+      hint={loadError}
+      onRetry={() => loadData(true)}
+    />
+  {/if}
 
   {#if loading && models.length === 0}
     <div class="space-y-4">
@@ -103,12 +120,18 @@
            so every observed model shows up in one panel. -->
     {#if latencyByModel.length > 0}
       <div class="bg-surface border border-border rounded-lg p-4 mb-6">
-        <div class="flex items-baseline justify-between mb-3">
+        <div class="flex items-baseline justify-between mb-2">
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
             Latency · last 60min
           </h3>
           <span class="text-[10px] text-muted font-mono">p50 / p95 / max (ms)</span>
         </div>
+        <p class="text-[11px] text-muted font-sans mb-3 leading-snug">
+          How long each model took to respond. <strong class="text-body">p50</strong> is the median
+          (typical), <strong class="text-body">p95</strong> is the slow tail (1 in 20 calls were
+          this slow or worse), and <strong class="text-body">max</strong> is the worst single call. Lower
+          is better.
+        </p>
         <div class="space-y-1">
           {#each latencyByModel as l (l.model)}
             <div

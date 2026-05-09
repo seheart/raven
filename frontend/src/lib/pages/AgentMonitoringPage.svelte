@@ -128,19 +128,10 @@
     return 'Very Low';
   }
 
-  function getEventIcon(eventType) {
-    const icons = {
-      tool_call: '',
-      tool_result: '',
-      user_message: '',
-      assistant_text: '',
-      file_change: '',
-      change: '',
-      add: '',
-      unlink: ''
-    };
-    return icons[eventType?.toLowerCase()] || '';
-  }
+  // getEventIcon was a now-defunct emoji map (project rules removed
+  // emojis); call sites still went through it and rendered empty
+  // strings + leading whitespace. Removed entirely; the type label
+  // alone is sufficient.
 
   function toggleEventType(type) {
     if (selectedEventTypes.includes(type)) {
@@ -417,7 +408,10 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Live Agents" description="Real-time agent status and activity tracking">
+  <PageHeader
+    title="Live Agents"
+    description="What your AI tools are doing right now. An &quot;agent&quot; is any AI tool that runs on your machine and takes actions — Claude Code, Cursor, Codex, local Ollama models. Each row below is one of those tools, currently or recently active."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <label
@@ -670,7 +664,6 @@
               class:text-body={!selectedEventTypes.includes(type)}
               onclick={() => toggleEventType(type)}
             >
-              {getEventIcon(type)}
               {type}
               {#if selectedEventTypes.includes(type)}{/if}
             </button>
@@ -756,9 +749,6 @@
           <div
             class="flex items-start gap-3 p-3 bg-canvas rounded hover:bg-surface-2 transition-all"
           >
-            <span class="text-base flex-shrink-0 mt-1">
-              {getEventIcon(event.event_type)}
-            </span>
             <div class="flex-1 min-w-0">
               <div class="text-sm text-body font-mono mb-1">
                 {#if event.agent_name}

@@ -254,7 +254,7 @@
 <PageLayout>
   <PageHeader
     title="Performance Profiling"
-    description="System resource monitoring and performance analysis"
+    description="How hard your machine is working while AI tools run. The metrics tab shows CPU and memory over time; the correlations tab pairs file changes with system load so you can see whether a heavy task lined up with a spike."
   >
     {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
