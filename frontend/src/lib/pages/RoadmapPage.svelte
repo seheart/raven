@@ -54,11 +54,6 @@
   // 04 // Open Questions — bigger calls that need a design pass.
   const open = [
     {
-      title: 'Where is the line between presence and gimmick?',
-      note: "Pulse + sparkline + animation everywhere becomes noise. Pick 2–3 channels (heartbeat / cost / context vessel) and invest in them masterfully. Need a UX-discipline rule before the team adds 'one more pulse.' Honest stillness is what gives motion meaning.",
-      added: '2026-05'
-    },
-    {
       title: 'Multi-machine roll-up — finish Phases 2–4?',
       note: 'Phase 1 shipped dormant (host_id + /api/sync/export gated on .raven/peers.json). Remaining work would be aggregator mode, a Peers sub-tab with per-host narrative beats, and optional push notifications. Parked until a real user asks for it — building a week-long initiative for ~0 current users is gold-plating. The capability is dormant by default, so cost of waiting is zero.',
       added: '2026-05'
