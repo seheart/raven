@@ -62,8 +62,12 @@ interface AgentEventRow {
 interface AgentTotals {
   agent: string;
   event_count: number;
+  total_file_events: number;
+  unique_files: number;
   avg_duration_ms: number | null;
   total_lines_changed: number | null;
+  first_seen: string | null;
+  last_active: string | null;
 }
 
 export interface AgentEventsRepository {
@@ -192,12 +196,26 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
     LIMIT ?
   `);
 
+  // Per-agent rollup. Adds the columns the AgentStatsPage was expecting
+  // but never received (everything was zero on the page because the
+  // frontend remapped non-existent fields). Now returns:
+  //   - event_count: COUNT(*)                              — total agent activity
+  //   - total_file_events: count of events with a `file`   — how many file ops
+  //   - unique_files: COUNT(DISTINCT file)                 — distinct files touched
+  //   - avg_duration_ms / total_lines_changed              — pre-existing
+  //   - first_seen / last_active                           — for span/duration calc
+  // Backwards compat: the prior fields are still returned, just under
+  // the same names.
   const totalsStmt = db.db.prepare(`
     SELECT
       agent,
       COUNT(*) as event_count,
+      COUNT(file) as total_file_events,
+      COUNT(DISTINCT file) as unique_files,
       AVG(duration_ms) as avg_duration_ms,
-      SUM(lines_changed) as total_lines_changed
+      SUM(lines_changed) as total_lines_changed,
+      MIN(timestamp) as first_seen,
+      MAX(timestamp) as last_active
     FROM agent_events
     GROUP BY agent
     ORDER BY event_count DESC
