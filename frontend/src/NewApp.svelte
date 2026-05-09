@@ -141,7 +141,10 @@
   {/if}
 
   <!-- Main Content -->
-  <main class="pb-16">
+  <!-- overflow-x:clip stops dense data pages from pushing the document
+       wider than the viewport on mobile. Pages that need internal
+       horizontal scroll wrap the offending element with overflow-x-auto. -->
+  <main class="pb-16 overflow-x-clip">
     <svelte:boundary>
       {#snippet failed(error, reset)}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
