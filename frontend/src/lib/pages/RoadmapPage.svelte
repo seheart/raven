@@ -53,11 +53,9 @@
 
   // 04 // Open Questions — bigger calls that need a design pass.
   const open = [
-    {
-      title: 'Multi-machine roll-up — finish Phases 2–4?',
-      note: 'Phase 1 shipped dormant (host_id + /api/sync/export gated on .raven/peers.json). Remaining work would be aggregator mode, a Peers sub-tab with per-host narrative beats, and optional push notifications. Parked until a real user asks for it — building a week-long initiative for ~0 current users is gold-plating. The capability is dormant by default, so cost of waiting is zero.',
-      added: '2026-05'
-    }
+    // No open questions right now — every parked design question has been
+    // either decided or removed. Add new entries here when something needs
+    // a real design pass before it can be built.
   ];
 
   const recentlyShipped = [
@@ -368,7 +366,9 @@
         >
       </div>
       <div class="flex items-center gap-2">
-        <span class="uppercase tracking-wide">{totalQueued} queued · {open.length} open</span>
+        <span class="uppercase tracking-wide"
+          >{totalQueued} queued{open.length > 0 ? ` · ${open.length} open` : ''}</span
+        >
       </div>
     </div>
 
@@ -442,31 +442,33 @@
       </section>
     {/each}
 
-    <!-- 04 // Open Questions -->
-    <section>
-      <div
-        class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
-      >
-        <span>04 // Open Questions</span>
-        <span class="flex-1 border-t border-dashed border-border"></span>
-        <span class="text-warning normal-case">Parked</span>
-      </div>
-      <div class="space-y-3">
-        {#each open as q (q.title)}
-          <div class="bg-surface border border-dashed border-border rounded-lg p-4">
-            <h3 class="text-base font-semibold text-heading mb-2">
-              {q.title}
-              {#if q.added}
-                <span class="text-[10px] font-mono text-muted ml-2 align-middle"
-                  >added {q.added}</span
-                >
-              {/if}
-            </h3>
-            <p class="text-sm text-body font-sans leading-relaxed">{q.note}</p>
-          </div>
-        {/each}
-      </div>
-    </section>
+    <!-- 04 // Open Questions — only renders when something is actually parked. -->
+    {#if open.length > 0}
+      <section>
+        <div
+          class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
+        >
+          <span>04 // Open Questions</span>
+          <span class="flex-1 border-t border-dashed border-border"></span>
+          <span class="text-warning normal-case">Parked</span>
+        </div>
+        <div class="space-y-3">
+          {#each open as q (q.title)}
+            <div class="bg-surface border border-dashed border-border rounded-lg p-4">
+              <h3 class="text-base font-semibold text-heading mb-2">
+                {q.title}
+                {#if q.added}
+                  <span class="text-[10px] font-mono text-muted ml-2 align-middle"
+                    >added {q.added}</span
+                  >
+                {/if}
+              </h3>
+              <p class="text-sm text-body font-sans leading-relaxed">{q.note}</p>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
 
     <!-- 05 // Recently Shipped -->
     <section>
