@@ -122,7 +122,11 @@
       const result = await api.post(
         '/insights/generate/project-health',
         { projectName },
-        { timeout: 120000 }
+        // silent=true: the page renders its own inline error state via
+        // healthNarratives[name].error, and a 503 here is expected when
+        // RAVEN_INSIGHTS_DISABLED=1. Without this, every click on a disabled
+        // backend writes a duplicate row to the error log.
+        { timeout: 120000, silent: true }
       );
       healthNarratives = {
         ...healthNarratives,
