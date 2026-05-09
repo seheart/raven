@@ -110,7 +110,7 @@
     return `M ${points.join(' L ')}`;
   }
 
-  // process-activity rows keyed by raw process agent_name (e.g. "claude-sonnet-3.5")
+  // process-activity rows keyed by raw process agent_name (e.g. "claude-code")
   let processByName = $state({});
   // Latest observed model name per agent_type (e.g. "claude-code" → "claude-opus-4-7"),
   // sourced from /api/api-latency. The Claude CLI process name doesn't carry this —
@@ -220,8 +220,9 @@
 
   // Match an agents-status row to its latest process-activity row.
   // agents-status uses display agent_type (e.g. "claude-code"); process metrics
-  // key by raw process name (e.g. "claude-sonnet-3.5"). Substring match on
-  // the lowercased pair is enough to pair them.
+  // key by raw process name (also "claude-code" now that the metrics
+  // collector stopped lying with a hardcoded model label). Substring
+  // match on the lowercased pair is enough to pair them.
   function processFor(agent) {
     const type = (agent?.agent_type || '').toLowerCase();
     if (!type) return null;

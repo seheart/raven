@@ -25,7 +25,7 @@
   let processMetrics = $state([]);
   let stats = $state(null);
   let correlations = $state([]);
-  let selectedAgent = $state('claude-sonnet-3.5');
+  let selectedAgent = $state('claude-code');
   let loading = $state(true);
   let error = $state(null);
   let lastUpdated = $state(null);

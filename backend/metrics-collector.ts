@@ -50,7 +50,12 @@ export class MetricsCollector {
   private aiEndpointIPs: Set<string> = new Set();
 
   private agentPatterns: ProcessPattern[] = [
-    { pattern: /claude/i, name: 'claude-sonnet-3.5' },
+    // The Claude Code CLI process is named `claude` and can be running
+    // with any model (Opus/Sonnet/Haiku/etc). Earlier this was hardcoded
+    // to 'claude-sonnet-3.5' which lied to users who'd never used Sonnet
+    // a day in their life — it just labeled every `claude` process with
+    // the same outdated default. The honest name is the CLI tool itself.
+    { pattern: /claude/i, name: 'claude-code' },
     { pattern: /codex/i, name: 'codex' },
     { pattern: /cursor/i, name: 'cursor' },
     { pattern: /copilot/i, name: 'github-copilot' },
