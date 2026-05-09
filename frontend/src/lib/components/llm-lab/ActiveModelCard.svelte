@@ -471,7 +471,13 @@
                        loaded it first. Each chip carries its own alive
                        check, so a project that's gone reads muted with
                        a "· gone" suffix while live ones stay solid. -->
-                  {#each s.consumers as c, i (c.pid ?? c.project ?? i)}
+                  <!-- Key combines pid + project because the backend groups
+                       by both — the same PID can appear twice when some of
+                       its rows have project attribution and others don't
+                       (typical during the brief window after restart while
+                       projects.json is loading). Falling back to index as
+                       a final tiebreaker ensures we never collide. -->
+                  {#each s.consumers as c, i (`${c.pid ?? ''}|${c.project ?? ''}|${i}`)}
                     {@const name = c.project ?? c.cwd?.split('/').pop() ?? `pid ${c.pid}`}
                     {@const gone = c.process_alive === false}
                     <span
