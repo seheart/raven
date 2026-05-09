@@ -41,6 +41,10 @@
   /** @type {string|null} */
   let loadError = $state(null);
   let activeIdx = $state(0);
+  /** Cards that have ever been intersected — drives the fade-in class.
+   *  Tracked in state (instead of imperatively setting a class on the
+   *  DOM node) so Svelte's scoped CSS sees the selector and keeps it. */
+  let seenCards = $state(new Set());
   /** @type {HTMLElement|null} */
   let stackEl = $state(null);
 
@@ -94,8 +98,16 @@
         for (const entry of entries) {
           if (entry.isIntersecting) {
             const idx = Number(entry.target.getAttribute('data-card'));
-            if (Number.isFinite(idx)) activeIdx = idx;
-            entry.target.classList.add('is-visible');
+            if (!Number.isFinite(idx)) continue;
+            activeIdx = idx;
+            // Reactive Set update so the class binding re-evaluates.
+            // Svelte's scoped CSS won't pick up classes added via
+            // classList.add(), which previously left every card stuck
+            // at opacity:0 because .card.is-visible got compiled out
+            // as an "unused selector".
+            if (!seenCards.has(idx)) {
+              seenCards = new Set([...seenCards, idx]);
+            }
           }
         }
       },
@@ -211,6 +223,7 @@
       <section
         data-card={i}
         class="card"
+        class:is-visible={seenCards.has(i) || i === 0}
         class:is-opener={i === 0}
         class:is-closing={i === payload.cards.length - 1}
         style={toneStyle(card.tone, i)}
