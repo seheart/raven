@@ -79,6 +79,16 @@ export interface FileEventsRepository {
   >;
 
   /**
+   * Top N most-edited files for a single project, by event count within
+   * the retention window. Powers the project profile panel's "hot files"
+   * list.
+   */
+  topEditedByProject(
+    projectName: string,
+    limit?: number
+  ): Array<{ filepath: string; edits: number }>;
+
+  /**
    * Single event by id with the columns needed for diff inspection.
    * Returns undefined if no row matches.
    */
@@ -328,6 +338,23 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
         // route behavior of "every count stays 0".
       }
       return counts;
+    },
+
+    topEditedByProject(projectName, limit = 5) {
+      try {
+        return db.db
+          .prepare<unknown[], { filepath: string; edits: number }>(
+            `SELECT filepath, COUNT(*) as edits
+               FROM events
+              WHERE project_name = ? AND filepath IS NOT NULL
+              GROUP BY filepath
+              ORDER BY edits DESC
+              LIMIT ?`
+          )
+          .all(projectName, limit);
+      } catch {
+        return [];
+      }
     },
 
     lifetimeStatsByProject() {

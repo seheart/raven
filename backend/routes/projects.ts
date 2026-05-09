@@ -8,7 +8,11 @@
 import express, { Request, Response, Router } from 'express';
 import os from 'os';
 import fs from 'fs/promises';
+import { execFile as execFileCb } from 'child_process';
+import { promisify } from 'util';
 import { basename, join, resolve } from 'path';
+
+const execFile = promisify(execFileCb);
 import { z } from 'zod';
 import { cacheMiddleware } from '../services/cache-service.js';
 import { logger } from '../utils/logger.js';
@@ -120,6 +124,25 @@ export function createProjectsRouter({
 
       return res.json({ ...config, projects });
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  // GET /api/projects/:name/profile — rich metadata for a single project:
+  // language mix, framework detection, git first/last commit, filesystem
+  // dates, top-edited files, raven counters. Powers the meta panel that
+  // sits next to the AI Summary on /system/projects. Cached 60s — the
+  // git/du calls aren't free.
+  router.get('/:name/profile', cacheMiddleware(60_000), async (req: Request, res: Response) => {
+    try {
+      const config = await projectsConfigService.load();
+      const project = config.projects.find(p => p.name === req.params.name);
+      if (!project) return res.status(404).json({ error: 'Project not found' });
+      const profile = await buildProjectProfile(project, fileEventsRepo);
+      return res.json(profile);
+    } catch (error) {
+      logger.error('[GET /api/projects/:name/profile] Error:', error as Error);
       const message = error instanceof Error ? error.message : String(error);
       return res.status(500).json({ error: message });
     }
@@ -397,4 +420,400 @@ export function createProjectsRouter({
   });
 
   return router;
+}
+
+// ==================== Project profile helpers ====================
+
+const EXT_TO_LANG: Record<string, string> = {
+  ts: 'TypeScript',
+  tsx: 'TypeScript',
+  js: 'JavaScript',
+  jsx: 'JavaScript',
+  mjs: 'JavaScript',
+  cjs: 'JavaScript',
+  svelte: 'Svelte',
+  vue: 'Vue',
+  py: 'Python',
+  rb: 'Ruby',
+  go: 'Go',
+  rs: 'Rust',
+  java: 'Java',
+  kt: 'Kotlin',
+  scala: 'Scala',
+  c: 'C',
+  h: 'C',
+  cpp: 'C++',
+  cc: 'C++',
+  hpp: 'C++',
+  cs: 'C#',
+  swift: 'Swift',
+  php: 'PHP',
+  lua: 'Lua',
+  ex: 'Elixir',
+  exs: 'Elixir',
+  erl: 'Erlang',
+  hs: 'Haskell',
+  ml: 'OCaml',
+  zig: 'Zig',
+  dart: 'Dart',
+  r: 'R',
+  m: 'Objective-C',
+  sh: 'Shell',
+  bash: 'Shell',
+  zsh: 'Shell',
+  fish: 'Shell',
+  ps1: 'PowerShell',
+  sql: 'SQL',
+  html: 'HTML',
+  css: 'CSS',
+  scss: 'SCSS',
+  sass: 'Sass',
+  less: 'Less',
+  md: 'Markdown',
+  json: 'JSON',
+  yaml: 'YAML',
+  yml: 'YAML',
+  toml: 'TOML'
+};
+
+const STACK_IGNORES = [
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'target',
+  'venv',
+  '.venv',
+  '.next',
+  '.cache',
+  'coverage',
+  '__pycache__'
+];
+
+interface ProjectProfile {
+  name: string;
+  path: string;
+  exists: boolean;
+  languages: Array<{ name: string; files: number; percent: number }>;
+  frameworks: string[];
+  package_manager: string | null;
+  runtime: string | null;
+  git: {
+    branch: string | null;
+    first_commit_at: string | null;
+    last_commit_at: string | null;
+    last_commit_subject: string | null;
+    remote: string | null;
+    commits_total: number | null;
+  } | null;
+  filesystem: {
+    created_at: string | null;
+    modified_at: string | null;
+  };
+  raven: {
+    first_seen_at: string | null;
+    last_seen_at: string | null;
+    last_agent_seen_at: string | null;
+    lifetime_events: number;
+    lifetime_agent_events: number;
+  };
+  top_edited_files: Array<{ filepath: string; edits: number }>;
+  key_files: Array<{ name: string; present: boolean }>;
+}
+
+interface ProjectLike {
+  name: string;
+  path: string;
+  ignorePatterns?: string[];
+}
+
+interface FileEventsRepoLike {
+  lifetimeStatsByProject(): Map<
+    string,
+    {
+      total_events: number;
+      total_agent_events: number;
+      first_seen_at: string | null;
+      last_seen_at: string | null;
+      last_agent_seen_at: string | null;
+    }
+  >;
+  topEditedByProject(
+    projectName: string,
+    limit?: number
+  ): Array<{ filepath: string; edits: number }>;
+}
+
+async function buildProjectProfile(
+  project: ProjectLike,
+  fileEventsRepo: FileEventsRepoLike
+): Promise<ProjectProfile> {
+  const { name, path } = project;
+
+  let exists = false;
+  let createdAt: string | null = null;
+  let modifiedAt: string | null = null;
+  try {
+    const stat = await fs.stat(path);
+    exists = stat.isDirectory();
+    // birthtime isn't reliable on every FS — fall back to ctime if it's
+    // epoch (the kernel's "I don't know" answer on ext4 without birthtime).
+    const birth = stat.birthtime?.getTime?.() ?? 0;
+    createdAt = new Date(birth > 0 ? birth : stat.ctimeMs).toISOString();
+    modifiedAt = new Date(stat.mtimeMs).toISOString();
+  } catch {
+    /* path missing */
+  }
+
+  const ignores = Array.from(new Set([...STACK_IGNORES, ...(project.ignorePatterns ?? [])])).map(
+    p => p.replace(/\/.*$/, '').replace(/\/$/, '')
+  );
+
+  const languages = exists ? await detectLanguages(path, ignores) : [];
+  const { frameworks, packageManager, runtime } = exists
+    ? await detectFrameworks(path)
+    : { frameworks: [], packageManager: null, runtime: null };
+  const git = exists ? await detectGit(path) : null;
+  const keyFiles = exists ? await checkKeyFiles(path) : [];
+  const stats = fileEventsRepo.lifetimeStatsByProject().get(name);
+  const topEdited = fileEventsRepo.topEditedByProject(name, 5);
+
+  return {
+    name,
+    path,
+    exists,
+    languages,
+    frameworks,
+    package_manager: packageManager,
+    runtime,
+    git,
+    filesystem: { created_at: createdAt, modified_at: modifiedAt },
+    raven: {
+      first_seen_at: stats?.first_seen_at ?? null,
+      last_seen_at: stats?.last_seen_at ?? null,
+      last_agent_seen_at: stats?.last_agent_seen_at ?? null,
+      lifetime_events: stats?.total_events ?? 0,
+      lifetime_agent_events: stats?.total_agent_events ?? 0
+    },
+    top_edited_files: topEdited,
+    key_files: keyFiles
+  };
+}
+
+async function detectLanguages(
+  path: string,
+  ignores: string[]
+): Promise<Array<{ name: string; files: number; percent: number }>> {
+  // find -type f, build extension counts. Bounded so a giant tree doesn't
+  // hang the request. Each ignore becomes a top-level prune.
+  const args: string[] = [path];
+  for (const ig of ignores) {
+    if (ig) args.push('-name', ig, '-prune', '-o');
+  }
+  args.push('-type', 'f', '-print');
+  let stdout = '';
+  try {
+    const result = await execFile('find', args, {
+      timeout: 10_000,
+      maxBuffer: 32 * 1024 * 1024
+    });
+    stdout = result.stdout;
+  } catch {
+    return [];
+  }
+  const counts = new Map<string, number>();
+  for (const line of stdout.split('\n')) {
+    if (!line) continue;
+    const dot = line.lastIndexOf('.');
+    const slash = line.lastIndexOf('/');
+    if (dot < 0 || dot < slash) continue;
+    const ext = line.slice(dot + 1).toLowerCase();
+    const lang = EXT_TO_LANG[ext];
+    if (!lang) continue;
+    counts.set(lang, (counts.get(lang) ?? 0) + 1);
+  }
+  // Filter out the noise: if a project is overwhelmingly TypeScript, the
+  // single .yaml file is irrelevant. Keep top languages and lump the rest
+  // into 'Other' if there are many tail entries. Markdown/JSON/YAML are
+  // demoted because they're ubiquitous and not really "the stack".
+  const total = Array.from(counts.values()).reduce((s, n) => s + n, 0);
+  if (total === 0) return [];
+  const ranked = Array.from(counts.entries())
+    .map(([n, c]) => ({ name: n, files: c, percent: Math.round((c / total) * 100) }))
+    .sort((a, b) => b.files - a.files);
+  return ranked.slice(0, 8);
+}
+
+async function detectFrameworks(
+  path: string
+): Promise<{ frameworks: string[]; packageManager: string | null; runtime: string | null }> {
+  const frameworks: string[] = [];
+  let packageManager: string | null = null;
+  let runtime: string | null = null;
+
+  // package.json — Node ecosystem.
+  try {
+    const pkgRaw = await fs.readFile(join(path, 'package.json'), 'utf-8');
+    const pkg = JSON.parse(pkgRaw) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      packageManager?: string;
+    };
+    runtime = 'Node.js';
+    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+    const has = (s: string) => Object.prototype.hasOwnProperty.call(deps, s);
+    if (has('svelte') || has('@sveltejs/kit')) frameworks.push('Svelte');
+    if (has('react')) frameworks.push('React');
+    if (has('next')) frameworks.push('Next.js');
+    if (has('vue')) frameworks.push('Vue');
+    if (has('nuxt')) frameworks.push('Nuxt');
+    if (has('astro')) frameworks.push('Astro');
+    if (has('vite')) frameworks.push('Vite');
+    if (has('webpack')) frameworks.push('Webpack');
+    if (has('express')) frameworks.push('Express');
+    if (has('fastify')) frameworks.push('Fastify');
+    if (has('@nestjs/core')) frameworks.push('NestJS');
+    if (has('hono')) frameworks.push('Hono');
+    if (has('typescript')) frameworks.push('TypeScript');
+    if (has('tailwindcss')) frameworks.push('Tailwind');
+    if (has('vitest')) frameworks.push('Vitest');
+    if (has('playwright') || has('@playwright/test')) frameworks.push('Playwright');
+    if (pkg.packageManager) {
+      packageManager = pkg.packageManager.split('@')[0];
+    } else {
+      try {
+        await fs.access(join(path, 'pnpm-lock.yaml'));
+        packageManager = 'pnpm';
+      } catch {
+        try {
+          await fs.access(join(path, 'yarn.lock'));
+          packageManager = 'yarn';
+        } catch {
+          packageManager = 'npm';
+        }
+      }
+    }
+  } catch {
+    /* not a Node project */
+  }
+
+  // Other ecosystems: presence of marker files.
+  const checks: Array<[string, string, string | null]> = [
+    ['Cargo.toml', 'Rust', 'cargo'],
+    ['go.mod', 'Go module', 'go mod'],
+    ['pyproject.toml', 'Python', 'pip/poetry'],
+    ['requirements.txt', 'Python', 'pip'],
+    ['Pipfile', 'Python', 'pipenv'],
+    ['Gemfile', 'Ruby', 'bundler'],
+    ['composer.json', 'PHP', 'composer'],
+    ['pom.xml', 'Maven', 'maven'],
+    ['build.gradle', 'Gradle', 'gradle'],
+    ['build.gradle.kts', 'Gradle (Kotlin DSL)', 'gradle'],
+    ['mix.exs', 'Elixir/Phoenix', 'mix'],
+    ['Dockerfile', 'Docker', null]
+  ];
+  for (const [file, label, pm] of checks) {
+    try {
+      await fs.access(join(path, file));
+      if (!frameworks.includes(label)) frameworks.push(label);
+      if (pm && !packageManager) packageManager = pm;
+      if (!runtime) {
+        if (label === 'Rust') runtime = 'Rust';
+        else if (label.startsWith('Go')) runtime = 'Go';
+        else if (label.startsWith('Python')) runtime = 'Python';
+        else if (label.startsWith('Ruby')) runtime = 'Ruby';
+        else if (label === 'PHP') runtime = 'PHP';
+        else if (label.startsWith('Maven') || label.startsWith('Gradle')) runtime = 'JVM';
+        else if (label.startsWith('Elixir')) runtime = 'Elixir';
+      }
+    } catch {
+      /* missing */
+    }
+  }
+
+  return { frameworks, packageManager, runtime };
+}
+
+async function detectGit(path: string): Promise<ProjectProfile['git']> {
+  try {
+    await fs.access(join(path, '.git'));
+  } catch {
+    return null;
+  }
+  const out: ProjectProfile['git'] = {
+    branch: null,
+    first_commit_at: null,
+    last_commit_at: null,
+    last_commit_subject: null,
+    remote: null,
+    commits_total: null
+  };
+  try {
+    const r = await execFile('git', ['-C', path, 'branch', '--show-current'], { timeout: 5_000 });
+    out.branch = r.stdout.trim() || null;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const r = await execFile('git', ['-C', path, 'log', '--reverse', '-1', '--format=%cI'], {
+      timeout: 5_000
+    });
+    out.first_commit_at = r.stdout.trim() || null;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const r = await execFile('git', ['-C', path, 'log', '-1', '--format=%cI%n%s'], {
+      timeout: 5_000
+    });
+    const [iso, subject] = r.stdout.split('\n');
+    out.last_commit_at = iso?.trim() || null;
+    out.last_commit_subject = subject?.trim() || null;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const r = await execFile('git', ['-C', path, 'config', '--get', 'remote.origin.url'], {
+      timeout: 5_000
+    });
+    out.remote = r.stdout.trim() || null;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const r = await execFile('git', ['-C', path, 'rev-list', '--count', 'HEAD'], {
+      timeout: 5_000
+    });
+    out.commits_total = parseInt(r.stdout.trim(), 10) || null;
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
+async function checkKeyFiles(path: string): Promise<Array<{ name: string; present: boolean }>> {
+  const candidates = [
+    'README.md',
+    'README',
+    'LICENSE',
+    'package.json',
+    'tsconfig.json',
+    'Cargo.toml',
+    'go.mod',
+    'pyproject.toml',
+    'Dockerfile',
+    'docker-compose.yml',
+    '.env.example',
+    'Makefile'
+  ];
+  const out: Array<{ name: string; present: boolean }> = [];
+  for (const f of candidates) {
+    try {
+      await fs.access(join(path, f));
+      out.push({ name: f, present: true });
+    } catch {
+      /* skip absent ones to keep the list signal-rich */
+    }
+  }
+  return out;
 }

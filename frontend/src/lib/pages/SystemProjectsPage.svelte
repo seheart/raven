@@ -128,6 +128,10 @@
   }
 
   let healthNarratives = $state({});
+  // Project profile data, lazy-loaded when the user clicks AI Summary so
+  // we don't hammer du/find/git for every project on page load. Keyed by
+  // project name; null while loading, populated when the fetch returns.
+  let projectProfiles = $state({});
   // Live elapsed counter for the active AI Summary run. The earlier
   // "Analyzing..." button label was too quiet for a 30-90s wait — users
   // clicked and didn't know whether anything was happening. Same fix
@@ -144,11 +148,31 @@
     return Math.max(0, Math.floor((Date.now() - activeStartedAt) / 1000));
   });
 
+  async function loadProjectProfile(projectName) {
+    if (projectProfiles[projectName]?.data || projectProfiles[projectName]?.loading) return;
+    projectProfiles = { ...projectProfiles, [projectName]: { loading: true } };
+    try {
+      const data = await api.get(`/projects/${encodeURIComponent(projectName)}/profile`, {
+        silent: true
+      });
+      projectProfiles = { ...projectProfiles, [projectName]: { loading: false, data } };
+    } catch (err) {
+      projectProfiles = {
+        ...projectProfiles,
+        [projectName]: { loading: false, error: err?.message || String(err) }
+      };
+    }
+  }
+
   async function getProjectHealth(projectName) {
     healthNarratives = {
       ...healthNarratives,
       [projectName]: { loading: true, content: null, error: null }
     };
+    // Kick off the profile load in parallel — it's fast (~100-300ms) and
+    // gives the user instant context (stack, dates, top files) while the
+    // LLM is still writing.
+    loadProjectProfile(projectName);
     activeProjectName = projectName;
     activeStartedAt = Date.now();
     elapsedTick = 0;
@@ -210,6 +234,25 @@
       }
     }
     return raw;
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return null;
+    const ms = Date.now() - new Date(iso).getTime();
+    if (ms < 60_000) return 'just now';
+    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
+    if (ms < 31 * 86_400_000) return `${Math.floor(ms / 86_400_000)}d ago`;
+    if (ms < 365 * 86_400_000) return `${Math.floor(ms / (30 * 86_400_000))}mo ago`;
+    return `${(ms / (365 * 86_400_000)).toFixed(1)}y ago`;
+  }
+
+  function shortRemote(url) {
+    if (!url) return null;
+    // git@github.com:foo/bar.git → foo/bar
+    // https://github.com/foo/bar.git → foo/bar
+    const m = url.match(/[:/]([^:/]+\/[^/]+?)(?:\.git)?$/);
+    return m ? m[1] : url;
   }
 
   function _formatBytes(bytes) {
@@ -429,23 +472,220 @@
                   >
                 </div>
               </div>
-              {#if healthNarratives[project.name]?.content}
-                <div id="project-summary-{project.name}" class="px-5 pb-4 -mt-2">
-                  <div
-                    class="bg-canvas border rounded p-4 text-base text-body font-sans leading-relaxed transition-colors {highlightProjectName ===
-                    project.name
-                      ? 'border-accent shadow-[0_0_0_1px_var(--accent)]'
-                      : 'border-border'}"
-                  >
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
-                    {@html renderMarkdown(healthNarratives[project.name].content)}
-                  </div>
-                </div>
-              {:else if healthNarratives[project.name]?.error}
-                <div class="px-5 pb-4 -mt-2">
-                  <div class="text-xs text-error">
-                    Failed: {healthNarratives[project.name].error}
-                  </div>
+              {#if projectProfiles[project.name]?.data || projectProfiles[project.name]?.loading || healthNarratives[project.name]?.content || healthNarratives[project.name]?.error}
+                {@const prof = projectProfiles[project.name]?.data}
+                <div id="project-summary-{project.name}" class="px-5 pb-4 -mt-2 space-y-3">
+                  <!-- Profile card: deterministic metadata (stack, dates,
+                       top files) computed without the LLM. Lands fast so
+                       the user sees something immediately while the AI
+                       Summary is still being written. -->
+                  {#if prof}
+                    <div
+                      class="bg-canvas border border-border rounded p-4 text-sm text-body font-sans"
+                    >
+                      <!-- Stack pills row: runtime + frameworks + package manager -->
+                      {#if prof.runtime || prof.frameworks?.length || prof.package_manager}
+                        <div class="flex flex-wrap items-center gap-1.5 mb-3">
+                          {#if prof.runtime}
+                            <span
+                              class="px-2 py-0.5 rounded text-[11px] font-mono bg-accent text-canvas font-semibold"
+                              >{prof.runtime}</span
+                            >
+                          {/if}
+                          {#each prof.frameworks ?? [] as fw (fw)}
+                            <span
+                              class="px-2 py-0.5 rounded text-[11px] font-mono bg-surface border border-border text-body"
+                              >{fw}</span
+                            >
+                          {/each}
+                          {#if prof.package_manager}
+                            <span class="text-[10px] font-mono text-muted ml-1"
+                              >via {prof.package_manager}</span
+                            >
+                          {/if}
+                        </div>
+                      {/if}
+
+                      <!-- Languages: top 6 with file count -->
+                      {#if prof.languages?.length}
+                        <div class="mb-3">
+                          <div
+                            class="text-[10px] font-mono uppercase tracking-wide text-muted mb-1.5"
+                          >
+                            Languages
+                          </div>
+                          <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono">
+                            {#each prof.languages.slice(0, 6) as lang (lang.name)}
+                              <span>
+                                <span class="text-body">{lang.name}</span>
+                                <span class="text-muted ml-1">{lang.files}</span>
+                                {#if lang.percent >= 5}
+                                  <span class="text-muted/60 ml-0.5">· {lang.percent}%</span>
+                                {/if}
+                              </span>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
+
+                      <!-- Dates row: created / last touched / git stats -->
+                      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1 text-xs mb-3">
+                        {#if prof.git?.first_commit_at}
+                          <div>
+                            <div class="text-[10px] font-mono uppercase tracking-wide text-muted">
+                              First commit
+                            </div>
+                            <div
+                              class="font-mono text-body"
+                              title={new Date(prof.git.first_commit_at).toLocaleString()}
+                            >
+                              {timeAgo(prof.git.first_commit_at)}
+                            </div>
+                          </div>
+                        {:else if prof.filesystem?.created_at}
+                          <div>
+                            <div class="text-[10px] font-mono uppercase tracking-wide text-muted">
+                              Created
+                            </div>
+                            <div
+                              class="font-mono text-body"
+                              title={new Date(prof.filesystem.created_at).toLocaleString()}
+                            >
+                              {timeAgo(prof.filesystem.created_at)}
+                            </div>
+                          </div>
+                        {/if}
+
+                        <div>
+                          <div class="text-[10px] font-mono uppercase tracking-wide text-muted">
+                            Last touched
+                          </div>
+                          <div
+                            class="font-mono text-body"
+                            title={new Date(
+                              prof.raven?.last_seen_at ||
+                                prof.git?.last_commit_at ||
+                                prof.filesystem?.modified_at ||
+                                Date.now()
+                            ).toLocaleString()}
+                          >
+                            {timeAgo(
+                              prof.raven?.last_seen_at ||
+                                prof.git?.last_commit_at ||
+                                prof.filesystem?.modified_at
+                            ) || '—'}
+                          </div>
+                        </div>
+
+                        {#if prof.git?.commits_total}
+                          <div>
+                            <div class="text-[10px] font-mono uppercase tracking-wide text-muted">
+                              Commits
+                            </div>
+                            <div class="font-mono text-body">
+                              {prof.git.commits_total.toLocaleString()}
+                              {#if prof.git.branch}
+                                <span class="text-muted ml-1">· {prof.git.branch}</span>
+                              {/if}
+                            </div>
+                          </div>
+                        {/if}
+
+                        {#if prof.git?.remote}
+                          <div class="min-w-0">
+                            <div class="text-[10px] font-mono uppercase tracking-wide text-muted">
+                              Remote
+                            </div>
+                            <div class="font-mono text-body truncate" title={prof.git.remote}>
+                              {shortRemote(prof.git.remote)}
+                            </div>
+                          </div>
+                        {/if}
+                      </div>
+
+                      <!-- Last commit subject — a tiny human signal that
+                           the project is actually being worked on -->
+                      {#if prof.git?.last_commit_subject}
+                        <div class="text-xs mb-3">
+                          <span class="text-muted">Latest:</span>
+                          <span class="font-mono text-body italic">
+                            "{prof.git.last_commit_subject}"
+                          </span>
+                        </div>
+                      {/if}
+
+                      <!-- Top edited + key files in a two-column block -->
+                      <div class="grid sm:grid-cols-2 gap-4">
+                        {#if prof.top_edited_files?.length}
+                          <div>
+                            <div
+                              class="text-[10px] font-mono uppercase tracking-wide text-muted mb-1"
+                            >
+                              Hot files (last 7d)
+                            </div>
+                            <ul class="space-y-0.5 text-xs font-mono">
+                              {#each prof.top_edited_files as f (f.filepath)}
+                                <li class="flex justify-between gap-2">
+                                  <span class="text-body truncate" title={f.filepath}>
+                                    {f.filepath}
+                                  </span>
+                                  <span class="text-muted tabular-nums flex-shrink-0"
+                                    >{f.edits}</span
+                                  >
+                                </li>
+                              {/each}
+                            </ul>
+                          </div>
+                        {/if}
+                        {#if prof.key_files?.length}
+                          <div>
+                            <div
+                              class="text-[10px] font-mono uppercase tracking-wide text-muted mb-1"
+                            >
+                              Key files
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 text-[11px] font-mono">
+                              {#each prof.key_files as kf (kf.name)}
+                                <span
+                                  class="px-1.5 py-0.5 rounded bg-surface border border-border text-muted"
+                                  >{kf.name}</span
+                                >
+                              {/each}
+                            </div>
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  {:else if projectProfiles[project.name]?.loading}
+                    <div
+                      class="bg-canvas border border-border rounded p-4 text-xs text-muted font-mono italic"
+                    >
+                      Reading project metadata…
+                    </div>
+                  {:else if projectProfiles[project.name]?.error}
+                    <div
+                      class="bg-canvas border border-border rounded p-4 text-xs text-error font-mono"
+                    >
+                      Couldn't read project metadata: {projectProfiles[project.name].error}
+                    </div>
+                  {/if}
+
+                  <!-- AI Summary card — appears when LLM run completes. -->
+                  {#if healthNarratives[project.name]?.content}
+                    <div
+                      class="bg-canvas border rounded p-4 text-base text-body font-sans leading-relaxed transition-colors {highlightProjectName ===
+                      project.name
+                        ? 'border-accent shadow-[0_0_0_1px_var(--accent)]'
+                        : 'border-border'}"
+                    >
+                      <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
+                      {@html renderMarkdown(healthNarratives[project.name].content)}
+                    </div>
+                  {:else if healthNarratives[project.name]?.error}
+                    <div class="text-xs text-error font-mono">
+                      Failed: {healthNarratives[project.name].error}
+                    </div>
+                  {/if}
                 </div>
               {/if}
             </div>
