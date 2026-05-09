@@ -20,22 +20,10 @@
   // Claude Code users on something they immediately understand.
   const publicLaunch = [
     {
-      title: 'README + landing screencast',
+      title: 'Landing screencast',
       detail:
-        'GitHub is the first-impression surface. Needs a sub-3-second value prop, an animated GIF or screencast of the Today view + heartbeat, and a one-line install. The README is the actual product page until raven.dev exists.',
-      size: 'M'
-    },
-    {
-      title: 'CODE_OF_CONDUCT.md',
-      detail:
-        'LICENSE + CONTRIBUTING already shipped. CoC remains — the standard Contributor Covenant boilerplate. Curl from contributor-covenant.org rather than generating: the Anthropic safety filter blocks generation of CoC content.',
-      size: 'XS'
-    },
-    {
-      title: 'Pre-launch polish sweep',
-      detail:
-        "Carry-over from the prior roadmap's full-page audit + text-xs cleanup. Walk every page at full / half / mobile widths, fix overflow, fix any text-xs body copy still misused. Anything visibly broken on the demo screencast must die first.",
-      size: 'M'
+        'Record a 10–15s animated GIF or MP4 of the Today view in motion: cost ticker climbing, narrative beats rendering, heartbeat breathing. Drop it at the top of the README under the tagline. README copy + Pages table + What-you-get list are already refreshed; the screencast is the last thing standing between Raven and a public-ready GitHub page.',
+      size: 'S'
     }
   ];
 
@@ -83,6 +71,22 @@
   ];
 
   const recentlyShipped = [
+    // ── May 2026 — Phase 00 closeout ───────────────────────────
+    {
+      label: 'README rewrite for public launch',
+      detail:
+        'Quick-start now leads with `npx raven-monitor` (zero-friction try-it path); git-clone demoted to "from source." What-you-get refreshed for May ships: persistent agent heartbeat, inline diff risk scoring, anomaly detection, milestone/weekly/Wrapped reflection loops, plugin sandbox. Pages table adds Wrapped, About, Roadmap, plus plugins/projects under System. CODE_OF_CONDUCT linked from Contributing.'
+    },
+    {
+      label: 'Pre-launch polish sweep',
+      detail:
+        'Playwright across 20 routes × 3 viewports surfaced 5 mobile horizontal overflows (/history toolbar, /system terminal-table wrappers missing overflow-x-auto, /system/projects per-row controls, /system/plugins right-side actions) plus a runtime ReferenceError on /history (dead `_recentActivity` loader writing to a renamed state). Re-sweep clean except a 3px /design-system overflow (negligible). Browsable at every breakpoint.'
+    },
+    {
+      label: 'CODE_OF_CONDUCT.md',
+      detail:
+        'Standard Contributor Covenant 2.1, fetched verbatim from EthicalSource. Contact email set, linked from CONTRIBUTING + README.'
+    },
     // ── May 2026 — Phase 00 launch-blocker batch ───────────────
     {
       label: 'One-command install (npx raven-monitor)',
