@@ -611,13 +611,14 @@
     <!-- Hero — narrated summary -->
     <section class="flex flex-col lg:flex-row gap-8">
       <div class="flex-1 min-w-0 max-w-[48rem]">
-        <!-- Local-first trust pill — visible on the landing page so the privacy
-             story is the first thing a new user reads. -->
+        <!-- Presence pill — first thing a new user sees on the landing
+             page. Frames Raven as a companion to local AI agents rather
+             than a privacy/security tool. -->
         <div
           class="mb-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse" aria-hidden="true"></span>
-          <span>Local-first · nothing leaves your machine</span>
+          <span>Always perched · your AI's steady companion</span>
         </div>
         <PageHeader
           title="Today"
@@ -722,7 +723,7 @@
           <div
             class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
           >
-            <span class="text-success">●</span> Local-first · nothing leaves your machine
+            <span class="text-success">●</span> Always perched · your AI's steady companion
           </div>
         </div>
       </aside>

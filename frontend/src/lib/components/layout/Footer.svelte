@@ -5,8 +5,6 @@
 
   let {
     version = '2.2.0',
-    sessionId = 'Loading...',
-    onSessionClick = () => {},
     onAboutClick = () => {},
     onDesignSystemClick = () => {},
     onRoadmapClick = () => {},
@@ -41,22 +39,13 @@
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <span
         class="flex items-center gap-1.5 text-xs text-[var(--body)]"
-        title="Raven runs entirely on your machine. No telemetry, no cloud, no account."
+        title="Raven is your AI's steady companion — always present, every session, every day."
       >
         <span class="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" aria-hidden="true"
         ></span>
-        <span class="hidden sm:inline">Local-first · nothing leaves your machine</span>
-        <span class="sm:hidden">Local-first</span>
+        <span class="hidden sm:inline">Always perched · your AI's steady companion</span>
+        <span class="sm:hidden">Always perched</span>
       </span>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        class="bg-transparent border-0 p-0 cursor-pointer text-[var(--muted)] hover:text-[var(--accent)] transition-colors text-xs flex items-center gap-2"
-        onclick={onSessionClick}
-        title="Session ID: {sessionId}"
-        aria-label="View session details"
-      >
-        Session: <span class="text-[var(--text)] font-semibold">{sessionId}</span>
-      </button>
     </div>
 
     <nav class="flex items-center gap-4" aria-label="Footer navigation">

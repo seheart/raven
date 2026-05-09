@@ -21,7 +21,6 @@
   import { toasts } from './lib/toastStore.js';
 
   // State
-  let sessionId = $state('Loading...');
   let appVersion = $state('');
 
   // Get current path from router
@@ -47,25 +46,19 @@
     }
   });
 
-  // Load session ID on mount
-  async function loadSessionId() {
+  // Load app version on mount (footer pill).
+  async function loadAppVersion() {
     try {
-      const [sessionData, healthData] = await Promise.all([
-        api.get('/session-id').catch(() => ({})),
-        api.get('/health').catch(() => ({}))
-      ]);
-      sessionId = sessionData.session_id || 'Unknown';
+      const healthData = await api.get('/health').catch(() => ({}));
       appVersion = healthData.version || '';
     } catch (error) {
-      sessionId = 'Offline';
-      logger.error('Failed to load session ID:', error);
+      logger.error('Failed to load app version:', error);
     }
   }
 
   // Check for first-time user on mount
   onMount(() => {
-    // Load session ID once on mount
-    loadSessionId();
+    loadAppVersion();
 
     // Prefetch all data in parallel for instant page loads
     dataService.prefetchAll().then(() => {
@@ -75,7 +68,7 @@
 
     // Auto-refresh when server restarts (WebSocket reconnects with new session)
     websocketService.onReconnect(() => {
-      loadSessionId();
+      loadAppVersion();
       dataService.prefetchAll();
     });
 
@@ -122,12 +115,6 @@
     // Since Raven is a local tool, clear all local data and reload
     localStorage.clear();
     location.reload();
-  }
-
-  function handleSessionClick() {
-    logger.debug('Session clicked:', sessionId);
-    // Navigate to system page to view session details
-    navigate('/system');
   }
 </script>
 
@@ -532,9 +519,7 @@
 
   <!-- Footer -->
   <Footer
-    {sessionId}
     version={appVersion}
-    onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
     onDesignSystemClick={handleDesignSystemClick}
     onRoadmapClick={handleRoadmapClick}
