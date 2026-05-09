@@ -2,7 +2,7 @@
 // PageLayout = canonical shell, PageHeader = h1 + description,
 // PageSection = grouped content with the small uppercase label,
 // ProseBlock = max-width prose wrapper for paragraph copy inside sections.
-// Header, Footer, AgentsNav are imported directly from their .svelte files.
+// Header and Footer are imported directly from their .svelte files.
 export { default as PageLayout } from './PageLayout.svelte';
 export { default as PageHeader } from './PageHeader.svelte';
 export { default as PageSection } from './PageSection.svelte';
