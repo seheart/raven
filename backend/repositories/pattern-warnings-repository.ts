@@ -24,6 +24,8 @@ export interface PatternWarningsRepository {
   resolveByFile(filepath: string): void;
   /** Resolve any stale pattern warnings for Raven's own source paths. */
   resolveForRaven(): void;
+  /** Resolve every unresolved warning. Returns the number resolved. */
+  resolveAll(): number;
   countUnresolved(): number;
 }
 
@@ -48,6 +50,9 @@ export function createPatternWarningsRepository(db: RavenDB): PatternWarningsRep
     `UPDATE pattern_warnings SET resolved = 1
      WHERE resolved = 0
        AND (filepath LIKE '%raven/backend/%' OR filepath LIKE '%raven/frontend/%')`
+  );
+  const resolveAllStmt = db.db.prepare(
+    `UPDATE pattern_warnings SET resolved = 1 WHERE resolved = 0`
   );
   const countUnresolvedStmt = db.db.prepare(
     `SELECT COUNT(*) as count FROM pattern_warnings WHERE resolved = 0`
@@ -102,6 +107,11 @@ export function createPatternWarningsRepository(db: RavenDB): PatternWarningsRep
       if (result.changes > 0) {
         logger.info(`Resolved ${result.changes} stale pattern warning(s) for Raven's own files`);
       }
+    },
+
+    resolveAll() {
+      const result = resolveAllStmt.run();
+      return result.changes as number;
     },
 
     countUnresolved() {

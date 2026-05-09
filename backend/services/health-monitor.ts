@@ -331,11 +331,20 @@ export class HealthMonitor {
     const timestamp = new Date().toISOString();
 
     try {
-      // Check for orphaned records
+      // "Orphaned" = events that *should* have a project but don't. The
+      // exclusions cover events that legitimately can't have one:
+      //   - inference / model_load: Ollama-level activity, not user work
+      //   - file like '/api/%' or '/v1/%': Ollama HTTP endpoints (native
+      //     /api/chat,/embed,/generate plus the /v1/* OpenAI-compat surface)
+      //     captured from the Ollama proxy
+      // Without these the check screamed about ~15k Ollama events and
+      // drowned out anything actually broken.
       const orphanedAgentEvents = this.db.db
         .prepare(
           `SELECT COUNT(*) as count FROM agent_events
-         WHERE project_name IS NULL OR project_name = ''`
+         WHERE (project_name IS NULL OR project_name = '')
+           AND event_type NOT IN ('inference', 'model_load')
+           AND (file IS NULL OR (file NOT LIKE '/api/%' AND file NOT LIKE '/v1/%'))`
         )
         .get() as { count: number };
 
@@ -353,7 +362,7 @@ export class HealthMonitor {
           category: 'Data Integrity',
           name: 'Agent Events',
           status: 'healthy',
-          message: 'All agent events have valid project_name',
+          message: 'All project-scoped agent events have valid project_name',
           timestamp
         });
       }

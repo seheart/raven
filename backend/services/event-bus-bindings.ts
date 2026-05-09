@@ -239,8 +239,14 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
         }
       }
 
-      // Pattern check
-      if (event.content && (event.type === 'change' || event.type === 'add')) {
+      // Pattern check. Skip Raven's own files entirely — the detector's
+      // pattern *definitions* (e.g. `name: 'eval()'`) match its own
+      // patterns, and Raven's tests use literal "x" passwords as fixtures.
+      // projectName is a reliable signal here; the path-based skip in
+      // PatternDetector can't tell `atf/frontend/` from `raven/frontend/`
+      // when the watcher emits relative paths.
+      const isRavenSelf = event.projectName === 'raven';
+      if (!isRavenSelf && event.content && (event.type === 'change' || event.type === 'add')) {
         const patternResult = patternDetector.detect(event.path, event.content);
         if (patternResult.hasIssues) {
           patternWarningsRepo.resolveByFile(event.path);

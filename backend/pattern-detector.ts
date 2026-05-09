@@ -71,6 +71,36 @@ const PATTERNS: Pattern[] = [
 class PatternDetector {
   private patterns: Pattern[];
 
+  // Filepath skip-list. Each regex matches a category of files where any
+  // pattern hit is overwhelmingly a false positive. Order matters only
+  // for readability — any match short-circuits the scan.
+  static readonly SKIP_PATTERNS: RegExp[] = [
+    // Test files (own-project; lowercase __tests__ dir or .test/.spec suffix).
+    /\b__tests__\b/,
+    /\.(?:test|spec)\.[cm]?[jt]sx?$/,
+    // Coverage reports — Puppeteer's `page.$eval` matches the eval pattern.
+    /\bcoverage\//,
+    // Vendored or minified third-party libs.
+    /\b(?:vendor|third_party)\//,
+    /\.min\.(?:js|css|mjs)$/,
+    // Binary / data files. Scanning a SQLite DB or wasm blob is just luck-of-
+    // the-draw byte-string matches against the credential regex.
+    /\.(?:sqlite3?|db|wasm|bin|map|lock)$/i,
+    // The detector's own source — its pattern definitions ARE the regexes
+    // it scans for, so it always matches itself. Skip both the source and
+    // any compiled dist copy.
+    /\bpattern-detector\.[cm]?[jt]s$/,
+    // Raven's own tree, absolute paths only. Relative-path skipping is
+    // handled in event-bus-bindings.ts via projectName === 'raven', which
+    // is a reliable signal — naming a directory `backend` or `frontend`
+    // doesn't make it Raven's code (every other Svelte project does too).
+    /\/raven\/(?:backend|frontend)\//
+  ];
+
+  static shouldSkip(filepath: string): boolean {
+    return PatternDetector.SKIP_PATTERNS.some(rx => rx.test(filepath));
+  }
+
   constructor(customPatterns: Pattern[] = []) {
     this.patterns = [...PATTERNS, ...customPatterns];
   }
@@ -81,14 +111,12 @@ class PatternDetector {
   detect(filepath: string, content: string): DetectionResult {
     const matches: PatternMatch[] = [];
 
-    // Skip Raven's own source files and test files
-    if (
-      filepath.includes('raven/backend/') ||
-      filepath.includes('raven/frontend/') ||
-      filepath.includes('__tests__') ||
-      filepath.includes('.test.') ||
-      filepath.includes('.spec.')
-    ) {
+    // Skip files where matches are virtually always false positives.
+    // The previous list checked for `raven/backend/` etc. as substrings,
+    // which silently failed for relative paths (the watcher emits
+    // `backend/services/...` not `raven/backend/services/...`), letting
+    // the detector flag its OWN pattern definitions and other safe files.
+    if (PatternDetector.shouldSkip(filepath)) {
       return { filepath, matches, hasIssues: false };
     }
 

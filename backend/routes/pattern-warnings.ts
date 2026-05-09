@@ -62,6 +62,19 @@ export function createPatternWarningsRouter(repo: PatternWarningsRepository): Ro
     }
   });
 
+  // POST /resolve-all — bulk-resolve every unresolved warning. Powers the
+  // SafetyPage's "Resolve All" button (which previously hit a non-existent
+  // route and silently no-op'd).
+  router.post('/resolve-all', async (_req: Request, res: Response) => {
+    try {
+      const resolved = repo.resolveAll();
+      return res.json({ success: true, resolved });
+    } catch (error) {
+      logger.error('[POST /api/pattern-warnings/resolve-all] Error:', error as Error);
+      return res.status(500).json({ error: 'Failed to resolve pattern warnings' });
+    }
+  });
+
   // GET /patterns — pattern catalog
   router.get('/patterns', async (_req: Request, res: Response) => {
     try {
