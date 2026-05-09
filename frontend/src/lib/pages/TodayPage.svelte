@@ -325,7 +325,24 @@
     if (!narrative) return beats;
     const { today, week, returning } = narrative;
 
-    // 1. Returning to a project — high relational value, leads.
+    // 1. Daily tally — one-line summary of today's center of gravity.
+    //    Fires whenever there's been activity AND cost data has loaded.
+    //    The page-opener beat the user reads first.
+    if (today.events > 0 && today.top_project && (Number(costs?.total_cost_usd) || 0) > 0) {
+      const cost = Number(costs.total_cost_usd) || 0;
+      const reqs = Number(costs?.total_requests) || 0;
+      const costStr = cost >= 0.01 ? `$${cost.toFixed(2)}` : '<$0.01';
+      beats.push({
+        glyph: '☼',
+        tone: 'accent',
+        text:
+          reqs > 0
+            ? `Today you've spent ${costStr} on ${today.top_project} across ${reqs} ${plural(reqs, 'request', 'requests')}.`
+            : `Today you've spent ${costStr} on ${today.top_project}.`
+      });
+    }
+
+    // 2. Returning to a project — high relational value.
     for (const r of returning.slice(0, 1)) {
       const days = r.days_since_last_event;
       const phrase =
@@ -339,7 +356,7 @@
       });
     }
 
-    // 2. Today's center of gravity.
+    // 3. Today's center of gravity (project breakdown).
     if (today.projects.length === 1 && today.events > 0) {
       const p = today.projects[0];
       beats.push({
@@ -366,7 +383,7 @@
       }
     }
 
-    // 3. The week's leader, when there's enough data to mean anything.
+    // 4. The week's leader, when there's enough data to mean anything.
     if (week.top_project && week.events >= 50 && week.projects.length >= 2) {
       const lead = week.projects[0];
       const share = Math.round((lead.events / week.events) * 100);
@@ -385,7 +402,7 @@
       }
     }
 
-    // 4. Longest session today (only worth noting if substantial).
+    // 5. Longest session today (only worth noting if substantial).
     const dur = fmtDuration(today.longest_session_seconds);
     if (dur && today.longest_session_seconds >= 30 * 60) {
       beats.push({
@@ -395,7 +412,7 @@
       });
     }
 
-    // 5. First-day fallback when nothing else fired and there's no data.
+    // 6. First-day fallback when nothing else fired and there's no data.
     if (beats.length === 0 && today.events === 0 && week.events === 0) {
       beats.push({
         glyph: '✶',

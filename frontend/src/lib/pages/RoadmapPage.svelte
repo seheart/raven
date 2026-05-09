@@ -54,11 +54,6 @@
   // 04 // Open Questions — bigger calls that need a design pass.
   const open = [
     {
-      title: 'Recap cadence — daily, weekly, or both?',
-      note: "Daily risks becoming noise: most days don't have a story worth telling. Weekly digests + milestone modals may be enough. But a low-fidelity daily 'one-line summary' on the Today view (no modal, no notification) might thread the needle. Worth a small experiment.",
-      added: '2026-05'
-    },
-    {
       title: 'Where is the line between presence and gimmick?',
       note: "Pulse + sparkline + animation everywhere becomes noise. Pick 2–3 channels (heartbeat / cost / context vessel) and invest in them masterfully. Need a UX-discipline rule before the team adds 'one more pulse.' Honest stillness is what gives motion meaning.",
       added: '2026-05'
@@ -72,6 +67,11 @@
 
   const recentlyShipped = [
     // ── May 2026 — Phase 00 closeout ───────────────────────────
+    {
+      label: 'Daily tally beat on Today',
+      detail:
+        "Resolves the 'recap cadence' open question. Today view now opens with a one-line summary — \"Today you've spent $X on {project} across N requests\" — fired only when activity + cost data both load, no modal/notification. Weekly digest + milestone modals already cover the longer-cadence reflection; this fills the daily slot at the lowest possible fidelity."
+    },
     {
       label: 'README rewrite for public launch',
       detail:
