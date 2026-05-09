@@ -129,6 +129,10 @@
     title="Local LLM status — click for the full Models view"
   >
     {#if activeModel}
+      <!-- Dot signals "a model is loaded"; the bars carry the live
+           "is it doing anything right now?" signal. Model name + size
+           live in ActiveModelCard on every dashboard page already, so
+           repeating them here was just stuttering the same fact. -->
       <span
         class="w-1.5 h-1.5 rounded-full bg-success animate-pulse flex-shrink-0"
         aria-hidden="true"
@@ -149,16 +153,17 @@
           {/each}
         </span>
       {/if}
-      <span class="font-semibold">{activeModel.name}</span>
-      {#if activeModel.size}
-        <span class="text-[var(--muted)]">({fmtGB(activeModel.size)})</span>
-      {/if}
     {:else if ollamaOffline}
       <span class="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" aria-hidden="true"></span>
       <span class="text-[var(--muted)]">Ollama offline</span>
     {/if}
     {#if gpu}
-      <span class="text-[var(--border)]" aria-hidden="true">|</span>
+      <!-- Pipe only renders when there's content to its left, so the
+           pill doesn't open with a stray "| VRAM ..." when no model is
+           loaded and Ollama isn't reporting offline. -->
+      {#if activeModel || ollamaOffline}
+        <span class="text-[var(--border)]" aria-hidden="true">|</span>
+      {/if}
       <span class="text-[var(--muted)]">VRAM</span>
       <span style="color: {vramColor(gpu.vram_pct)}">
         {gpu.vram_used_mib}/{gpu.vram_total_mib} MiB
