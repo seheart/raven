@@ -6,7 +6,8 @@
     RefreshButton,
     ToolbarButton,
     EmptyState,
-    LoadingState
+    LoadingState,
+    FreshnessBadge
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
@@ -381,7 +382,7 @@
   >
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-muted font-mono">{timeAgo}</span>
+        <FreshnessBadge mode="polled" since={lastUpdated} />
         <RefreshButton onClick={loadStats} {loading} />
       </div>
     {/snippet}

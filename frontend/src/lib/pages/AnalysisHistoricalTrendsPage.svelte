@@ -7,7 +7,8 @@
     RefreshButton,
     ToolbarButton,
     EmptyState,
-    DataFetchError
+    DataFetchError,
+    FreshnessBadge
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
@@ -386,7 +387,7 @@
   <PageHeader title="Historical Trends" description="Activity patterns over time">
     {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-xs text-muted font-mono">{timeSinceUpdate}</span>
+        <FreshnessBadge mode="polled" since={lastUpdate} />
         <ToolbarButton onClick={exportToCSV}>Export CSV</ToolbarButton>
         <ToolbarButton onClick={exportToJSON}>Export JSON</ToolbarButton>
         <RefreshButton onClick={loadTrends} {loading} />

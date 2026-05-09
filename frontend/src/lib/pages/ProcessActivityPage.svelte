@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { FreshnessBadge } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatRelativeTime } from '../timeFormat.js';
@@ -185,9 +186,7 @@
     >
       {#snippet actions()}
         <div class="flex items-center gap-3">
-          <span class="text-[9px] text-muted">
-            Updated {formatRelativeTime(lastUpdated)}
-          </span>
+          <FreshnessBadge mode="live" />
           <button
             onclick={() => loadData()}
             class="px-2 py-1 text-[9px] bg-surface border border-border rounded text-muted hover:text-body transition-colors"

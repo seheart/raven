@@ -2,7 +2,12 @@
   import { logger } from '../logger.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    EmptyState,
+    FreshnessBadge
+  } from '../components/ui/index.js';
   /**
    * Analysis Performance Page
    * Performance profiling with 3 tabs: Metrics, Trend Charts, Correlations
@@ -258,7 +263,7 @@
   >
     {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-xs text-muted font-mono">{timeAgo}</span>
+        <FreshnessBadge mode="polled" since={lastUpdated} />
         <ToolbarButton onClick={exportToJSON}>Export JSON</ToolbarButton>
         <ToolbarButton onClick={exportToCSV}>Export CSV</ToolbarButton>
         <RefreshButton onClick={() => fetchAllData(true)} {loading} />

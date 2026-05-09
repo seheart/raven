@@ -4,7 +4,7 @@
   import { formatShortDateTime as formatTime } from '../timeFormat.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { RefreshButton, FreshnessBadge } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -140,7 +140,7 @@
   >
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-muted font-mono">{timeAgo}</span>
+        <FreshnessBadge mode="polled" since={lastUpdated} />
         <RefreshButton onClick={loadData} {loading} />
       </div>
     {/snippet}

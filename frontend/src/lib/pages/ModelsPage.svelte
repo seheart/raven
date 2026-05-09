@@ -4,7 +4,12 @@
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState, DataFetchError } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    DataFetchError,
+    FreshnessBadge
+  } from '../components/ui/index.js';
 
   let models = $state([]);
   let latencyByModel = $state([]);
@@ -65,7 +70,10 @@
 <PageLayout>
   <PageHeader title="Models" description="AI models and tools tracked by Raven">
     {#snippet actions()}
-      <RefreshButton onClick={() => loadData(true)} {loading} />
+      <div class="flex items-center gap-3">
+        <FreshnessBadge mode="polled" />
+        <RefreshButton onClick={() => loadData(true)} {loading} />
+      </div>
     {/snippet}
   </PageHeader>
 

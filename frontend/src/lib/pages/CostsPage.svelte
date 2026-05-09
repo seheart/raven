@@ -3,7 +3,12 @@
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
-  import { RefreshButton, TabButton, DataFetchError } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    TabButton,
+    DataFetchError,
+    FreshnessBadge
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount, tick } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -284,7 +289,7 @@
             >
           {/each}
         </div>
-        <span class="text-xs text-muted font-mono">{timeAgo}</span>
+        <FreshnessBadge mode="polled" since={lastUpdated} />
         <RefreshButton onClick={loadData} {loading} />
       </div>
     {/snippet}

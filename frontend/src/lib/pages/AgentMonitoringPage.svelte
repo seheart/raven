@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, FreshnessBadge } from '../components/ui/index.js';
   /**
    * Agent Monitoring Page
    * Real-time agent monitoring with live status and activity timeline
@@ -432,6 +432,7 @@
             Updated {timeAgo}
           {/if}
         </span>
+        <FreshnessBadge mode="live" />
         <RefreshButton onClick={loadMonitoringData} {loading} />
       </div>
     {/snippet}

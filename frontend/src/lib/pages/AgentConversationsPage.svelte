@@ -1,7 +1,7 @@
 <script>
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, FreshnessBadge } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateOnly, formatDateTime } from '../timeFormat.js';
   /**
@@ -516,6 +516,7 @@
   >
     {#snippet actions()}
       <div class="flex items-center gap-3">
+        <FreshnessBadge mode="historical" />
         {#if lastUpdate}
           <span class="text-xs text-muted font-mono">{formatTime(lastUpdate.toISOString())}</span>
         {/if}

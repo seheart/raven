@@ -3,7 +3,13 @@
   import { onMount } from 'svelte';
   import { formatTimeOnly, formatDateOnly, formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState, TabButton, DataFetchError } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    TabButton,
+    DataFetchError,
+    FreshnessBadge
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ entries: [], sessions: [], currentSession: null });
@@ -114,6 +120,7 @@
   <PageHeader title="Session Activity" description="Conversation timeline between you and Claude">
     {#snippet actions()}
       <div class="flex items-center gap-3">
+        <FreshnessBadge mode="historical" />
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
         <RefreshButton onClick={() => loadData(selectedSession)} {loading} />
       </div>
