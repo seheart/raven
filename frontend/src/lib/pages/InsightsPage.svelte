@@ -198,6 +198,14 @@
           const el = document.getElementById(`insight-${result.id}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+      } else {
+        // 202-style response: backend completed but produced no insight.
+        // Could be "no activity to summarize" or a model failure (Ollama
+        // 400 on a wrong model class, OOM, etc). Surface it loudly so the
+        // user doesn't think the click was ignored.
+        loadError =
+          result?.message ||
+          "Raven couldn't write that story. The model might be wrong for the job — try opening Advanced and picking a different one.";
       }
     } catch (err) {
       loadError = `Couldn't write that story: ${err?.message || err}`;

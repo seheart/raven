@@ -135,7 +135,28 @@ export class InsightsService {
       if (!res.ok) return [];
       this.resetCircuitOnProbe();
       const data: any = await res.json();
-      return (data.models || []).map((m: any) => m.name);
+      // Filter out embedding-only models. They show up in /api/tags
+      // alongside chat models but Ollama returns 400 if you try to use
+      // them via /api/generate — the front-end was silently failing
+      // every generate when the user happened to pick one. List of
+      // known embedding model name fragments; strict matching avoids
+      // hiding chat models with similar names.
+      const EMBEDDING_PATTERNS = [
+        'nomic-embed',
+        'all-minilm',
+        'mxbai-embed',
+        'bge-',
+        'snowflake-arctic-embed',
+        'paraphrase-multilingual',
+        '-embed-'
+      ];
+      const isEmbedding = (name: string) => {
+        const lower = name.toLowerCase();
+        return EMBEDDING_PATTERNS.some(p => lower.includes(p));
+      };
+      return (data.models || [])
+        .map((m: any) => m.name)
+        .filter((name: string) => !isEmbedding(name));
     } catch {
       return [];
     }
