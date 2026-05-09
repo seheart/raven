@@ -240,12 +240,15 @@ selfAnalysisService.onProgress(progress => {
   io.emit('analysis-progress', progress);
 });
 
-// Database retention: clean old data on startup and nightly at 3 AM.
-// Also prunes snapshot files (rollback backups) past their retention window —
-// they were previously unbounded.
+// Database retention: DISABLED by default — user wants full historical data
+// kept forever. Set RETENTION_EVENT_DAYS / RETENTION_METRICS_DAYS to a
+// positive number to opt into a trim window. Snapshot files (rollback
+// backups) are still pruned because they bloat fast (28k+ files / 13 GB
+// observed before snapshot retention landed); override via
+// RETENTION_SNAPSHOT_DAYS=0 to keep them too.
 startRetentionCleanup(db, {
-  eventDays: parseInt(process.env.RETENTION_EVENT_DAYS || '7', 10),
-  metricsDays: parseInt(process.env.RETENTION_METRICS_DAYS || '30', 10),
+  eventDays: parseInt(process.env.RETENTION_EVENT_DAYS || '0', 10),
+  metricsDays: parseInt(process.env.RETENTION_METRICS_DAYS || '0', 10),
   snapshotDays: parseInt(process.env.RETENTION_SNAPSHOT_DAYS || '7', 10),
   snapshotsDir: SNAPSHOTS_DIR
 });

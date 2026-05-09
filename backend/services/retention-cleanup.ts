@@ -10,9 +10,15 @@ import { logger } from '../utils/logger.js';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
-const DEFAULT_EVENT_DAYS = 7;
-const DEFAULT_METRICS_DAYS = 30;
-const DEFAULT_SNAPSHOT_DAYS = 7;
+// Retention disabled by default — user wants full historical data forever.
+// Pass days <= 0 (or use the sentinel below) to skip a class of tables. The
+// /storage UI / config can still override per-class if disk pressure forces
+// a trim later. Snapshots are pre-edit backup files (kept for rollback) —
+// they bloat fast (28k+ files / 13 GB seen) so they're the one class still
+// pruned by default. Toggle SNAPSHOT_DAYS via env or config to disable.
+const DEFAULT_EVENT_DAYS = 0;
+const DEFAULT_METRICS_DAYS = 0;
+const DEFAULT_SNAPSHOT_DAYS = parseInt(process.env.RAVEN_SNAPSHOT_DAYS || '7', 10);
 
 interface RetentionConfig {
   eventDays?: number;
@@ -67,6 +73,11 @@ export function runRetentionCleanup(
   ];
 
   for (const { name, days, column = 'timestamp', via } of tables) {
+    // days <= 0 = retention disabled for this class. With DEFAULT_*_DAYS now
+    // 0, the loop skips every DB table by default (snapshot cleanup is
+    // separate). Pass an explicit positive number through the storage route
+    // if you need a one-off trim.
+    if (days <= 0) continue;
     try {
       const cutoff = `datetime('now', '-${days} days')`;
       const sql = via
@@ -130,6 +141,12 @@ export function startRetentionCleanup(db: RavenDB, config: RetentionConfig = {})
   const metricsDays = config.metricsDays ?? DEFAULT_METRICS_DAYS;
   const snapshotDays = config.snapshotDays ?? DEFAULT_SNAPSHOT_DAYS;
   const snapshotsDir = config.snapshotsDir;
+
+  if (eventDays <= 0 && metricsDays <= 0) {
+    logger.info(
+      `📚 DB retention disabled — keeping all event/metric history forever. Snapshot files still pruned at ${snapshotDays}d.`
+    );
+  }
 
   const run = async () => {
     const results = runRetentionCleanup(db, eventDays, metricsDays);
