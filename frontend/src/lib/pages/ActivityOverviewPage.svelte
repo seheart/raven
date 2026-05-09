@@ -26,7 +26,6 @@
   let expandedActivity = $state(null);
   let lastUpdated = $state(null);
   let _isManualRefresh = $state(false);
-  let __recentActivity = $state([]);
 
   // Pagination
   let limit = $state(100);
@@ -74,8 +73,8 @@
     activitiesPerHour:
       activities.length > 0 && sessions.length > 0
         ? (
-          activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)
-        ).toFixed(2)
+            activities.length / Math.max(1, sessions.reduce((sum, s) => sum + s.duration, 0) / 3600)
+          ).toFixed(2)
         : 0
   });
 
@@ -161,9 +160,6 @@
       // Group by session if enabled
       groupActivitiesBySession();
 
-      // Load recent activity for sidebar
-      await loadRecentActivity();
-
       lastUpdated = new Date();
       loading = false;
       _isManualRefresh = false;
@@ -171,27 +167,6 @@
       logger.error('Failed to load activity log:', error);
       loading = false;
       _isManualRefresh = false;
-    }
-  }
-
-  async function loadRecentActivity() {
-    try {
-      const [fileEvents, agentEvents] = await Promise.all([
-        api.get('/file-events?limit=20').catch(() => []),
-        api.get('/all-agent-events?limit=20').catch(() => [])
-      ]);
-
-      const fileEventsArray = Array.isArray(fileEvents) ? fileEvents : [];
-      const agentEventsArray = Array.isArray(agentEvents) ? agentEvents : [];
-
-      const combined = [
-        ...fileEventsArray.map(e => ({ ...e, type: 'file' })),
-        ...agentEventsArray.map(e => ({ ...e, type: 'agent' }))
-      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      _recentActivity = combined.slice(0, 30);
-    } catch (error) {
-      logger.error('Failed to load recent activity:', error);
     }
   }
 
@@ -254,16 +229,16 @@
 
   function applySorting(sessionsArray) {
     switch (sortBy) {
-    case 'time_asc':
-      return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-    case 'time_desc':
-      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-    case 'duration_desc':
-      return sessionsArray.sort((a, b) => b.duration - a.duration);
-    case 'events_desc':
-      return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
-    default:
-      return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+      case 'time_asc':
+        return sessionsArray.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+      case 'time_desc':
+        return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+      case 'duration_desc':
+        return sessionsArray.sort((a, b) => b.duration - a.duration);
+      case 'events_desc':
+        return sessionsArray.sort((a, b) => b.totalEvents - a.totalEvents);
+      default:
+        return sessionsArray.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
     }
   }
 
@@ -391,65 +366,65 @@
 
   function _getChangeTypeIcon(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-    case 'created':
-      return '';
-    case 'change':
-    case 'edit':
-    case 'modified':
-      return '';
-    case 'unlink':
-    case 'delete':
-    case 'deleted':
-      return '';
-    default:
-      return '';
+      case 'add':
+      case 'create':
+      case 'created':
+        return '';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return '';
+      case 'unlink':
+      case 'delete':
+      case 'deleted':
+        return '';
+      default:
+        return '';
     }
   }
 
   function _getChangeTypeColor(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-    case 'created':
-      return 'var(--success)';
-    case 'change':
-    case 'edit':
-    case 'modified':
-      return 'var(--warning)';
-    case 'unlink':
-    case 'delete':
-    case 'deleted':
-      return 'var(--error)';
-    default:
-      return 'var(--info)';
+      case 'add':
+      case 'create':
+      case 'created':
+        return 'var(--success)';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return 'var(--warning)';
+      case 'unlink':
+      case 'delete':
+      case 'deleted':
+        return 'var(--error)';
+      default:
+        return 'var(--info)';
     }
   }
 
   function getCategoryIcon(category) {
     switch (category) {
-    case 'file':
-      return '';
-    case 'agent':
-      return '';
-    case 'system':
-      return '';
-    default:
-      return '';
+      case 'file':
+        return '';
+      case 'agent':
+        return '';
+      case 'system':
+        return '';
+      default:
+        return '';
     }
   }
 
   function getCategoryColor(category) {
     switch (category) {
-    case 'file':
-      return 'var(--info)';
-    case 'agent':
-      return 'var(--accent)';
-    case 'system':
-      return 'var(--warning)';
-    default:
-      return 'var(--muted)';
+      case 'file':
+        return 'var(--info)';
+      case 'agent':
+        return 'var(--accent)';
+      case 'system':
+        return 'var(--warning)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -494,7 +469,12 @@
     const textColor = c.text;
     const mutedColor = c.muted;
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-    const themeColors = { accent: c.primary, success: c.success, error: c.error, warning: c.warning };
+    const themeColors = {
+      accent: c.primary,
+      success: c.success,
+      error: c.error,
+      warning: c.warning
+    };
 
     // 1. Activity type breakdown pie chart
     const pieCanvas = document.getElementById('chart-activity-types');
@@ -705,22 +685,22 @@
     }
 
     switch (event.key) {
-    case '1':
-      setFilter('all');
-      break;
-    case '2':
-      setFilter('file');
-      break;
-    case '3':
-      setFilter('agent');
-      break;
-    case '4':
-      setFilter('system');
-      break;
-    case 'r':
-    case 'R':
-      loadActivities(true);
-      break;
+      case '1':
+        setFilter('all');
+        break;
+      case '2':
+        setFilter('file');
+        break;
+      case '3':
+        setFilter('agent');
+        break;
+      case '4':
+        setFilter('system');
+        break;
+      case 'r':
+      case 'R':
+        loadActivities(true);
+        break;
     }
   }
 
@@ -788,466 +768,427 @@
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{timeAgo}</span>
         <ToolbarButton onClick={exportLog}>Export</ToolbarButton>
-        <RefreshButton onClick={() => loadActivities(true)} loading={loading} />
+        <RefreshButton onClick={() => loadActivities(true)} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    <!-- Search and Filters -->
-    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
-      <div class="flex gap-4 mb-4">
-        <div class="flex-1 flex gap-3">
-          <input
-            type="text"
-            placeholder="Search activities..."
-            bind:value={searchQuery}
-            onkeydown={e => e.key === 'Enter' && search()}
-            class="flex-1 px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-          />
-          <ToolbarButton variant="primary" onClick={search}>Search</ToolbarButton>
-        </div>
-
-        <div class="flex gap-3 items-center">
-          <button
-            onclick={() => {
-              groupBySession = !groupBySession;
-              groupActivitiesBySession();
-            }}
-            class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession
-              ? 'bg-accent text-canvas border-accent'
-              : 'bg-canvas text-body border-border hover:border-accent'}"
-          >
-            Session View
-          </button>
-
-          <select
-            bind:value={sortBy}
-            onchange={() => groupActivitiesBySession()}
-            class="px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent min-w-[160px]"
-          >
-            <option value="time_desc">↓ Newest First</option>
-            <option value="time_asc">↑ Oldest First</option>
-            <option value="duration_desc">Longest Duration</option>
-            <option value="events_desc">Most Events</option>
-          </select>
-        </div>
+  <!-- Search and Filters -->
+  <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+    <div class="flex flex-wrap gap-4 mb-4">
+      <div class="flex-1 flex gap-3 min-w-[16rem]">
+        <input
+          type="text"
+          placeholder="Search activities..."
+          bind:value={searchQuery}
+          onkeydown={e => e.key === 'Enter' && search()}
+          class="flex-1 min-w-0 px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+        />
+        <ToolbarButton variant="primary" onClick={search}>Search</ToolbarButton>
       </div>
 
-      <div class="flex gap-3">
+      <div class="flex flex-wrap gap-3 items-center">
         <button
-          onclick={() => setFilter('all')}
-          class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-          'all'
+          onclick={() => {
+            groupBySession = !groupBySession;
+            groupActivitiesBySession();
+          }}
+          class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession
             ? 'bg-accent text-canvas border-accent'
             : 'bg-canvas text-body border-border hover:border-accent'}"
         >
-          All ({total})
+          Session View
         </button>
-        <button
-          onclick={() => setFilter('file')}
-          class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-          'file'
-            ? 'bg-accent text-canvas border-accent'
-            : 'bg-canvas text-body border-border hover:border-accent'}"
+
+        <select
+          bind:value={sortBy}
+          onchange={() => groupActivitiesBySession()}
+          class="px-4 py-2 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent min-w-[160px]"
         >
-          Files ({stats.file})
-        </button>
-        <button
-          onclick={() => setFilter('agent')}
-          class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-          'agent'
-            ? 'bg-accent text-canvas border-accent'
-            : 'bg-canvas text-body border-border hover:border-accent'}"
-        >
-          Agents ({stats.agent})
-        </button>
-        <button
-          onclick={() => setFilter('system')}
-          class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-          'system'
-            ? 'bg-accent text-canvas border-accent'
-            : 'bg-canvas text-body border-border hover:border-accent'}"
-        >
-          System ({stats.system})
-        </button>
+          <option value="time_desc">↓ Newest First</option>
+          <option value="time_asc">↑ Oldest First</option>
+          <option value="duration_desc">Longest Duration</option>
+          <option value="events_desc">Most Events</option>
+        </select>
       </div>
     </div>
 
-    <!-- Statistics Dashboard -->
-    {#if !loading && activities.length > 0}
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Activities
-          </div>
-          <div class="text-sm font-mono text-body">
-            {enhancedStats.totalActivities}
-          </div>
+    <div class="flex flex-wrap gap-3">
+      <button
+        onclick={() => setFilter('all')}
+        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
+        'all'
+          ? 'bg-accent text-canvas border-accent'
+          : 'bg-canvas text-body border-border hover:border-accent'}"
+      >
+        All ({total})
+      </button>
+      <button
+        onclick={() => setFilter('file')}
+        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
+        'file'
+          ? 'bg-accent text-canvas border-accent'
+          : 'bg-canvas text-body border-border hover:border-accent'}"
+      >
+        Files ({stats.file})
+      </button>
+      <button
+        onclick={() => setFilter('agent')}
+        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
+        'agent'
+          ? 'bg-accent text-canvas border-accent'
+          : 'bg-canvas text-body border-border hover:border-accent'}"
+      >
+        Agents ({stats.agent})
+      </button>
+      <button
+        onclick={() => setFilter('system')}
+        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
+        'system'
+          ? 'bg-accent text-canvas border-accent'
+          : 'bg-canvas text-body border-border hover:border-accent'}"
+      >
+        System ({stats.system})
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistics Dashboard -->
+  {#if !loading && activities.length > 0}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Total Activities
         </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Unique Sessions
-          </div>
-          <div class="text-sm font-mono text-body">
-            {enhancedStats.uniqueSessions}
-          </div>
+        <div class="text-sm font-mono text-body">
+          {enhancedStats.totalActivities}
         </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Avg Session Duration
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatDuration(enhancedStats.averageSessionDuration)}
-          </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Unique Sessions
         </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Activities Per Hour
+        <div class="text-sm font-mono text-body">
+          {enhancedStats.uniqueSessions}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Avg Session Duration
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatDuration(enhancedStats.averageSessionDuration)}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Activities Per Hour
+        </div>
+        <div class="text-sm font-mono text-body">
+          {enhancedStats.activitiesPerHour}
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    {#if showCharts}
+      <div class="bg-surface border border-border rounded-lg p-6 mb-6">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
+            Analytics Visualizations
+          </h3>
+          <button
+            onclick={() => (showCharts = false)}
+            class="px-3 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
+          >
+            Hide Charts
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-canvas border border-border rounded p-4" style="height: 250px;">
+            <canvas id="chart-activity-types"></canvas>
           </div>
-          <div class="text-sm font-mono text-body">
-            {enhancedStats.activitiesPerHour}
+          <div class="bg-canvas border border-border rounded p-4" style="height: 250px;">
+            <canvas id="chart-activities-per-session"></canvas>
+          </div>
+          <div
+            class="bg-canvas border border-border rounded p-4 md:col-span-2"
+            style="height: 320px;"
+          >
+            <canvas id="chart-activities-by-hour"></canvas>
+          </div>
+          <div
+            class="bg-canvas border border-border rounded p-4 md:col-span-2"
+            style="height: 280px;"
+          >
+            <canvas id="chart-cumulative-activities"></canvas>
           </div>
         </div>
       </div>
+    {:else}
+      <div class="bg-surface border border-border rounded-lg p-4 mb-6 text-center">
+        <button
+          onclick={() => {
+            showCharts = true;
+            setTimeout(createCharts, 100);
+          }}
+          class="px-4 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
+        >
+          Show Charts
+        </button>
+      </div>
+    {/if}
+  {/if}
 
-      <!-- Charts Section -->
-      {#if showCharts}
-        <div class="bg-surface border border-border rounded-lg p-6 mb-6">
-          <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
-              Analytics Visualizations
-            </h3>
-            <button
-              onclick={() => (showCharts = false)}
-              class="px-3 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
-            >
-              Hide Charts
-            </button>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div
-              class="bg-canvas border border-border rounded p-4"
-              style="height: 250px;"
-            >
-              <canvas id="chart-activity-types"></canvas>
+  <!-- Activity Timeline -->
+  <div class="space-y-4">
+    {#if loading && activities.length === 0}
+      <div class="bg-surface border border-border rounded-lg p-6 text-center">
+        <div class="text-muted">Loading activities...</div>
+      </div>
+    {:else if activities.length === 0}
+      <EmptyState
+        title="No Activities Found"
+        description={selectedType !== 'all'
+          ? `No ${selectedType} activities found. Try changing filters or search query.`
+          : searchQuery
+            ? `No activities match "${searchQuery}". Try a different search term.`
+            : 'No activity has been logged yet. Start coding and Raven will track all changes!'}
+      >
+        {#snippet actions()}
+          <ToolbarButton
+            variant="primary"
+            onClick={() => {
+              selectedType = 'all';
+              searchQuery = '';
+              loadActivities();
+            }}>Clear Filters</ToolbarButton
+          >
+        {/snippet}
+      </EmptyState>
+    {:else if groupBySession && sessions.length > 0}
+      <!-- Session Grouped View -->
+      {#each sessions as session (session.id)}
+        <div class="bg-canvas border border-border rounded-lg overflow-hidden">
+          <button
+            onclick={() => toggleSession(session.id)}
+            class="w-full flex justify-between items-center p-5 bg-surface hover:bg-surface-2 transition-colors {collapsedSessions.has(
+              session.id
+            )
+              ? ''
+              : 'border-b border-border'}"
+          >
+            <div class="flex items-center gap-4 flex-1">
+              <span class="text-muted">{collapsedSessions.has(session.id) ? '' : ''}</span>
+              <div class="flex-1 text-left">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-sm font-semibold text-body font-mono"
+                    >Session: {session.id.substring(0, 12)}</span
+                  >
+                </div>
+                <div class="flex items-center gap-3 text-xs text-muted font-mono">
+                  <span> {formatDuration(session.duration)}</span>
+                  <span class="text-border">•</span>
+                  <span> {session.totalEvents} events</span>
+                  <span class="text-border">•</span>
+                  <span> {session.filesCount} files</span>
+                  <span class="text-border">•</span>
+                  <span> {session.agentCount} agent</span>
+                  <span class="text-border">•</span>
+                  <span> {session.systemCount} system</span>
+                </div>
+              </div>
             </div>
-            <div
-              class="bg-canvas border border-border rounded p-4"
-              style="height: 250px;"
-            >
-              <canvas id="chart-activities-per-session"></canvas>
+            <time class="text-sm text-muted font-mono">{formatTimestamp(session.startTime)}</time>
+          </button>
+
+          {#if !collapsedSessions.has(session.id)}
+            <div class="p-6 bg-canvas space-y-3">
+              {#each session.activities as activity (activity.id + activity.category)}
+                {@const isExpanded = expandedActivity?.id === activity.id}
+                <div
+                  class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
+                    ? 'border-accent'
+                    : ''}"
+                >
+                  <button
+                    onclick={() => toggleActivity(activity)}
+                    class="w-full flex justify-between items-center p-4"
+                  >
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                      <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
+                      <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
+                        {getCategoryIcon(activity.category)}
+                      </span>
+                      <div class="flex-1 min-w-0 text-left">
+                        <div class="text-sm font-medium text-body truncate">
+                          {activity.description}
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
+                          <span>{activity.type}</span>
+                          <span>•</span>
+                          <span>{formatTimestamp(activity.timestamp)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm text-muted font-mono"
+                        >{formatTimestamp(activity.timestamp)}</span
+                      >
+                      <span
+                        class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
+                      >
+                        {activity.category}
+                      </span>
+                    </div>
+                  </button>
+
+                  {#if isExpanded}
+                    <div class="p-4 border-t border-border">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="flex gap-3">
+                          <span class="text-xs text-muted font-semibold uppercase">ID:</span>
+                          <span class="text-sm text-body font-mono">{activity.id}</span>
+                        </div>
+                        <div class="flex gap-3">
+                          <span class="text-xs text-muted font-semibold uppercase">Type:</span>
+                          <span class="text-sm text-body font-mono">{activity.type}</span>
+                        </div>
+                        <div class="flex gap-3">
+                          <span class="text-xs text-muted font-semibold uppercase">Category:</span>
+                          <span class="text-sm text-body font-mono">{activity.category}</span>
+                        </div>
+                        <div class="flex gap-3">
+                          <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
+                          <span class="text-sm text-body font-mono">{activity.timestamp}</span>
+                        </div>
+                        {#if activity.target}
+                          <div class="flex gap-3 md:col-span-2">
+                            <span class="text-xs text-muted font-semibold uppercase">Target:</span>
+                            <span class="text-sm text-body font-mono">{activity.target}</span>
+                          </div>
+                        {/if}
+                      </div>
+
+                      {#if activity.metadata && Object.keys(activity.metadata).length > 0}
+                        <div class="mt-4">
+                          <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
+                          <pre
+                            class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                              activity.metadata,
+                              null,
+                              2
+                            )}</pre>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              {/each}
             </div>
-            <div
-              class="bg-canvas border border-border rounded p-4 md:col-span-2"
-              style="height: 320px;"
-            >
-              <canvas id="chart-activities-by-hour"></canvas>
-            </div>
-            <div
-              class="bg-canvas border border-border rounded p-4 md:col-span-2"
-              style="height: 280px;"
-            >
-              <canvas id="chart-cumulative-activities"></canvas>
-            </div>
-          </div>
+          {/if}
         </div>
-      {:else}
+      {/each}
+    {:else}
+      <!-- Flat List View -->
+      {#each activities as activity (activity.id + activity.category)}
+        {@const isExpanded = expandedActivity?.id === activity.id}
         <div
-          class="bg-surface border border-border rounded-lg p-4 mb-6 text-center"
+          class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
+            ? 'border-accent'
+            : ''}"
         >
           <button
-            onclick={() => {
-              showCharts = true;
-              setTimeout(createCharts, 100);
-            }}
-            class="px-4 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
+            onclick={() => toggleActivity(activity)}
+            class="w-full flex justify-between items-center p-4"
           >
-            Show Charts
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
+              <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
+                {getCategoryIcon(activity.category)}
+              </span>
+              <div class="flex-1 min-w-0 text-left">
+                <div class="text-sm font-medium text-body truncate">
+                  {activity.description}
+                </div>
+                <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
+                  <span>{activity.type}</span>
+                  <span>•</span>
+                  <span>{formatTimestamp(activity.timestamp)}</span>
+                  {#if activity.session_id}
+                    <span>•</span>
+                    <span class="text-accent font-semibold"
+                      >{activity.session_id.substring(0, 8)}</span
+                    >
+                  {/if}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-muted font-mono">{formatTimestamp(activity.timestamp)}</span
+              >
+              <span
+                class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
+              >
+                {activity.category}
+              </span>
+            </div>
+          </button>
+
+          {#if isExpanded}
+            <div class="p-4 border-t border-border">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="flex gap-3">
+                  <span class="text-xs text-muted font-semibold uppercase">ID:</span>
+                  <span class="text-sm text-body font-mono">{activity.id}</span>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-xs text-muted font-semibold uppercase">Type:</span>
+                  <span class="text-sm text-body font-mono">{activity.type}</span>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-xs text-muted font-semibold uppercase">Category:</span>
+                  <span class="text-sm text-body font-mono">{activity.category}</span>
+                </div>
+                <div class="flex gap-3">
+                  <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
+                  <span class="text-sm text-body font-mono">{activity.timestamp}</span>
+                </div>
+                {#if activity.target}
+                  <div class="flex gap-3 md:col-span-2">
+                    <span class="text-xs text-muted font-semibold uppercase">Target:</span>
+                    <span class="text-sm text-body font-mono">{activity.target}</span>
+                  </div>
+                {/if}
+              </div>
+
+              {#if activity.metadata && Object.keys(activity.metadata).length > 0}
+                <div class="mt-4">
+                  <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
+                  <pre
+                    class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                      activity.metadata,
+                      null,
+                      2
+                    )}</pre>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/each}
+
+      {#if hasMore}
+        <div class="text-center pt-6">
+          <button
+            onclick={loadMore}
+            disabled={loading}
+            class="px-6 py-3 bg-surface border border-border rounded text-sm font-semibold text-body hover:border-accent disabled:opacity-50"
+          >
+            {loading ? 'Loading...' : `Load More (${total - activities.length} remaining)`}
           </button>
         </div>
       {/if}
     {/if}
-
-    <!-- Activity Timeline -->
-    <div class="space-y-4">
-      {#if loading && activities.length === 0}
-        <div class="bg-surface border border-border rounded-lg p-6 text-center">
-          <div class="text-muted">Loading activities...</div>
-        </div>
-      {:else if activities.length === 0}
-        <EmptyState
-          title="No Activities Found"
-          description={selectedType !== 'all'
-            ? `No ${selectedType} activities found. Try changing filters or search query.`
-            : searchQuery
-              ? `No activities match "${searchQuery}". Try a different search term.`
-              : 'No activity has been logged yet. Start coding and Raven will track all changes!'}
-        >
-          {#snippet actions()}
-            <ToolbarButton
-              variant="primary"
-              onClick={() => { selectedType = 'all'; searchQuery = ''; loadActivities(); }}
-            >Clear Filters</ToolbarButton>
-          {/snippet}
-        </EmptyState>
-      {:else if groupBySession && sessions.length > 0}
-        <!-- Session Grouped View -->
-        {#each sessions as session (session.id)}
-          <div class="bg-canvas border border-border rounded-lg overflow-hidden">
-            <button
-              onclick={() => toggleSession(session.id)}
-              class="w-full flex justify-between items-center p-5 bg-surface hover:bg-surface-2 transition-colors {collapsedSessions.has(
-                session.id
-              )
-                ? ''
-                : 'border-b border-border'}"
-            >
-              <div class="flex items-center gap-4 flex-1">
-                <span class="text-muted"
-                  >{collapsedSessions.has(session.id) ? '' : ''}</span
-                >
-                <div class="flex-1 text-left">
-                  <div class="flex items-center gap-3 mb-2">
-                    <span class="text-sm font-semibold text-body font-mono"
-                      >Session: {session.id.substring(0, 12)}</span
-                    >
-                  </div>
-                  <div class="flex items-center gap-3 text-xs text-muted font-mono">
-                    <span> {formatDuration(session.duration)}</span>
-                    <span class="text-border">•</span>
-                    <span> {session.totalEvents} events</span>
-                    <span class="text-border">•</span>
-                    <span> {session.filesCount} files</span>
-                    <span class="text-border">•</span>
-                    <span> {session.agentCount} agent</span>
-                    <span class="text-border">•</span>
-                    <span> {session.systemCount} system</span>
-                  </div>
-                </div>
-              </div>
-              <time class="text-sm text-muted font-mono"
-                >{formatTimestamp(session.startTime)}</time
-              >
-            </button>
-
-            {#if !collapsedSessions.has(session.id)}
-              <div class="p-6 bg-canvas space-y-3">
-                {#each session.activities as activity (activity.id + activity.category)}
-                  {@const isExpanded = expandedActivity?.id === activity.id}
-                  <div
-                    class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
-                      ? 'border-accent'
-                      : ''}"
-                  >
-                    <button
-                      onclick={() => toggleActivity(activity)}
-                      class="w-full flex justify-between items-center p-4"
-                    >
-                      <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
-                        <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
-                          {getCategoryIcon(activity.category)}
-                        </span>
-                        <div class="flex-1 min-w-0 text-left">
-                          <div class="text-sm font-medium text-body truncate">
-                            {activity.description}
-                          </div>
-                          <div
-                            class="flex items-center gap-2 text-xs text-muted font-mono mt-1"
-                          >
-                            <span>{activity.type}</span>
-                            <span>•</span>
-                            <span>{formatTimestamp(activity.timestamp)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-3">
-                        <span class="text-sm text-muted font-mono"
-                          >{formatTimestamp(activity.timestamp)}</span
-                        >
-                        <span
-                          class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
-                        >
-                          {activity.category}
-                        </span>
-                      </div>
-                    </button>
-
-                    {#if isExpanded}
-                      <div class="p-4 border-t border-border">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase"
-                              >ID:</span
-                            >
-                            <span class="text-sm text-body font-mono">{activity.id}</span>
-                          </div>
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase"
-                              >Type:</span
-                            >
-                            <span class="text-sm text-body font-mono">{activity.type}</span
-                            >
-                          </div>
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase"
-                              >Category:</span
-                            >
-                            <span class="text-sm text-body font-mono"
-                              >{activity.category}</span
-                            >
-                          </div>
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase"
-                              >Timestamp:</span
-                            >
-                            <span class="text-sm text-body font-mono"
-                              >{activity.timestamp}</span
-                            >
-                          </div>
-                          {#if activity.target}
-                            <div class="flex gap-3 md:col-span-2">
-                              <span class="text-xs text-muted font-semibold uppercase"
-                                >Target:</span
-                              >
-                              <span class="text-sm text-body font-mono"
-                                >{activity.target}</span
-                              >
-                            </div>
-                          {/if}
-                        </div>
-
-                        {#if activity.metadata && Object.keys(activity.metadata).length > 0}
-                          <div class="mt-4">
-                            <h4 class="text-xs text-muted uppercase font-semibold mb-2">
-                              Metadata
-                            </h4>
-                            <pre
-                              class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
-                                activity.metadata,
-                                null,
-                                2
-                              )}</pre>
-                          </div>
-                        {/if}
-                      </div>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
-        {/each}
-      {:else}
-        <!-- Flat List View -->
-        {#each activities as activity (activity.id + activity.category)}
-          {@const isExpanded = expandedActivity?.id === activity.id}
-          <div
-            class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
-              ? 'border-accent'
-              : ''}"
-          >
-            <button
-              onclick={() => toggleActivity(activity)}
-              class="w-full flex justify-between items-center p-4"
-            >
-              <div class="flex items-center gap-4 flex-1 min-w-0">
-                <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
-                <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
-                  {getCategoryIcon(activity.category)}
-                </span>
-                <div class="flex-1 min-w-0 text-left">
-                  <div class="text-sm font-medium text-body truncate">
-                    {activity.description}
-                  </div>
-                  <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
-                    <span>{activity.type}</span>
-                    <span>•</span>
-                    <span>{formatTimestamp(activity.timestamp)}</span>
-                    {#if activity.session_id}
-                      <span>•</span>
-                      <span class="text-accent font-semibold"
-                        >{activity.session_id.substring(0, 8)}</span
-                      >
-                    {/if}
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-sm text-muted font-mono"
-                  >{formatTimestamp(activity.timestamp)}</span
-                >
-                <span
-                  class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
-                >
-                  {activity.category}
-                </span>
-              </div>
-            </button>
-
-            {#if isExpanded}
-              <div class="p-4 border-t border-border">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase">ID:</span>
-                    <span class="text-sm text-body font-mono">{activity.id}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase">Type:</span>
-                    <span class="text-sm text-body font-mono">{activity.type}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase"
-                      >Category:</span
-                    >
-                    <span class="text-sm text-body font-mono">{activity.category}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase"
-                      >Timestamp:</span
-                    >
-                    <span class="text-sm text-body font-mono">{activity.timestamp}</span>
-                  </div>
-                  {#if activity.target}
-                    <div class="flex gap-3 md:col-span-2">
-                      <span class="text-xs text-muted font-semibold uppercase"
-                        >Target:</span
-                      >
-                      <span class="text-sm text-body font-mono">{activity.target}</span>
-                    </div>
-                  {/if}
-                </div>
-
-                {#if activity.metadata && Object.keys(activity.metadata).length > 0}
-                  <div class="mt-4">
-                    <h4 class="text-xs text-muted uppercase font-semibold mb-2">
-                      Metadata
-                    </h4>
-                    <pre
-                      class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
-                        activity.metadata,
-                        null,
-                        2
-                      )}</pre>
-                  </div>
-                {/if}
-              </div>
-            {/if}
-          </div>
-        {/each}
-
-        {#if hasMore}
-          <div class="text-center pt-6">
-            <button
-              onclick={loadMore}
-              disabled={loading}
-              class="px-6 py-3 bg-surface border border-border rounded text-sm font-semibold text-body hover:border-accent disabled:opacity-50"
-            >
-              {loading ? 'Loading...' : `Load More (${total - activities.length} remaining)`}
-            </button>
-          </div>
-        {/if}
-      {/if}
-    </div>
+  </div>
 </PageLayout>
-

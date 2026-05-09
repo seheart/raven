@@ -297,7 +297,7 @@
       {#if routes.length === 0}
         <div class="text-sm text-muted italic">Loading…</div>
       {:else}
-        <div class="border-t border-b border-border max-h-96 overflow-y-auto font-mono text-sm">
+        <div class="border-t border-b border-border max-h-96 overflow-auto font-mono text-sm">
           <table class="w-full">
             <thead class="bg-canvas sticky top-0 z-10">
               <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -392,7 +392,7 @@
             display headroom). Overflow models spill to CPU and run an order of magnitude slower.
           </p>
         </ProseBlock>
-        <div class="border-t border-b border-border font-mono text-sm">
+        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
           <table class="w-full">
             <thead class="bg-canvas">
               <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -505,7 +505,7 @@
             {group.tier}
           </h3>
           <p class="text-sm text-muted font-sans mb-3">{group.blurb}</p>
-          <div class="border-t border-b border-border font-mono text-sm">
+          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
             <table class="w-full">
               <thead class="bg-canvas">
                 <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -578,7 +578,7 @@
       </ProseBlock>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Quality gates</h3>
-      <div class="border-t border-b border-border font-mono text-sm mb-6">
+      <div class="border-t border-b border-border font-mono text-sm mb-6 overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -608,7 +608,7 @@
           >{GOVERNANCE.dsRules.length} active</span
         >
       </h3>
-      <div class="border-t border-b border-border font-mono text-sm mb-6">
+      <div class="border-t border-b border-border font-mono text-sm mb-6 overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -632,7 +632,7 @@
       <h3 class="text-sm font-semibold text-heading mb-3">
         CI workflow <span class="text-xs font-mono text-muted ml-2">.github/workflows/ci.yml</span>
       </h3>
-      <div class="border-t border-b border-border font-mono text-sm mb-6">
+      <div class="border-t border-b border-border font-mono text-sm mb-6 overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -652,7 +652,7 @@
       </div>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Test suites</h3>
-      <div class="border-t border-b border-border font-mono text-sm mb-6">
+      <div class="border-t border-b border-border font-mono text-sm mb-6 overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -672,7 +672,7 @@
       </div>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Dev tools</h3>
-      <div class="border-t border-b border-border font-mono text-sm mb-6">
+      <div class="border-t border-b border-border font-mono text-sm mb-6 overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -692,7 +692,7 @@
       </div>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Convention docs</h3>
-      <div class="border-t border-b border-border font-mono text-sm mb-6">
+      <div class="border-t border-b border-border font-mono text-sm mb-6 overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
