@@ -248,9 +248,14 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
       const isRavenSelf = event.projectName === 'raven';
       if (!isRavenSelf && event.content && (event.type === 'change' || event.type === 'add')) {
         const patternResult = patternDetector.detect(event.path, event.content);
-        if (patternResult.hasIssues) {
+        // Drop matches the user has explicitly ignored. Without this, dismissed
+        // false positives keep returning on every file change.
+        const liveMatches = patternResult.matches.filter(
+          m => !patternWarningsRepo.isIgnored(event.path, m.pattern.id, m.match)
+        );
+        if (liveMatches.length > 0) {
           patternWarningsRepo.resolveByFile(event.path);
-          for (const match of patternResult.matches) {
+          for (const match of liveMatches) {
             patternWarningsRepo.insert(
               new Date().toISOString(),
               event.path,
@@ -271,12 +276,12 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
           }
           io.emit('pattern-warning', {
             filepath: event.path,
-            warnings: patternResult.matches.map(m => ({
+            warnings: liveMatches.map(m => ({
               pattern: m.pattern.name,
               severity: m.pattern.severity,
               line: m.line
             })),
-            count: patternResult.matches.length
+            count: liveMatches.length
           });
         } else {
           patternWarningsRepo.resolveByFile(event.path);

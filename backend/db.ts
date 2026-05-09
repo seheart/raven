@@ -213,6 +213,21 @@ export class RavenDB {
       )
     `);
 
+    // Pattern-warning ignores — durable false-positive suppressions, keyed by
+    // (filepath, pattern_id, match_text). Consulted at detection time so a
+    // dismissed warning does not return on the next file change.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS pattern_warning_ignores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filepath TEXT NOT NULL,
+        pattern_id TEXT NOT NULL,
+        match_text TEXT NOT NULL,
+        reason TEXT,
+        created_at TEXT NOT NULL,
+        UNIQUE(filepath, pattern_id, match_text)
+      )
+    `);
+
     // Application error logs
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS app_errors (

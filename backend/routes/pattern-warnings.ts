@@ -62,6 +62,55 @@ export function createPatternWarningsRouter(repo: PatternWarningsRepository): Ro
     }
   });
 
+  // GET /ignores — list active false-positive suppressions
+  router.get('/ignores', async (_req: Request, res: Response) => {
+    try {
+      const ignores = repo.listIgnores();
+      return res.json({ ignores, count: ignores.length });
+    } catch (error) {
+      logger.error('[GET /api/pattern-warnings/ignores] Error:', error as Error);
+      return res.status(500).json({ error: 'Failed to list ignores' });
+    }
+  });
+
+  // DELETE /ignores/:id — un-ignore. The next file change re-detects.
+  router.delete('/ignores/:id', async (req: Request, res: Response) => {
+    try {
+      const ignoreId = parseInt(req.params.id, 10);
+      if (isNaN(ignoreId)) {
+        return res.status(400).json({ error: 'Invalid ignore ID' });
+      }
+      repo.removeIgnore(ignoreId);
+      return res.json({ success: true });
+    } catch (error) {
+      logger.error('[DELETE /api/pattern-warnings/ignores/:id] Error:', error as Error);
+      return res.status(500).json({ error: 'Failed to remove ignore' });
+    }
+  });
+
+  // POST /:id/ignore — durable suppression. Records the warning's
+  // (filepath, pattern_id, match_text) so detection won't re-raise it,
+  // then resolves any current rows that match.
+  router.post('/:id/ignore', async (req: Request, res: Response) => {
+    try {
+      const warningId = parseInt(req.params.id, 10);
+      if (isNaN(warningId)) {
+        return res.status(400).json({ error: 'Invalid warning ID' });
+      }
+      const warning = repo.getById(warningId);
+      if (!warning) {
+        return res.status(404).json({ error: 'Warning not found' });
+      }
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason : undefined;
+      repo.addIgnore(warning.filepath, warning.pattern_id, warning.match_text, reason);
+      const resolved = repo.resolveByKey(warning.filepath, warning.pattern_id, warning.match_text);
+      return res.json({ success: true, resolved });
+    } catch (error) {
+      logger.error('[POST /api/pattern-warnings/:id/ignore] Error:', error as Error);
+      return res.status(500).json({ error: 'Failed to ignore pattern warning' });
+    }
+  });
+
   // POST /resolve-all — bulk-resolve every unresolved warning. Powers the
   // SafetyPage's "Resolve All" button (which previously hit a non-existent
   // route and silently no-op'd).
