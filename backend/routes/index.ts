@@ -278,7 +278,8 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     createStorageRouter({
       repo: createStorageRepository({ db, ravenDir, snapshotsDir }),
       expensiveOpLimiter,
-      db
+      db,
+      projectsConfigService
     })
   );
   app.use('/api/pattern-warnings', createPatternWarningsRouter(patternWarningsRepository));

@@ -13,8 +13,12 @@
 
 import fs from 'fs/promises';
 import { join } from 'path';
+import { execFile as execFileCb } from 'child_process';
+import { promisify } from 'util';
 import Database from 'better-sqlite3';
 import type { RavenDB } from '../db.js';
+
+const execFile = promisify(execFileCb);
 
 const SAFE_NAME = /^[a-zA-Z0-9_-]+$/;
 const SAFE_IDENT = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
@@ -68,6 +72,25 @@ interface ProjectStorageRow {
   estimated_size: number;
 }
 
+export interface ProjectDiskRow {
+  project_name: string;
+  path: string | null;
+  /** Source-tree size on disk, respecting ignore patterns. null = path
+   *  unreachable / not configured. */
+  disk_bytes: number | null;
+  /** File count on disk after applying ignores. null when disk_bytes is null. */
+  disk_files: number | null;
+  /** Bytes Raven is using to track this project (events.diff + filepath +
+   *  agent_events.message + metadata + file). Survives retention because we
+   *  also pull stats from project_stats counters where they exist. */
+  db_bytes: number;
+  /** True when the project source path exists on disk. */
+  path_exists: boolean;
+  /** Tail of the duration in ms — surfaced for the UI when the scan was
+   *  slow enough to warrant a tooltip. */
+  scan_ms: number;
+}
+
 interface VacuumResult {
   sizeBefore: number;
   sizeAfter: number;
@@ -98,6 +121,12 @@ const DEFAULT_RETENTION: RetentionPolicy = {
 export interface StorageRepository {
   overview(): Promise<OverviewStats>;
   perProject(): ProjectStorageRow[];
+  /** Real disk + DB bytes per project. Spawns `du` per source path (in
+   *  parallel) and joins SQL byte sums. Sorted by disk_bytes desc, NULL
+   *  paths last. */
+  diskUsage(
+    projects: Array<{ name: string; path: string; ignorePatterns?: string[] }>
+  ): Promise<ProjectDiskRow[]>;
   databasePath(dbname: string): string;
   /** Throws NotFoundError if the file doesn't exist. */
   ensureDatabaseExists(dbname: string): Promise<void>;
@@ -260,6 +289,165 @@ export function createStorageRepository({
         last_event: p.last_event,
         estimated_size: p.total_size
       }));
+    },
+
+    async diskUsage(projects) {
+      // Per-project DB byte totals. LENGTH() on TEXT columns returns the
+      // string byte length in SQLite; nulls are coerced to 0. The diff
+      // column dominates by far — typical events row is 80 bytes without
+      // diff, multi-KB with one. Agent events add message + metadata
+      // payloads. Filepath, file_hash, and a few numeric columns round it
+      // out but the diff/payload bytes are the only ones worth tracking.
+      const eventBytes = db.db
+        .prepare(
+          `SELECT project_name,
+                  SUM(COALESCE(LENGTH(diff), 0) + COALESCE(LENGTH(filepath), 0)
+                      + COALESCE(LENGTH(file_hash), 0)) as bytes
+             FROM events
+            WHERE project_name IS NOT NULL AND project_name != ''
+            GROUP BY project_name`
+        )
+        .all() as Array<{ project_name: string; bytes: number }>;
+      const agentBytes = db.db
+        .prepare(
+          `SELECT project_name,
+                  SUM(COALESCE(LENGTH(message), 0) + COALESCE(LENGTH(metadata), 0)
+                      + COALESCE(LENGTH(file), 0)) as bytes
+             FROM agent_events
+            WHERE project_name IS NOT NULL AND project_name != ''
+            GROUP BY project_name`
+        )
+        .all() as Array<{ project_name: string; bytes: number }>;
+      const dbMap = new Map<string, number>();
+      for (const r of eventBytes) dbMap.set(r.project_name, r.bytes ?? 0);
+      for (const r of agentBytes) {
+        dbMap.set(r.project_name, (dbMap.get(r.project_name) ?? 0) + (r.bytes ?? 0));
+      }
+
+      // Disk scan in parallel. `du -sb` prints bytes (Linux GNU du); we use
+      // --exclude per ignore pattern. Default ignores get applied in addition
+      // to the project's configured ones because every Node/Python tree
+      // accumulates them and they dominate the total. Bounded execution
+      // time per project so a giant tree can't hang the response.
+      const DEFAULT_IGNORES = [
+        'node_modules',
+        '.git',
+        'dist',
+        'build',
+        'target',
+        'venv',
+        '.venv',
+        '.next',
+        '.cache'
+      ];
+
+      const scanOne = async (project: {
+        name: string;
+        path: string;
+        ignorePatterns?: string[];
+      }): Promise<ProjectDiskRow> => {
+        const start = Date.now();
+        let pathExists = false;
+        try {
+          const stat = await fs.stat(project.path);
+          pathExists = stat.isDirectory();
+        } catch {
+          /* unreachable / missing */
+        }
+        if (!pathExists) {
+          return {
+            project_name: project.name,
+            path: project.path,
+            disk_bytes: null,
+            disk_files: null,
+            db_bytes: dbMap.get(project.name) ?? 0,
+            path_exists: false,
+            scan_ms: Date.now() - start
+          };
+        }
+
+        // Merge default + per-project ignores, dedupe.
+        const ignores = Array.from(
+          new Set([...DEFAULT_IGNORES, ...(project.ignorePatterns ?? [])])
+        ).map(p => p.replace(/\/.*$/, '').replace(/\/$/, '')); // normalize "node_modules/**" → "node_modules"
+
+        // du -sb: -s summary, -b bytes (also implies --apparent-size)
+        // --exclude is repeatable; matches anywhere in the tree.
+        const args = ['-sb'];
+        for (const ig of ignores) {
+          if (ig) args.push(`--exclude=${ig}`);
+        }
+        args.push(project.path);
+
+        let bytes: number | null = null;
+        let files: number | null = null;
+        try {
+          const { stdout } = await execFile('du', args, {
+            timeout: 15_000,
+            maxBuffer: 4 * 1024 * 1024
+          });
+          const m = stdout.trim().match(/^(\d+)/);
+          if (m) bytes = parseInt(m[1], 10);
+        } catch {
+          // du may fail on permission errors or timeout — leave bytes null.
+        }
+        // File count via find. Cheap relative to du; same exclude logic.
+        try {
+          const findArgs: string[] = [project.path];
+          for (const ig of ignores) {
+            if (ig) {
+              findArgs.push('-name', ig, '-prune', '-o');
+            }
+          }
+          findArgs.push('-type', 'f', '-print');
+          const { stdout } = await execFile('find', findArgs, {
+            timeout: 15_000,
+            maxBuffer: 16 * 1024 * 1024
+          });
+          files = stdout ? stdout.split('\n').filter(Boolean).length : 0;
+        } catch {
+          /* ignore */
+        }
+
+        return {
+          project_name: project.name,
+          path: project.path,
+          disk_bytes: bytes,
+          disk_files: files,
+          db_bytes: dbMap.get(project.name) ?? 0,
+          path_exists: true,
+          scan_ms: Date.now() - start
+        };
+      };
+
+      const rows = await Promise.all(projects.map(scanOne));
+
+      // Also surface DB-tracked projects whose source dir we don't know about
+      // (e.g. removed from config but events still in DB).
+      const known = new Set(rows.map(r => r.project_name));
+      for (const [name, bytes] of dbMap) {
+        if (!known.has(name)) {
+          rows.push({
+            project_name: name,
+            path: null,
+            disk_bytes: null,
+            disk_files: null,
+            db_bytes: bytes,
+            path_exists: false,
+            scan_ms: 0
+          });
+        }
+      }
+
+      // Sort: configured + reachable + biggest disk first; unreachable last.
+      rows.sort((a, b) => {
+        const ax = a.disk_bytes ?? -1;
+        const bx = b.disk_bytes ?? -1;
+        if (ax !== bx) return bx - ax;
+        return b.db_bytes - a.db_bytes;
+      });
+
+      return rows;
     },
 
     databasePath(dbname) {

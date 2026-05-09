@@ -16,6 +16,7 @@ import {
 } from '../repositories/storage-repository.js';
 import { runRetentionCleanup } from '../services/retention-cleanup.js';
 import type { RavenDB } from '../db.js';
+import type { ProjectsConfigService } from '../services/projects-config.js';
 
 const RetentionSchema = z.object({
   enabled: z.boolean(),
@@ -37,9 +38,15 @@ interface StorageDeps {
   repo: StorageRepository;
   expensiveOpLimiter: RequestHandler;
   db: RavenDB;
+  projectsConfigService: ProjectsConfigService;
 }
 
-export function createStorageRouter({ repo, expensiveOpLimiter, db }: StorageDeps): Router {
+export function createStorageRouter({
+  repo,
+  expensiveOpLimiter,
+  db,
+  projectsConfigService
+}: StorageDeps): Router {
   const router = express.Router();
 
   // GET /api/storage — overview
@@ -59,6 +66,36 @@ export function createStorageRouter({ repo, expensiveOpLimiter, db }: StorageDep
     } catch (error) {
       logger.error('Error getting per-project storage:', error as Error);
       return res.status(500).json({ error: 'Failed to get project storage stats' });
+    }
+  });
+
+  // GET /api/storage/projects-disk — real disk + DB byte breakdown per
+  // project. Spawns du/find per source path, parallel, with a 60s cache
+  // (the disk scan is the slow part; tighter is too aggressive).
+  router.get('/projects-disk', cacheMiddleware(60000), async (_req: Request, res: Response) => {
+    try {
+      const config = await projectsConfigService.load();
+      const enabled = config.projects.filter(p => p.enabled !== false);
+      const rows = await repo.diskUsage(
+        enabled.map(p => ({
+          name: p.name,
+          path: p.path,
+          ignorePatterns: p.ignorePatterns
+        }))
+      );
+      return res.json({
+        rows,
+        totals: {
+          disk_bytes: rows.reduce((s, r) => s + (r.disk_bytes ?? 0), 0),
+          db_bytes: rows.reduce((s, r) => s + r.db_bytes, 0),
+          disk_files: rows.reduce((s, r) => s + (r.disk_files ?? 0), 0),
+          project_count: rows.length
+        },
+        generated_at: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error getting per-project disk usage:', error as Error);
+      return res.status(500).json({ error: 'Failed to get per-project disk usage' });
     }
   });
 
