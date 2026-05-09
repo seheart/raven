@@ -6,7 +6,7 @@
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
-  import { getChartColors } from '../utils/chartUtils.js';
+  import { getChartColors, chartGradient } from '../utils/chartUtils.js';
   import { Chart, registerables } from 'chart.js';
   import FileHistory from '../FileHistory.svelte';
 
@@ -255,7 +255,12 @@
     const textColor = c.text;
     const mutedColor = c.muted;
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-    const themeColors = { accent: c.primary, success: c.success, error: c.error, warning: c.warning };
+    const themeColors = {
+      accent: c.primary,
+      success: c.success,
+      error: c.error,
+      warning: c.warning
+    };
 
     // 1. Pie Chart: File types distribution
     const pieCanvas = document.getElementById('chart-file-types');
@@ -321,7 +326,8 @@
             {
               label: 'Changes',
               data: topFiles.map(f => f.count),
-              backgroundColor: themeColors.accent
+              backgroundColor: ctx => chartGradient(ctx.chart.ctx),
+              borderRadius: 3
             }
           ]
         },
@@ -451,19 +457,19 @@
     const lastUpdated =
       files.length > 0
         ? Array.from(fileMetadata.values())
-          .map(m => m.lastModified)
-          .filter(t => t)
-          .sort()
-          .reverse()[0]
+            .map(m => m.lastModified)
+            .filter(t => t)
+            .sort()
+            .reverse()[0]
         : null;
 
     const mostChangedFile =
       files.length > 0
         ? files.reduce((max, file) => {
-          const count = fileMetadata.get(file)?.changeCount || 0;
-          const maxCount = fileMetadata.get(max)?.changeCount || 0;
-          return count > maxCount ? file : max;
-        }, files[0])
+            const count = fileMetadata.get(file)?.changeCount || 0;
+            const maxCount = fileMetadata.get(max)?.changeCount || 0;
+            return count > maxCount ? file : max;
+          }, files[0])
         : null;
 
     const fileTypeBreakdown = availableFileTypes
@@ -489,231 +495,228 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{stats.totalFiles} files tracked</span>
-        <RefreshButton onClick={refresh} loading={loading} />
+        <RefreshButton onClick={refresh} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    {#if error}
-      <div class="bg-error-subtle border border-error rounded-lg p-4">
-        <p class="text-sm text-error font-sans">{error}</p>
-        <div class="mt-2">
-          <ToolbarButton variant="danger" onClick={loadFiles}>Retry</ToolbarButton>
+  {#if error}
+    <div class="bg-error-subtle border border-error rounded-lg p-4">
+      <p class="text-sm text-error font-sans">{error}</p>
+      <div class="mt-2">
+        <ToolbarButton variant="danger" onClick={loadFiles}>Retry</ToolbarButton>
+      </div>
+    </div>
+  {:else if loading}
+    <div class="text-center py-12">
+      <p class="text-sm text-muted font-sans">Loading tracked files...</p>
+    </div>
+  {:else if files.length === 0}
+    <EmptyState title="No files tracked yet" description="Edit files to start tracking" />
+  {:else}
+    <!-- Statistics Header -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Files</div>
+        <div class="text-sm font-mono text-body">{stats.totalFiles}</div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">File Types</div>
+        <div class="text-sm font-mono text-body">{availableFileTypes.length}</div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Last Updated
+        </div>
+        <div class="text-sm font-mono text-body">
+          {formatTimestamp(stats.lastUpdated)}
         </div>
       </div>
-    {:else if loading}
-      <div class="text-center py-12">
-        <p class="text-sm text-muted font-sans">Loading tracked files...</p>
-      </div>
-    {:else if files.length === 0}
-      <EmptyState title="No files tracked yet" description="Edit files to start tracking" />
-    {:else}
-      <!-- Statistics Header -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Files
-          </div>
-          <div class="text-sm font-mono text-body">{stats.totalFiles}</div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Most Changed
         </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            File Types
-          </div>
-          <div class="text-sm font-mono text-body">{availableFileTypes.length}</div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Last Updated
-          </div>
-          <div class="text-sm font-mono text-body">
-            {formatTimestamp(stats.lastUpdated)}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Most Changed
-          </div>
-          <div class="text-sm font-mono text-body truncate" title={stats.mostChangedFile}>
-            {getFileName(stats.mostChangedFile)}
-          </div>
+        <div class="text-sm font-mono text-body truncate" title={stats.mostChangedFile}>
+          {getFileName(stats.mostChangedFile)}
         </div>
       </div>
+    </div>
 
-      <!-- File Type Breakdown -->
-      {#if stats.fileTypeBreakdown.length > 0}
-        <div class="bg-surface border border-border rounded-lg p-4 mb-6">
-          <div class="flex items-center gap-4 flex-wrap">
-            <span class="text-sm font-semibold text-muted font-sans">Top File Types:</span>
-            <div class="flex gap-3 flex-wrap">
-              {#each stats.fileTypeBreakdown as { ext, count } (ext)}
-                <span
-                  class="inline-flex items-center gap-2 px-3 py-1 bg-canvas border rounded text-xs font-mono"
-                  style="border-color: {getFileTypeColor(ext)}"
-                >
-                  {ext} <span class="text-muted">({count})</span>
-                </span>
-              {/each}
-            </div>
+    <!-- File Type Breakdown -->
+    {#if stats.fileTypeBreakdown.length > 0}
+      <div class="bg-surface border border-border rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-4 flex-wrap">
+          <span class="text-sm font-semibold text-muted font-sans">Top File Types:</span>
+          <div class="flex gap-3 flex-wrap">
+            {#each stats.fileTypeBreakdown as { ext, count } (ext)}
+              <span
+                class="inline-flex items-center gap-2 px-3 py-1 bg-canvas border rounded text-xs font-mono"
+                style="border-color: {getFileTypeColor(ext)}"
+              >
+                {ext} <span class="text-muted">({count})</span>
+              </span>
+            {/each}
           </div>
         </div>
-      {/if}
+      </div>
+    {/if}
 
-      <!-- Charts Section -->
-      {#if showCharts}
-        <div class="mb-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-surface border border-border rounded-lg p-4">
-              <div class="h-[200px]">
-                <canvas id="chart-file-types"></canvas>
-              </div>
-            </div>
-            <div class="bg-surface border border-border rounded-lg p-4">
-              <div class="h-[200px]">
-                <canvas id="chart-most-changed"></canvas>
-              </div>
+    <!-- Charts Section -->
+    {#if showCharts}
+      <div class="mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-surface border border-border rounded-lg p-4">
+            <div class="h-[200px]">
+              <canvas id="chart-file-types"></canvas>
             </div>
           </div>
           <div class="bg-surface border border-border rounded-lg p-4">
-            <div class="h-[180px]">
-              <canvas id="chart-changes-by-type"></canvas>
+            <div class="h-[200px]">
+              <canvas id="chart-most-changed"></canvas>
             </div>
           </div>
         </div>
-      {/if}
-
-      <!-- Search and Filter Controls -->
-      <div class="bg-surface border border-border rounded-lg p-4 mb-6 space-y-3">
-        <div class="relative">
-          <input
-            type="text"
-            bind:value={searchQuery}
-            placeholder="Search files by name or path..."
-            class="w-full px-3 py-1.5 pr-10 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
-          />
-          {#if searchQuery}
-            <button
-              onclick={() => (searchQuery = '')}
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-body text-sm"
-            >
-              ×
-            </button>
-          {/if}
-        </div>
-
-        <div class="flex flex-wrap gap-4 items-center">
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-muted">Sort</span>
-            <select
-              bind:value={sortBy}
-              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-            >
-              <option value="filename">Filename</option>
-              <option value="lastModified">Last Modified</option>
-              <option value="changeCount">Most Changes</option>
-            </select>
-            <button
-              onclick={toggleSortOrder}
-              class="px-2 py-1.5 bg-canvas border border-border rounded hover:border-accent transition-colors"
-            >
-              {sortOrder === 'asc' ? '↓' : '↑'}
-            </button>
+        <div class="bg-surface border border-border rounded-lg p-4">
+          <div class="h-[180px]">
+            <canvas id="chart-changes-by-type"></canvas>
           </div>
-
-          {#if availableFileTypes.length > 0}
-            <div class="flex items-center gap-3 flex-wrap">
-              <span class="text-sm text-muted">Types</span>
-              <div class="flex gap-2 flex-wrap">
-                {#each availableFileTypes as ext (ext)}
-                  <button
-                    onclick={() => toggleFileType(ext)}
-                    class="px-3 py-1 border rounded text-xs font-mono transition-colors"
-                    class:bg-accent={selectedFileTypes.includes(ext)}
-                    class:text-white={selectedFileTypes.includes(ext)}
-                    class:border-accent={selectedFileTypes.includes(ext)}
-                    class:bg-surface={!selectedFileTypes.includes(ext)}
-                    class:border-border={!selectedFileTypes.includes(ext)}
-                    style={selectedFileTypes.includes(ext)
-                      ? `background-color: ${getFileTypeColor(ext)}; border-color: ${getFileTypeColor(ext)}`
-                      : ''}
-                  >
-                    {ext} ({files.filter(f => getFileExtension(f) === ext).length})
-                  </button>
-                {/each}
-              </div>
-            </div>
-          {/if}
         </div>
       </div>
+    {/if}
 
-      <!-- File List -->
-      <div class="space-y-2 mb-6">
-        {#if filteredFiles.length === 0}
-          <EmptyState size="compact" title="No files match" description="Try adjusting your search or filters." />
-        {:else}
-          {#each filteredFiles as filepath (filepath)}
-            <div
-              class="bg-surface border border-border rounded-lg overflow-hidden"
-            >
-              <button
-                onclick={() => toggleFileHistory(filepath)}
-                class="w-full px-4 py-3 flex items-center gap-3 hover:bg-canvas transition-colors text-left"
-                class:bg-canvas={expandedFile === filepath}
-              >
-                <span
-                  class="text-xs text-muted transition-transform"
-                  class:rotate-90={expandedFile === filepath}
-                >
-                </span>
-                <span class="text-sm flex-shrink-0">{getFileIcon(filepath)}</span>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-body font-mono truncate">
-                      {getFileName(filepath)}
-                    </span>
-                    {#if isRecent(fileMetadata.get(filepath)?.lastModified)}
-                      <span
-                        class="px-2 py-0.5 bg-success text-white text-xs font-semibold rounded uppercase"
-                      >
-                        Recent
-                      </span>
-                    {/if}
-                  </div>
-                  <div class="text-xs text-muted font-mono truncate">
-                    {getFilePath(filepath)}
-                  </div>
-                </div>
-                <div class="flex items-center gap-4 flex-shrink-0">
-                  {#if fileMetadata.has(filepath)}
-                    <div class="flex items-center gap-1 text-xs text-muted font-mono">
-                      <span></span>
-                      {formatTimestamp(fileMetadata.get(filepath).lastModified)}
-                    </div>
-                    <div class="text-xs text-muted font-mono">
-                      {fileMetadata.get(filepath).changeCount} changes
-                    </div>
-                  {/if}
-                </div>
-                <span class="text-sm text-muted font-sans">
-                  {expandedFile === filepath ? 'Hide' : 'Show'} History
-                </span>
-              </button>
-
-              {#if expandedFile === filepath}
-                <div class="px-4 py-4 bg-canvas border-t border-border">
-                  <FileHistory {filepath} inline={true} />
-                </div>
-              {/if}
-            </div>
-          {/each}
+    <!-- Search and Filter Controls -->
+    <div class="bg-surface border border-border rounded-lg p-4 mb-6 space-y-3">
+      <div class="relative">
+        <input
+          type="text"
+          bind:value={searchQuery}
+          placeholder="Search files by name or path..."
+          class="w-full px-3 py-1.5 pr-10 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
+        />
+        {#if searchQuery}
+          <button
+            onclick={() => (searchQuery = '')}
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-body text-sm"
+          >
+            ×
+          </button>
         {/if}
       </div>
 
-      {#if filteredFiles.length > 0}
-        <div class="text-center text-sm text-muted font-sans">
-          Showing {filteredFiles.length} of {stats.totalFiles} files
+      <div class="flex flex-wrap gap-4 items-center">
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-muted">Sort</span>
+          <select
+            bind:value={sortBy}
+            class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+          >
+            <option value="filename">Filename</option>
+            <option value="lastModified">Last Modified</option>
+            <option value="changeCount">Most Changes</option>
+          </select>
+          <button
+            onclick={toggleSortOrder}
+            class="px-2 py-1.5 bg-canvas border border-border rounded hover:border-accent transition-colors"
+          >
+            {sortOrder === 'asc' ? '↓' : '↑'}
+          </button>
         </div>
-      {/if}
-    {/if}
-</PageLayout>
 
+        {#if availableFileTypes.length > 0}
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-sm text-muted">Types</span>
+            <div class="flex gap-2 flex-wrap">
+              {#each availableFileTypes as ext (ext)}
+                <button
+                  onclick={() => toggleFileType(ext)}
+                  class="px-3 py-1 border rounded text-xs font-mono transition-colors"
+                  class:bg-accent={selectedFileTypes.includes(ext)}
+                  class:text-white={selectedFileTypes.includes(ext)}
+                  class:border-accent={selectedFileTypes.includes(ext)}
+                  class:bg-surface={!selectedFileTypes.includes(ext)}
+                  class:border-border={!selectedFileTypes.includes(ext)}
+                  style={selectedFileTypes.includes(ext)
+                    ? `background-color: ${getFileTypeColor(ext)}; border-color: ${getFileTypeColor(ext)}`
+                    : ''}
+                >
+                  {ext} ({files.filter(f => getFileExtension(f) === ext).length})
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- File List -->
+    <div class="space-y-2 mb-6">
+      {#if filteredFiles.length === 0}
+        <EmptyState
+          size="compact"
+          title="No files match"
+          description="Try adjusting your search or filters."
+        />
+      {:else}
+        {#each filteredFiles as filepath (filepath)}
+          <div class="bg-surface border border-border rounded-lg overflow-hidden">
+            <button
+              onclick={() => toggleFileHistory(filepath)}
+              class="w-full px-4 py-3 flex items-center gap-3 hover:bg-canvas transition-colors text-left"
+              class:bg-canvas={expandedFile === filepath}
+            >
+              <span
+                class="text-xs text-muted transition-transform"
+                class:rotate-90={expandedFile === filepath}
+              >
+              </span>
+              <span class="text-sm flex-shrink-0">{getFileIcon(filepath)}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-body font-mono truncate">
+                    {getFileName(filepath)}
+                  </span>
+                  {#if isRecent(fileMetadata.get(filepath)?.lastModified)}
+                    <span
+                      class="px-2 py-0.5 bg-success text-white text-xs font-semibold rounded uppercase"
+                    >
+                      Recent
+                    </span>
+                  {/if}
+                </div>
+                <div class="text-xs text-muted font-mono truncate">
+                  {getFilePath(filepath)}
+                </div>
+              </div>
+              <div class="flex items-center gap-4 flex-shrink-0">
+                {#if fileMetadata.has(filepath)}
+                  <div class="flex items-center gap-1 text-xs text-muted font-mono">
+                    <span></span>
+                    {formatTimestamp(fileMetadata.get(filepath).lastModified)}
+                  </div>
+                  <div class="text-xs text-muted font-mono">
+                    {fileMetadata.get(filepath).changeCount} changes
+                  </div>
+                {/if}
+              </div>
+              <span class="text-sm text-muted font-sans">
+                {expandedFile === filepath ? 'Hide' : 'Show'} History
+              </span>
+            </button>
+
+            {#if expandedFile === filepath}
+              <div class="px-4 py-4 bg-canvas border-t border-border">
+                <FileHistory {filepath} inline={true} />
+              </div>
+            {/if}
+          </div>
+        {/each}
+      {/if}
+    </div>
+
+    {#if filteredFiles.length > 0}
+      <div class="text-center text-sm text-muted font-sans">
+        Showing {filteredFiles.length} of {stats.totalFiles} files
+      </div>
+    {/if}
+  {/if}
+</PageLayout>

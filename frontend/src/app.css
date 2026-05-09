@@ -154,6 +154,29 @@
   --border-color: var(--border);
   --primary: var(--accent);
 
+  /* Chart palette — warm Anthropic-inspired tones. Used by chartUtils
+     for the canonical "primary chart color" plus a multi-series sequence
+     so a 4–6 dataset chart stays cohesive. The brand-orange family
+     (rust → coral → peach → amber) gives charts a "warm system"
+     atmosphere; cooler accent (teal) is the contrast hue when needed.
+
+     These were added because the old palette was bland (info-blue +
+     state colors) and clashed with the deliberate warm-cream / phosphor
+     aesthetic of the rest of the app. */
+  --chart-1: #d97757; /* Anthropic rust orange — primary brand chart color */
+  --chart-2: #e89460; /* warm peach — secondary series */
+  --chart-3: #f4a261; /* sunset amber — tertiary */
+  --chart-4: #e76f51; /* deep coral — quaternary */
+  --chart-5: #c95f3e; /* burnt sienna */
+  --chart-6: #2a9d8f; /* contrast teal — for "the other thing" series */
+  --chart-7: #8b5cf6; /* royal violet — fifth-series outlier */
+  --chart-8: #264653; /* deep teal — grounding hue */
+  /* Gradient stops for the canonical brand fill (top → bottom). The 65%
+     alpha at top + transparent bottom gives bars/areas the depth that
+     flat fills lack, without the ink-jet look of fully-opaque solids. */
+  --chart-grad-top: rgba(217, 119, 87, 0.65);
+  --chart-grad-bottom: rgba(217, 119, 87, 0.04);
+
   /* Subtle variants — pale tints. accent-subtle is the warm grey of
      surface-2 since the accent is now neutral black. */
   --accent-subtle: #ebe8e1;
@@ -253,6 +276,19 @@ html.dark {
   --success-subtle: rgba(95, 200, 138, 0.12);
   --error-subtle: rgba(239, 93, 110, 0.12);
   --warning-subtle: rgba(245, 176, 69, 0.12);
+
+  /* Chart palette — same warm Anthropic family in dark mode. Tones bumped
+     a hair brighter so they read against the near-black canvas. */
+  --chart-1: #e9886a; /* rust orange (brighter for dark canvas) */
+  --chart-2: #f0a378; /* warm peach */
+  --chart-3: #f7b478; /* sunset amber */
+  --chart-4: #f08066; /* deep coral */
+  --chart-5: #d97155; /* burnt sienna */
+  --chart-6: #4cc4b3; /* contrast teal */
+  --chart-7: #a78bfa; /* royal violet */
+  --chart-8: #5e8a96; /* deep teal */
+  --chart-grad-top: rgba(233, 136, 106, 0.7);
+  --chart-grad-bottom: rgba(233, 136, 106, 0.05);
 
   --shadow: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);

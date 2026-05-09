@@ -15,7 +15,8 @@
     createChart,
     destroyChart,
     createThemeObserver,
-    getChartColors
+    getChartColors,
+    chartGradient
   } from '../utils/chartUtils.js';
 
   // State
@@ -165,11 +166,18 @@
             label: 'Total Events',
             data: eventCounts,
             borderColor: colors.primary,
-            backgroundColor: `${colors.primary}1A`, // Add transparency
+            // Brand gradient fill: warm rust at the top fading to nearly
+            // transparent at the bottom. Replaces the flat 10% tint that
+            // made the area read as a smudge instead of a filled curve.
+            backgroundColor: ctx => chartGradient(ctx.chart.ctx),
             fill: true,
             tension: 0.4,
             pointRadius: 4,
-            pointHoverRadius: 6
+            pointHoverRadius: 6,
+            pointBackgroundColor: colors.primary,
+            pointBorderColor: colors.bg,
+            pointBorderWidth: 2,
+            borderWidth: 2
           }
         ]
       },
@@ -232,24 +240,30 @@
         datasets: [
           {
             label: 'Created',
+            // Three-stack: keep the green/orange/red semantic mapping but
+            // dial them down to 70% alpha so stacked bars stop reading
+            // like solid blocks of paint and start feeling like data.
             data: createdData,
-            backgroundColor: colors.success,
+            backgroundColor: colors.success + 'b3',
             borderColor: colors.success,
-            borderWidth: 1
+            borderWidth: 0,
+            borderRadius: 2
           },
           {
             label: 'Modified',
             data: modifiedData,
-            backgroundColor: colors.primary,
+            backgroundColor: colors.primary + 'b3',
             borderColor: colors.primary,
-            borderWidth: 1
+            borderWidth: 0,
+            borderRadius: 2
           },
           {
             label: 'Deleted',
             data: deletedData,
-            backgroundColor: colors.error,
+            backgroundColor: colors.error + 'b3',
             borderColor: colors.error,
-            borderWidth: 1
+            borderWidth: 0,
+            borderRadius: 2
           }
         ]
       },

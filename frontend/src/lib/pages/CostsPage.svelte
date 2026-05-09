@@ -8,7 +8,12 @@
   import { onMount, tick } from 'svelte';
   import { websocketService } from '../services/websocket.js';
   import { Chart, registerables } from 'chart.js';
-  import { createThemeObserver, getChartColors } from '../utils/chartUtils.js';
+  import {
+    createThemeObserver,
+    getChartColors,
+    getChartPalette,
+    chartGradient
+  } from '../utils/chartUtils.js';
   import { settings } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
 
@@ -122,9 +127,13 @@
             {
               label: isApi ? 'Cost ($)' : 'Tokens',
               data: timeline.map(t => (isApi ? t.cost_usd : t.input_tokens + t.output_tokens)),
-              backgroundColor: colors.accent + '80',
-              borderColor: colors.accent,
-              borderWidth: 1
+              // Brand gradient fill — warm rust top fading to transparent
+              // bottom. Bars feel like atmosphere, not paint.
+              backgroundColor: ctx => chartGradient(ctx.chart.ctx),
+              borderColor: colors.primary,
+              borderWidth: 0,
+              borderRadius: 3,
+              hoverBackgroundColor: ctx => chartGradient(ctx.chart.ctx)
             }
           ]
         },
@@ -158,10 +167,11 @@
       });
     }
 
-    // Model breakdown donut
+    // Model breakdown donut. Uses the canonical warm palette so it matches
+    // the rest of the app — no more rainbow vendor-brand swatches.
     if (modelChartCanvas && byModel.length > 0) {
       if (modelChart) modelChart.destroy();
-      const palette = ['#FF6B35', '#10A37F', '#4285F4', '#F39C12', '#8B5CF6', '#E11D48']; // design-system-allow: hex (vendor brand colors)
+      const palette = getChartPalette(byModel.length);
       modelChart = new Chart(modelChartCanvas, {
         type: 'doughnut',
         data: {
@@ -169,8 +179,10 @@
           datasets: [
             {
               data: byModel.map(m => (isApi ? m.cost_usd : m.input_tokens + m.output_tokens)),
-              backgroundColor: palette.slice(0, byModel.length),
-              borderWidth: 0
+              backgroundColor: palette,
+              borderColor: colors.bg,
+              borderWidth: 2,
+              hoverOffset: 6
             }
           ]
         },
