@@ -175,32 +175,44 @@ describe('TodayPage', () => {
     );
   });
 
-  it('shows the disabled-insights hint when /insights/latest returns 503-shaped error', async () => {
+  it('renders narrative beats even when LLM summaries are disabled', async () => {
+    // The previous version of this page showed a "Local-LLM summaries
+    // are off" hint as the primary content when insights were disabled,
+    // making the landing read as broken in the common dev case. The
+    // rewrite renders deterministic templated beats from /today/narrative
+    // as the page's actual content and silently hides the LLM section.
+    // This test pins that contract: disabled insights MUST NOT be the
+    // headline, and beats from real data MUST render regardless.
     setupApi();
-    // Override to throw a "disabled" error from latest, then have post mirror.
     mockApiGet.mockImplementation(endpoint => {
       if (endpoint.startsWith('/insights/latest')) {
         return Promise.reject(new Error('API error (503): {"error":"Insights disabled"}'));
       }
-      if (endpoint.startsWith('/costs/summary')) return Promise.resolve({ total_cost_usd: 0 });
+      if (endpoint.startsWith('/costs/summary'))
+        return Promise.resolve({ total_cost_usd: 1.23, total_requests: 7 });
       if (endpoint.startsWith('/session-activity')) return Promise.resolve({ entries: [] });
       if (endpoint.startsWith('/events/recent')) return Promise.resolve([]);
       if (endpoint.startsWith('/today/narrative'))
         return Promise.resolve({
           today: {
-            events: 0,
-            files: 0,
-            projects: [],
-            top_project: null,
+            events: 12,
+            files: 3,
+            projects: [{ project: 'raven', events: 12, files: 3 }],
+            top_project: 'raven',
             longest_session_seconds: 0
           },
-          week: { events: 0, files: 0, projects: [], top_project: null, days_active: 0 },
+          week: { events: 12, files: 3, projects: [], top_project: null, days_active: 1 },
           returning: []
         });
       return Promise.resolve(null);
     });
     mockApiPost.mockRejectedValue(new Error('API error (503): {"error":"Insights disabled"}'));
     render(TodayPage);
-    expect(await screen.findByText(/Local-LLM summaries are off/)).toBeTruthy();
+    // A daily-tally beat must appear (cost + project + requests).
+    await waitFor(() =>
+      expect(screen.getByText(/Today you've spent \$1\.23 on raven/)).toBeTruthy()
+    );
+    // The disabled-insights hint must NOT be the primary content.
+    expect(screen.queryByText(/Local-LLM summaries are off/)).toBeNull();
   });
 });
