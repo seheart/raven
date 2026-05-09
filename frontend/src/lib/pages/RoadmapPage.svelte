@@ -60,13 +60,7 @@
   // power-user audience that Raven was first built for. They stay
   // important; they just stop blocking the launch.
   const powerUser = [
-    {
-      title: 'Multi-machine roll-up — Phases 2–4',
-      detail:
-        'Phase 1 shipped (host_id + dormant /api/sync/export with Bearer auth via .raven/peers.json). Remaining: Phase 2 aggregator mode (--aggregator flag, host_id columns, sync scheduler), Phase 3 Peers sub-tab + per-host Today narrative beats, Phase 4 optional push notifications.',
-      size: 'L',
-      blocking: 'Phase 1 capability is dormant by default; Phase 2 unlocks it.'
-    }
+    // Multi-machine 2–4 demoted to Open Questions until a real user asks for it.
   ];
 
   // 04 // Open Questions — bigger calls that need a design pass.
@@ -82,13 +76,9 @@
       added: '2026-05'
     },
     {
-      title: 'Auto-detect projects vs explicit registration?',
-      note: "For new users, any setup beyond 'open Raven' kills adoption. Auto-detect from Claude Code's CWD on each session. Power users may still want explicit project registration. Default to auto, allow override.",
+      title: 'Multi-machine roll-up — finish Phases 2–4?',
+      note: 'Phase 1 shipped dormant (host_id + /api/sync/export gated on .raven/peers.json). Remaining work would be aggregator mode, a Peers sub-tab with per-host narrative beats, and optional push notifications. Parked until a real user asks for it — building a week-long initiative for ~0 current users is gold-plating. The capability is dormant by default, so cost of waiting is zero.',
       added: '2026-05'
-    },
-    {
-      title: 'Should Raven adopt a "terminal" variant for some pages?',
-      note: "ant uses a phosphor-green terminal aesthetic; raven is modern. We deliberately kept raven's tokens, but Monitoring / System views could justify a denser, more terminal-like skin if it actually helps comprehension. Not a no, not a yes — needs prototyping."
     }
   ];
 
