@@ -24,11 +24,21 @@
   let status = $state({ available: false, generating: false, models: [] });
   let loading = $state(false);
   let generating = $state(null); // null | 'summary' | 'review' | 'digest' | 'agent-comparison'
+  let generatingLabel = $state(''); // Friendly story label, used in the banner.
+  let generatingStartedAt = $state(0);
+  let elapsedTick = $state(0); // Forces the banner to recompute its elapsed seconds every second.
+  let highlightInsightId = $state(null); // Glow the freshly-written story for ~3s after it lands.
   let selectedModel = $state('');
   let windowMinutes = $state(60);
   let filterType = $state('all');
   let advancedOpen = $state(false);
   let loadError = $state(null);
+
+  const elapsed = $derived.by(() => {
+    void elapsedTick; // depend on the ticker
+    if (!generatingStartedAt) return 0;
+    return Math.max(0, Math.floor((Date.now() - generatingStartedAt) / 1000));
+  });
 
   const filteredInsights = $derived(
     filterType === 'all' ? insights : insights.filter(i => i.type === filterType)
@@ -95,20 +105,46 @@
     loading = false;
   }
 
+  let elapsedTimer = null;
+
   async function generateStory(kind) {
     if (!status.available) return;
     generating = kind;
+    const story = stories.find(s => s.generate === kind);
+    generatingLabel = story?.label || 'your story';
+    generatingStartedAt = Date.now();
+    elapsedTick = 0;
+    elapsedTimer = setInterval(() => (elapsedTick += 1), 1000);
     try {
       if (selectedModel) await api.put('/insights/model', { model: selectedModel }).catch(() => {});
       const url = `/insights/generate/${kind}`;
       const body = kind === 'summary' ? { windowMinutes } : {};
       const result = await api.post(url, body, { timeout: 180_000 });
-      if (result?.id) await loadInsights();
+      if (result?.id) {
+        await loadInsights();
+        // Brief glow on the new story so the user can see "your thing
+        // landed there" instead of just guessing it's somewhere in the
+        // list. Cleared after 3s.
+        highlightInsightId = result.id;
+        setTimeout(() => {
+          if (highlightInsightId === result.id) highlightInsightId = null;
+        }, 3000);
+        // Scroll the new story into view.
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`insight-${result.id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
     } catch (err) {
-      // Don't swallow: surface in load error banner so user sees it.
       loadError = `Couldn't write that story: ${err?.message || err}`;
     }
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
     generating = null;
+    generatingLabel = '';
+    generatingStartedAt = 0;
   }
 
   function formatDate(ts) {
@@ -208,6 +244,34 @@
       {/if}
     {/snippet}
   </PageHeader>
+
+  {#if generating}
+    <!-- Loud feedback while the local LLM is writing. Without this, the
+         only sign anything was happening was small italic text inside one
+         of the cards — easy to miss, especially during the 30-90s wait. -->
+    <div
+      class="bg-accent-subtle border border-accent rounded-lg p-4 mb-4 flex items-center gap-3"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex-shrink-0 relative w-3 h-3">
+        <span class="absolute inset-0 bg-accent rounded-full animate-ping opacity-60"></span>
+        <span class="absolute inset-0 bg-accent rounded-full"></span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold text-accent">
+          Raven is writing your <span class="font-mono">{generatingLabel}</span> story…
+        </div>
+        <div class="text-xs text-muted mt-0.5">
+          Local AI is reading your recent activity. Usually 30 seconds to a minute, sometimes longer
+          on the first run while the model loads. The story will appear below when it's ready.
+        </div>
+      </div>
+      <div class="text-xs font-mono text-muted tabular-nums flex-shrink-0">
+        {elapsed}s
+      </div>
+    </div>
+  {/if}
 
   {#if loadError}
     <DataFetchError
@@ -367,7 +431,12 @@
     {:else}
       <div class="divide-y divide-[var(--border)]">
         {#each filteredInsights as insight (insight.id)}
-          <article class="p-5">
+          <article
+            id="insight-{insight.id}"
+            class="p-5 transition-colors {highlightInsightId === insight.id
+              ? 'bg-accent-subtle'
+              : ''}"
+          >
             <header class="flex items-baseline justify-between gap-3 flex-wrap mb-3">
               <div class="flex items-center gap-2 min-w-0">
                 <span
