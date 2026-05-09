@@ -353,6 +353,10 @@
   }
 
   const totalQueued = publicLaunch.length + presence.length + reflect.length + powerUser.length;
+
+  // Hide phases whose items list is empty — once shipped, the section header
+  // is just visual noise. Items move to Recently Shipped instead.
+  const activePhases = phases.filter(p => p.items.length > 0);
 </script>
 
 <PageLayout>
@@ -369,10 +373,7 @@
         >
       </div>
       <div class="flex items-center gap-2">
-        <span class="uppercase tracking-wide"
-          >{publicLaunch.length} launch · {presence.length + reflect.length} v1 · {powerUser.length}
-          post · {open.length} open</span
-        >
+        <span class="uppercase tracking-wide">{totalQueued} queued · {open.length} open</span>
       </div>
     </div>
 
@@ -381,7 +382,7 @@
       <div class="flex-1 min-w-0 max-w-[48rem]">
         <PageHeader
           title="Roadmap"
-          description="Phased toward a public launch focused on new Claude Code users. Phase 00 blocks release; Phases 01–02 define the first impression after install; Phase 03 carries the power-user depth Raven was first built for. Sized in t-shirts (XS–XL); priority is top-down within each phase."
+          description="Phased toward a public launch focused on new Claude Code users. Each section is a phase of work; sections only render while they have items left. Sizing is t-shirts (XS–XL); priority within a phase is top-down."
         />
       </div>
 
@@ -399,15 +400,17 @@
           <div
             class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
           >
-            <span class="text-text">{totalQueued}</span> items across 4 phases ·
-            <span class="text-text">{publicLaunch.length}</span> block public launch
+            <span class="text-text">{totalQueued}</span>
+            {totalQueued === 1 ? 'item' : 'items'} queued ·
+            <span class="text-text">{publicLaunch.length}</span>
+            {publicLaunch.length === 1 ? 'blocks' : 'block'} public launch
           </div>
         </div>
       </aside>
     </div>
 
     <!-- Phases 00 → 03 -->
-    {#each phases as phase (phase.num)}
+    {#each activePhases as phase (phase.num)}
       <section>
         <div
           class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
