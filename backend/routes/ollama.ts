@@ -19,6 +19,27 @@ import type { MetricsRepository } from '../repositories/metrics-repository.js';
 // mutates OLLAMA_URL after a port conflict) takes effect without a restart.
 const ollamaInternalUrl = (): string => process.env.OLLAMA_URL || 'http://localhost:11434';
 
+/**
+ * Liveness probe — `process.kill(pid, 0)` sends signal 0, which Linux
+ * uses purely for permission/existence checks (no signal is delivered).
+ * Throws ESRCH if the process doesn't exist, EPERM if it does but we
+ * lack permission to signal it. Both mean "we know something" — only
+ * an unexpected error means we should fall back to "assume alive" so a
+ * stale attribution doesn't get wiped on a transient probe failure.
+ */
+function isPidAlive(pid: number | null | undefined): boolean | null {
+  if (!pid || pid <= 0) return null;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === 'ESRCH') return false;
+    if (code === 'EPERM') return true; // Process exists; we just can't signal it.
+    return null;
+  }
+}
+
 interface OllamaPsModel {
   name: string;
   size: number;
@@ -60,6 +81,13 @@ export function createOllamaDetailRouter(
       const models = (data.models || []).map(m => {
         const proj = agentEventsRepo.lastProjectForModel(m.name);
         const load = agentEventsRepo.lastModelLoad(m.name);
+        // Probe the loader's PID — `last_loaded_by` is sticky in the
+        // database (every model_load row is permanent history), so we
+        // need a live check to distinguish "atf is currently using this"
+        // from "atf loaded it once and was killed an hour ago". The
+        // attribution still surfaces in the latter case but the frontend
+        // can render it muted with a "(gone)" suffix.
+        const loaderAlive = load ? isPidAlive(load.pid) : null;
         return {
           name: m.name,
           size: m.size,
@@ -71,7 +99,14 @@ export function createOllamaDetailRouter(
           family: m.details?.family,
           last_project: proj?.project ?? null,
           last_loaded_by: load
-            ? { project: load.project, cmd: load.cmd, cwd: load.cwd, at: load.timestamp }
+            ? {
+                project: load.project,
+                pid: load.pid,
+                cmd: load.cmd,
+                cwd: load.cwd,
+                at: load.timestamp,
+                process_alive: loaderAlive
+              }
             : null
         };
       });

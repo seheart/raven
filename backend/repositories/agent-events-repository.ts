@@ -12,6 +12,7 @@ interface LastProjectForAgent {
 
 interface LastModelLoad {
   project: string | null;
+  pid: number | null;
   cmd: string | null;
   cwd: string | null;
   timestamp: string;
@@ -209,6 +210,7 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
   const lastLoadStmt = db.db.prepare(`
     SELECT
       COALESCE(project_name, json_extract(metadata, '$.project')) AS project,
+      CAST(json_extract(metadata, '$.loader_pid') AS INTEGER) AS pid,
       json_extract(metadata, '$.loader_cmd') AS cmd,
       json_extract(metadata, '$.loader_cwd') AS cwd,
       timestamp

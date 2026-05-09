@@ -466,11 +466,19 @@
                     {s.lastProject}
                   </span>
                 {:else if s.loadedBy && (s.loadedBy.project || s.loadedBy.cwd)}
+                  {@const loaderName =
+                    s.loadedBy.project ?? s.loadedBy.cwd?.split('/').pop() ?? '?'}
+                  {@const loaderGone = s.loadedBy.process_alive === false}
                   <span
-                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--muted)]"
-                    title={`Loaded by ${s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'} — no inference yet`}
+                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--muted)] {loaderGone
+                      ? 'opacity-60'
+                      : ''}"
+                    title={loaderGone
+                      ? `Loaded by ${s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'} — process is gone; model lingering until Ollama evicts`
+                      : `Loaded by ${s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'} — no inference yet`}
                   >
-                    loaded by {s.loadedBy.project ?? s.loadedBy.cwd?.split('/').pop() ?? '?'}
+                    loaded by {loaderName}{#if loaderGone}<span class="ml-1 italic">· gone</span
+                      >{/if}
                   </span>
                 {/if}
               </div>
