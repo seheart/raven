@@ -258,14 +258,16 @@
       </div>
     {/snippet}
   </PageHeader>
-  <div class="flex items-center gap-2 -mt-4">
+  <div class="flex items-center gap-2 -mt-4 flex-wrap">
     <span
       class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi
         ? 'bg-warning text-black'
         : 'bg-accent text-canvas'}">{isApi ? 'API Billing' : planName}</span
     >
     <p class="text-sm text-muted font-sans">
-      {isApi ? 'Estimated API costs and token consumption' : 'Token consumption across sessions'}
+      {isApi
+        ? 'Estimated API costs and token consumption.'
+        : `Token consumption across sessions. You're on ${planName}, so the dollar figure below is what this usage WOULD cost at API rates — not money out of your wallet.`}
     </p>
   </div>
 
@@ -276,7 +278,10 @@
       {/each}
     </div>
   {:else}
-    <!-- Summary Cards -->
+    <!-- Summary Cards. Subscription users see the API-equivalent dollar
+         figure as the headline (curiosity-relevant: "what would this
+         cost on API?"), but it's labeled and subtitled so the user
+         can't mistake it for actual spend. -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
       {#if isApi}
         <div class="bg-surface border border-border rounded p-4">
@@ -288,13 +293,17 @@
           </div>
         </div>
       {:else}
-        <div class="bg-surface border border-border rounded p-4">
+        <div
+          class="bg-surface border border-border rounded p-4"
+          title="What this usage would cost on per-token API billing. You're on {planName} so this is reference, not a bill."
+        >
           <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Tokens
+            API equivalent
           </div>
           <div class="text-2xl font-bold text-accent font-mono">
-            {formatTokens((summary.total_input_tokens || 0) + (summary.total_output_tokens || 0))}
+            {formatCost(summary.total_cost_usd)}
           </div>
+          <div class="text-[10px] text-muted mt-1 italic">if billed per token</div>
         </div>
       {/if}
       <div class="bg-surface border border-border rounded p-4">
