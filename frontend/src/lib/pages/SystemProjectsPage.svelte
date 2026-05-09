@@ -357,93 +357,98 @@
       <div class="bg-surface border border-border rounded-lg">
         <div class="divide-y divide-[var(--border)]">
           {#each config.projects as project (project.name)}
-            <div
-              class="px-5 py-4 flex flex-wrap items-center gap-x-4 gap-y-2"
-              class:opacity-50={!project.enabled}
-            >
-              <span
-                class="w-2 h-2 rounded-full flex-shrink-0 {project.enabled
-                  ? 'bg-success'
-                  : 'bg-muted'}"
-              ></span>
-              <div class="flex-1 min-w-[12rem]">
-                <div class="text-sm font-mono font-semibold text-body truncate">
-                  {project.name}
-                </div>
-                <div class="text-xs text-muted truncate">{project.path}</div>
-              </div>
-              <div
-                class="text-xs text-muted font-mono flex-shrink-0 text-right leading-tight"
-                title={project.firstSeenAt
-                  ? `First seen ${new Date(project.firstSeenAt).toLocaleDateString()}` +
-                    (project.lastSeenAt
-                      ? ` · last ${new Date(project.lastSeenAt).toLocaleDateString()}`
-                      : '')
-                  : ''}
-              >
-                <div>
-                  {(
-                    project.lifetimeEventCount ??
-                    project.eventCount ??
-                    project.event_count ??
-                    0
-                  ).toLocaleString()} events
-                </div>
-                {#if (project.eventCount ?? 0) > 0 && (project.lifetimeEventCount ?? 0) > (project.eventCount ?? 0)}
-                  <div class="text-[10px] text-muted/70">
-                    {project.eventCount.toLocaleString()} in last 7d
+            <!-- Wrap project row + its expanded summary in a single child of
+                 divide-y, so the divider line only appears BETWEEN projects,
+                 not between a project and its own AI summary card. -->
+            <div class:opacity-50={!project.enabled}>
+              <div class="px-5 py-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span
+                  class="w-2 h-2 rounded-full flex-shrink-0 {project.enabled
+                    ? 'bg-success'
+                    : 'bg-muted'}"
+                ></span>
+                <div class="flex-1 min-w-[12rem]">
+                  <div class="text-sm font-mono font-semibold text-body truncate">
+                    {project.name}
                   </div>
-                {:else if (project.lifetimeEventCount ?? 0) > 0 && (project.eventCount ?? 0) === 0}
-                  <div class="text-[10px] text-muted/70">none in last 7d</div>
-                {/if}
-              </div>
-              <div class="flex flex-wrap gap-2 flex-shrink-0">
-                <button
-                  onclick={() => getProjectHealth(project.name)}
-                  disabled={healthNarratives[project.name]?.loading || insightsAvailable === false}
-                  title={insightsAvailable === false
-                    ? 'Local-LLM insights are off. Restart Raven without RAVEN_INSIGHTS_DISABLED=1 to enable.'
-                    : ''}
-                  class="px-2 py-1 bg-accent text-canvas rounded text-xs font-sans hover:bg-accent-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
-                </button>
-                <button
-                  onclick={() => toggleProject(project)}
-                  class="px-2 py-1 rounded text-xs font-sans transition-colors {project.enabled
-                    ? 'bg-success-subtle text-success border border-success'
-                    : 'bg-surface-2 text-muted border border-border'}"
-                >
-                  {project.enabled ? 'On' : 'Off'}
-                </button>
-                <button
-                  onclick={() => startEdit(project)}
-                  class="px-2 py-1 bg-surface border border-border rounded text-xs font-sans hover:border-accent transition-colors"
-                >
-                  Edit
-                </button>
-                <ToolbarButton variant="danger" onClick={() => deleteProject(project.name)}
-                  >Remove</ToolbarButton
-                >
-              </div>
-            </div>
-            {#if healthNarratives[project.name]?.content}
-              <div id="project-summary-{project.name}" class="px-5 pb-4 -mt-2">
+                  <div class="text-xs text-muted truncate">{project.path}</div>
+                </div>
                 <div
-                  class="bg-canvas border rounded p-4 text-base text-body font-sans leading-relaxed transition-colors {highlightProjectName ===
-                  project.name
-                    ? 'border-accent shadow-[0_0_0_1px_var(--accent)]'
-                    : 'border-border'}"
+                  class="text-xs text-muted font-mono flex-shrink-0 text-right leading-tight"
+                  title={project.firstSeenAt
+                    ? `First seen ${new Date(project.firstSeenAt).toLocaleDateString()}` +
+                      (project.lastSeenAt
+                        ? ` · last ${new Date(project.lastSeenAt).toLocaleDateString()}`
+                        : '')
+                    : ''}
                 >
-                  <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
-                  {@html renderMarkdown(healthNarratives[project.name].content)}
+                  <div>
+                    {(
+                      project.lifetimeEventCount ??
+                      project.eventCount ??
+                      project.event_count ??
+                      0
+                    ).toLocaleString()} events
+                  </div>
+                  {#if (project.eventCount ?? 0) > 0 && (project.lifetimeEventCount ?? 0) > (project.eventCount ?? 0)}
+                    <div class="text-[10px] text-muted/70">
+                      {project.eventCount.toLocaleString()} in last 7d
+                    </div>
+                  {:else if (project.lifetimeEventCount ?? 0) > 0 && (project.eventCount ?? 0) === 0}
+                    <div class="text-[10px] text-muted/70">none in last 7d</div>
+                  {/if}
+                </div>
+                <div class="flex flex-wrap gap-2 flex-shrink-0">
+                  <button
+                    onclick={() => getProjectHealth(project.name)}
+                    disabled={healthNarratives[project.name]?.loading ||
+                      insightsAvailable === false}
+                    title={insightsAvailable === false
+                      ? 'Local-LLM insights are off. Restart Raven without RAVEN_INSIGHTS_DISABLED=1 to enable.'
+                      : ''}
+                    class="px-2 py-1 bg-accent text-canvas rounded text-xs font-sans hover:bg-accent-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
+                  </button>
+                  <button
+                    onclick={() => toggleProject(project)}
+                    class="px-2 py-1 rounded text-xs font-sans transition-colors {project.enabled
+                      ? 'bg-success-subtle text-success border border-success'
+                      : 'bg-surface-2 text-muted border border-border'}"
+                  >
+                    {project.enabled ? 'On' : 'Off'}
+                  </button>
+                  <button
+                    onclick={() => startEdit(project)}
+                    class="px-2 py-1 bg-surface border border-border rounded text-xs font-sans hover:border-accent transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <ToolbarButton variant="danger" onClick={() => deleteProject(project.name)}
+                    >Remove</ToolbarButton
+                  >
                 </div>
               </div>
-            {:else if healthNarratives[project.name]?.error}
-              <div class="px-5 pb-4 -mt-2">
-                <div class="text-xs text-error">Failed: {healthNarratives[project.name].error}</div>
-              </div>
-            {/if}
+              {#if healthNarratives[project.name]?.content}
+                <div id="project-summary-{project.name}" class="px-5 pb-4 -mt-2">
+                  <div
+                    class="bg-canvas border rounded p-4 text-base text-body font-sans leading-relaxed transition-colors {highlightProjectName ===
+                    project.name
+                      ? 'border-accent shadow-[0_0_0_1px_var(--accent)]'
+                      : 'border-border'}"
+                  >
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
+                    {@html renderMarkdown(healthNarratives[project.name].content)}
+                  </div>
+                </div>
+              {:else if healthNarratives[project.name]?.error}
+                <div class="px-5 pb-4 -mt-2">
+                  <div class="text-xs text-error">
+                    Failed: {healthNarratives[project.name].error}
+                  </div>
+                </div>
+              {/if}
+            </div>
           {/each}
         </div>
       </div>
