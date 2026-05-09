@@ -3,7 +3,12 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    EmptyState,
+    DataFetchError
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   /**
    * Historical Trends Page
@@ -62,6 +67,12 @@
 
   async function loadTrends() {
     try {
+      // The original version only set loading=false in finally — meaning
+      // the skeleton never appeared on initial load and changing the
+      // period dropdown felt janky (no loading indicator while the new
+      // period's data was fetching). Set loading=true at the top so the
+      // skeleton fires reliably.
+      loading = true;
       error = null;
       const data = await api.get(`/trends/historical?period=${period}&days=${days}`);
       trends = data.trends || [];
@@ -422,12 +433,12 @@
       {/each}
     </div>
   {:else if error}
-    <div
-      class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
-    >
-      <span class="text-sm text-error font-sans">Error loading trends: {error}</span>
-      <ToolbarButton variant="danger" onClick={loadTrends}>Try Again</ToolbarButton>
-    </div>
+    <DataFetchError
+      endpoint="/api/trends/historical"
+      message="Couldn't load trends"
+      hint={error}
+      onRetry={loadTrends}
+    />
   {:else if initialized && trends.length === 0}
     <EmptyState
       size="compact"

@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
-  import { RefreshButton, TabButton } from '../components/ui/index.js';
+  import { RefreshButton, TabButton, DataFetchError } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount, tick } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -77,21 +77,31 @@
     return `start=${encodeURIComponent(start)}`;
   }
 
+  /** @type {string|null} */
+  let loadError = $state(null);
+
   async function loadData() {
     try {
       loading = true;
+      loadError = null;
       const params = getTimeRangeParams();
       const bucket = timeRange === 'today' ? 'hour' : 'day';
 
-      const [summaryData, projectData, modelData, sessionData, timelineData] = await Promise.all([
-        api.get(`/costs/summary?${params}`).catch(() => ({})),
+      // Use the canonical summary endpoint as the "did anything load at
+      // all?" probe — if the backend's offline, this is the one that'll
+      // throw and we want a visible banner instead of blank tiles. The
+      // sub-rollups (by-project, by-model, ...) tolerate empty arrays
+      // independently so a partial outage still renders what works.
+      const summaryData = await api.get(`/costs/summary?${params}`);
+      summary = summaryData;
+
+      const [projectData, modelData, sessionData, timelineData] = await Promise.all([
         api.get(`/costs/by-project?${params}`).catch(() => []),
         api.get(`/costs/by-model?${params}`).catch(() => []),
         api.get(`/costs/by-session?${params}&limit=20`).catch(() => []),
         api.get(`/costs/timeline?${params}&bucket=${bucket}`).catch(() => [])
       ]);
 
-      summary = summaryData;
       byProject = Array.isArray(projectData) ? projectData : [];
       byModel = Array.isArray(modelData) ? modelData : [];
       bySessions = Array.isArray(sessionData) ? sessionData : [];
@@ -99,7 +109,12 @@
 
       lastUpdated = new Date();
     } catch (err) {
+      // Surface the failure inline. Previously this was logger.error-only
+      // and the page rendered blank summary tiles ("Requests" with no
+      // value because summary.total_requests?.toLocaleString() was
+      // undefined) with no signal to the user.
       logger.error('Failed to load cost data:', err);
+      loadError = err?.message || String(err);
     } finally {
       loading = false;
       await tick();
@@ -286,6 +301,15 @@
         : `Token consumption across sessions. You're on ${planName}, so the dollar figure below is what this usage WOULD cost at API rates — not money out of your wallet.`}
     </p>
   </div>
+
+  {#if loadError}
+    <DataFetchError
+      endpoint="/api/costs/summary"
+      message="Couldn't load cost data"
+      hint={loadError}
+      onRetry={loadData}
+    />
+  {/if}
 
   {#if loading && !summary.total_requests}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
