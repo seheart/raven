@@ -226,25 +226,27 @@
   <!-- Story cards. Each is a kind of report Raven can write. Big enough to
        read, small enough to scan four at a time. -->
   <div class="bg-surface border border-border rounded-lg p-5 mb-6">
-    <div class="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
-      <!-- flex-1 min-w-0 so the paragraph gets actual room and wraps normally
-           instead of collapsing to one word per line under flex-shrink. -->
-      <div class="flex-1 min-w-0">
+    <!-- Header: title + Advanced toggle on the same row, description as a
+         normal block-level paragraph below. Earlier flex-based layout
+         collapsed the description into one-word-per-line in the rendered
+         DOM (flex-shrink edge case), so this swaps to plain block flow. -->
+    <div class="mb-4">
+      <div class="flex items-baseline justify-between gap-3 mb-1">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
           What can Raven tell you?
         </h3>
-        <p class="text-sm text-muted mt-1 max-w-2xl leading-snug">
-          Four kinds of stories about your activity. Pick whichever sounds useful — Raven will read
-          your recent events and write it for you.
-        </p>
+        <button
+          type="button"
+          onclick={() => (advancedOpen = !advancedOpen)}
+          class="text-[11px] font-mono text-muted hover:text-accent transition-colors cursor-pointer"
+        >
+          {advancedOpen ? '▾' : '▸'} Advanced
+        </button>
       </div>
-      <button
-        type="button"
-        onclick={() => (advancedOpen = !advancedOpen)}
-        class="text-[11px] font-mono text-muted hover:text-accent transition-colors cursor-pointer flex-shrink-0"
-      >
-        {advancedOpen ? '▾' : '▸'} Advanced
-      </button>
+      <p class="text-sm text-muted leading-snug max-w-2xl">
+        Four kinds of stories about your activity. Pick whichever sounds useful — Raven will read
+        your recent events and write it for you.
+      </p>
     </div>
 
     {#if advancedOpen}
