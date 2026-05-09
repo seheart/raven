@@ -226,12 +226,8 @@
   <!-- Story cards. Each is a kind of report Raven can write. Big enough to
        read, small enough to scan four at a time. -->
   <div class="bg-surface border border-border rounded-lg p-5 mb-6">
-    <!-- Header: title + Advanced toggle on the same row, description as a
-         normal block-level paragraph below. Earlier flex-based layout
-         collapsed the description into one-word-per-line in the rendered
-         DOM (flex-shrink edge case), so this swaps to plain block flow. -->
-    <div class="mb-4">
-      <div class="flex items-baseline justify-between gap-3 mb-1">
+    <header class="mb-4">
+      <div class="flex items-baseline justify-between gap-3">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
           What can Raven tell you?
         </h3>
@@ -243,14 +239,11 @@
           {advancedOpen ? '▾' : '▸'} Advanced
         </button>
       </div>
-      <p
-        class="text-sm text-muted leading-snug max-w-2xl"
-        style="display: block; width: 100%; white-space: normal; word-spacing: normal; word-break: normal;"
-      >
+      <div class="text-sm text-muted mt-1 leading-snug">
         Four kinds of stories about your activity. Pick whichever sounds useful — Raven will read
         your recent events and write it for you.
-      </p>
-    </div>
+      </div>
+    </header>
 
     {#if advancedOpen}
       <!-- Advanced: model + window. Tucked away because most users
