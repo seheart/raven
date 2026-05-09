@@ -248,7 +248,14 @@ export class MetricsCollector {
       // Collect /proc details and store metrics for each agent
       for (const { name, proc } of matchedAgents) {
         const cpu_usage = proc.cpu || 0;
-        const memory_mb = Math.floor(proc.mem / (1024 * 1024));
+        // systeminformation gotcha: `proc.mem` is the memory *percentage*
+        // (0.7, 0.8...), not RSS in any unit. The RSS in KB lives on
+        // `proc.memRss`. Earlier code read `proc.mem` then divided by
+        // 1024*1024, which always rounded a 0.7% value to 0 — every "RAM"
+        // cell on the agents/network page showed 0 MB while VSZ next to it
+        // correctly displayed multi-GB virtual size. Use memRss / 1024
+        // (KB → MB).
+        const memory_mb = Math.floor((proc.memRss || 0) / 1024);
         const virtual_memory_mb = Math.floor((proc.memVsz || 0) / 1024);
 
         const net = netInfo.get(proc.pid) || { totalConnections: 0, apiConnections: 0 };

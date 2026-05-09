@@ -89,6 +89,16 @@ export function createAgentsRouter(
       const toolBreakdownRows = agentEventsRepo.toolBreakdown();
 
       const toolBreakdownByAgent = new Map<string, Array<{ message: string; count: number }>>();
+      // Per-agent create/edit counts derived from the same toolBreakdown rows.
+      // The events table has no agent attribution so we couldn't use it; but
+      // agent_events tool_call messages do carry the operation: "Write call"
+      // = create, "Edit call" = edit. Earlier the page received null for
+      // these per-row and rendered all-zero "Activity Breakdown" doughnuts
+      // and made every agent show as "conservative · mixed". Fixed here.
+      const opCountsByAgent = new Map<
+        string,
+        { create_count: number; edit_count: number; delete_count: number }
+      >();
       for (const row of toolBreakdownRows) {
         let list = toolBreakdownByAgent.get(row.agent);
         if (!list) {
@@ -96,18 +106,38 @@ export function createAgentsRouter(
           toolBreakdownByAgent.set(row.agent, list);
         }
         if (list.length < 10) list.push({ message: row.message, count: row.count });
+
+        let ops = opCountsByAgent.get(row.agent);
+        if (!ops) {
+          ops = { create_count: 0, edit_count: 0, delete_count: 0 };
+          opCountsByAgent.set(row.agent, ops);
+        }
+        const msg = row.message || '';
+        if (/^Write\b/i.test(msg)) ops.create_count += row.count;
+        else if (/^Edit\b/i.test(msg)) ops.edit_count += row.count;
+        // delete_count stays 0: Claude Code has no first-class "delete" tool.
+        // Bash rm calls would land in toolBreakdown as "Bash call" which we
+        // can't reliably attribute to deletion without parsing the message
+        // body, so we stay honest about not knowing.
       }
 
-      // The events table has no agent attribution, so we can't split fileStats
-      // per-agent. Attach the global figures only to a synthetic "_aggregate"
-      // entry; do NOT spread them into every agent (was misleading every row
-      // with identical counts).
+      // Attach per-agent create/edit/delete counts directly. Earlier these
+      // existed only on a synthetic _aggregate row that the frontend filtered
+      // out, leaving every per-agent row with null values.
       const enriched: any[] = agentEvents.map((agent: any) => {
         const name = agent.agent_name || agent.agent;
+        const ops = opCountsByAgent.get(name) || {
+          create_count: 0,
+          edit_count: 0,
+          delete_count: 0
+        };
         return {
           ...agent,
           agent_name: name,
-          tool_breakdown: toolBreakdownByAgent.get(name) || []
+          tool_breakdown: toolBreakdownByAgent.get(name) || [],
+          create_count: ops.create_count,
+          edit_count: ops.edit_count,
+          delete_count: ops.delete_count
         };
       });
 

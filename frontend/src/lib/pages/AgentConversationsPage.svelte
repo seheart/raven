@@ -60,13 +60,18 @@
   // Derived values using Svelte 5 $derived
   const filteredConversations = $derived.by(() => {
     let filtered = conversations.filter(conv => {
-      // Search filter
+      // Search filter. Backend returns these keys verbatim from
+      // /api/conversations: `message`, `project_name`, `session_id`,
+      // `event_type`, `timestamp`. Earlier this code reached for `content`,
+      // `tool_name`, `project`, `claude_session_id` — none of which exist
+      // in the response — so search-by-anything-but-event-type silently
+      // matched zero rows. Same problem in the sort + group blocks below.
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesContent = conv.content?.toLowerCase().includes(query);
-        const matchesTool = conv.tool_name?.toLowerCase().includes(query);
-        const matchesProject = conv.project?.toLowerCase().includes(query);
-        if (!matchesContent && !matchesTool && !matchesProject) {
+        const matchesContent = conv.message?.toLowerCase().includes(query);
+        const matchesType = conv.event_type?.toLowerCase().includes(query);
+        const matchesProject = conv.project_name?.toLowerCase().includes(query);
+        if (!matchesContent && !matchesType && !matchesProject) {
           return false;
         }
       }
@@ -104,8 +109,8 @@
         aVal = a.event_type || '';
         bVal = b.event_type || '';
       } else if (sortBy === 'project') {
-        aVal = a.project || '';
-        bVal = b.project || '';
+        aVal = a.project_name || '';
+        bVal = b.project_name || '';
       }
 
       if (typeof aVal === 'string') {
@@ -130,9 +135,9 @@
       let key;
 
       if (groupBy === 'session') {
-        key = conv.claude_session_id || 'Unknown Session';
+        key = conv.session_id || 'Unknown Session';
       } else if (groupBy === 'project') {
-        key = conv.project || 'Unknown Project';
+        key = conv.project_name || 'Unknown Project';
       } else if (groupBy === 'date') {
         const date = new Date(conv.timestamp);
         key = date.toLocaleDateString();
