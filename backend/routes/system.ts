@@ -126,7 +126,14 @@ async function probeDisk(): Promise<{ total_gib: number | null; free_gib: number
 
 export function createSystemRouter(deps: SystemDeps): Router {
   const router = express.Router();
-  const ollamaUrl = deps.ollamaUrl || process.env.OLLAMA_URL || 'http://localhost:11434';
+  // Resolve OLLAMA_URL lazily on every request. The transparent-ollama-proxy
+  // mutates process.env.OLLAMA_URL when it can't bind 11434 (because real
+  // Ollama owns it), and that mutation happens AFTER this router is built.
+  // Capturing the value at construction time meant the route kept hitting
+  // the dead 11435 port even after the fallback re-pointed env at 11434.
+  // Default also pinned to 127.0.0.1 to dodge the IPv6 ::1 trap on Linux.
+  const resolveOllamaUrl = () =>
+    deps.ollamaUrl || process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 
   router.get('/tables', (_req: Request, res: Response) => {
     try {
@@ -213,6 +220,7 @@ export function createSystemRouter(deps: SystemDeps): Router {
 
   router.get('/models', async (_req: Request, res: Response) => {
     try {
+      const ollamaUrl = resolveOllamaUrl();
       const tagsRes = await fetch(`${ollamaUrl}/api/tags`, {
         signal: AbortSignal.timeout(3000)
       });

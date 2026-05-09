@@ -3,7 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { renderMarkdown } from '../utils/markdown.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { ToolbarButton, EmptyState } from '../components/ui/index.js';
+  import { ToolbarButton, EmptyState, DataFetchError } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let config = $state({ autoDiscover: true, basePath: '', projects: [] });
@@ -272,11 +272,12 @@
         {/each}
       </div>
     {:else if error}
-      <EmptyState size="compact" title={error}>
-        {#snippet actions()}
-          <ToolbarButton variant="primary" onClick={loadConfig}>Retry</ToolbarButton>
-        {/snippet}
-      </EmptyState>
+      <DataFetchError
+        endpoint="/api/projects"
+        message="Failed to load projects"
+        hint={error}
+        onRetry={loadConfig}
+      />
     {:else if config.projects.length === 0}
       <EmptyState size="compact" title="No projects configured">
         {#snippet actions()}

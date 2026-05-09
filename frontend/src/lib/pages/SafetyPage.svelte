@@ -197,7 +197,7 @@
           bind:value={searchQuery}
           class="flex-1 min-w-[200px] px-3 py-1.5 bg-surface border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
         />
-        {#each ['all', 'error', 'warning', 'info'] as sev (sev)}
+        {#each ['all', 'critical', 'error', 'warning', 'info'] as sev (sev)}
           <FilterToggle active={severityFilter === sev} onClick={() => (severityFilter = sev)}>
             {sev === 'all' ? 'All' : sev.charAt(0).toUpperCase() + sev.slice(1)}
           </FilterToggle>

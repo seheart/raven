@@ -25,6 +25,15 @@
   let healthMonitor = $state({ data: null, loading: false });
   let errors = $state({ count: 0, loading: false });
   let patterns = $state({ count: 0, loading: false });
+  // Endpoint coverage: every /system page's primary GET endpoint. Hits
+  // /api/health/comprehensive which runs HealthChecker.runAll(). The
+  // anti-silent-failure backstop — a regression in any /system page's data
+  // fetch shows up here, even when nobody's clicked the page.
+  let endpointSweep = $state({
+    data: null,
+    loading: false,
+    /** @type {string|null} */ error: null
+  });
 
   // Live progress for the code-health subrun (the longest-running step).
   let progress = $state(null); // { checkIndex, totalChecks, currentCheck }
@@ -42,7 +51,8 @@
       codeHealth.loading ||
       healthMonitor.loading ||
       errors.loading ||
-      patterns.loading
+      patterns.loading ||
+      endpointSweep.loading
   );
 
   // Aggregate verdict across every section. The button needs an honest
@@ -54,6 +64,11 @@
     if (!ch && !hm) return 'unknown';
     if (ch?.overall_score === 'critical' || hm?.overallStatus === 'critical') return 'critical';
     if (errors.count > 0) return 'critical';
+    // Any failed endpoint check is a critical signal — these are the
+    // /system page data fetches, and a 500/wrong-shape response means a
+    // page is silently broken.
+    if (endpointSweep.data?.criticalFailed > 0) return 'critical';
+    if (endpointSweep.data?.failed > 0) return 'warning';
     if (ch?.overall_score === 'warning' || hm?.overallStatus === 'warning' || patterns.count > 0)
       return 'warning';
     if (ch?.overall_score === 'healthy' && hm?.overallStatus === 'healthy') return 'healthy';
@@ -158,6 +173,20 @@
     lines.push(`## Safety Patterns — ${patterns.count} unresolved`);
     lines.push('');
 
+    // Endpoint coverage — only the failures matter in a debug report.
+    if (endpointSweep.data) {
+      const failed = endpointSweep.data.results.filter(r => r.status === 'failed');
+      lines.push(
+        `## Endpoint Coverage — ${endpointSweep.data.passed}/${endpointSweep.data.total} passing` +
+          (failed.length ? ` · ${failed.length} failed` : '')
+      );
+      for (const r of failed) {
+        const tag = r.critical ? '✗ CRITICAL' : '✗ FAIL';
+        lines.push(`- ${tag} **${r.name}** — ${r.error || 'failed'}`);
+      }
+      lines.push('');
+    }
+
     return lines.join('\n');
   }
 
@@ -199,8 +228,26 @@
         .then(r => {
           patterns.count = r?.warnings?.length ?? 0;
         })
-        .catch(() => {})
+        .catch(() => {}),
+      runEndpointSweep().catch(() => {})
     ]);
+  }
+
+  // Hits /api/health/comprehensive — runs HealthChecker.runAll() server-side.
+  // Each row corresponds to one /system page's data endpoint, so failures
+  // map cleanly back to "this page is broken." Also called from runAll().
+  async function runEndpointSweep() {
+    endpointSweep.loading = true;
+    endpointSweep.error = null;
+    try {
+      const data = await api.get('/health/comprehensive', { timeout: 60_000 });
+      endpointSweep.data = data;
+    } catch (err) {
+      endpointSweep.error = err?.message || String(err);
+      endpointSweep.data = null;
+    } finally {
+      endpointSweep.loading = false;
+    }
   }
 
   // The single button. Kicks off code-health (the long one) and the
@@ -234,7 +281,10 @@
         healthMonitor.loading = false;
       });
 
-    await Promise.all([codeHealthPromise, healthPromise]);
+    // Sweep endpoint coverage in parallel with the heavy code-health run.
+    const sweepPromise = runEndpointSweep().catch(() => {});
+
+    await Promise.all([codeHealthPromise, healthPromise, sweepPromise]);
 
     // Refresh counts after the heavy work finishes — error/pattern
     // detectors may have surfaced new findings during the run.
@@ -542,5 +592,92 @@
         {patterns.count > 0 ? 'Credential leaks, debug statements, etc.' : 'No flagged patterns.'}
       </div>
     </button>
+  </div>
+
+  <!-- Endpoint coverage. Every /system page's primary GET, exercised
+       through HealthChecker.runAll() server-side. The "no silent failures"
+       backstop — if a page goes empty because its endpoint is broken,
+       this section calls it out by name with the actual error. -->
+  <div class="bg-surface border border-border rounded-lg p-5 mt-6">
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+      <div>
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Endpoint coverage</h3>
+        <p class="text-xs text-muted mt-1">
+          Hits every /system page's primary GET. A failure here means a page is silently broken.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        {#if endpointSweep.data}
+          <span class="text-xs font-mono text-muted">
+            <span
+              class="text-body"
+              style="color: {endpointSweep.data.failed === 0 ? 'var(--success)' : 'var(--error)'}"
+            >
+              {endpointSweep.data.passed}/{endpointSweep.data.total}
+            </span>
+            passed
+            {#if endpointSweep.data.failed > 0}
+              · <span class="text-error">{endpointSweep.data.failed} failed</span>
+            {/if}
+          </span>
+        {/if}
+        <ToolbarButton onClick={runEndpointSweep} disabled={endpointSweep.loading}>
+          {endpointSweep.loading ? 'Running…' : 'Run check'}
+        </ToolbarButton>
+      </div>
+    </div>
+
+    {#if endpointSweep.error}
+      <div class="bg-error-subtle border border-error rounded p-3 mb-3 text-sm text-error">
+        Sweep failed: {endpointSweep.error}
+      </div>
+    {/if}
+
+    {#if endpointSweep.data}
+      {@const failures = endpointSweep.data.results.filter(r => r.status === 'failed')}
+      {@const passes = endpointSweep.data.results.filter(r => r.status === 'passed')}
+      {#if failures.length > 0}
+        <div class="space-y-1.5 mb-3">
+          {#each failures as r (r.name)}
+            <div
+              class="bg-error-subtle border border-error rounded px-3 py-2 text-xs font-mono flex items-baseline gap-3"
+            >
+              <span class="w-2 h-2 rounded-full bg-error flex-shrink-0 mt-1"></span>
+              <span class="font-semibold text-error w-44 flex-shrink-0">{r.name}</span>
+              <span class="text-error/80 flex-1 break-all">
+                {r.error || 'failed'}
+                {#if r.critical}
+                  <span
+                    class="ml-2 text-[10px] uppercase tracking-wide bg-error text-white rounded px-1.5 py-0.5"
+                    >critical</span
+                  >
+                {/if}
+              </span>
+              <span class="text-muted/60 flex-shrink-0">{r.duration}ms</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <details class="text-xs">
+        <summary
+          class="cursor-pointer text-muted hover:text-body transition-colors mb-2 select-none"
+        >
+          {passes.length} passing checks
+        </summary>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 font-mono text-muted">
+          {#each passes as r (r.name)}
+            <div class="flex items-baseline gap-2">
+              <span class="text-success">✓</span>
+              <span class="text-body truncate flex-1" title={r.name}>{r.name}</span>
+              <span class="text-muted/60 text-[10px]">{r.duration}ms</span>
+            </div>
+          {/each}
+        </div>
+      </details>
+    {:else if !endpointSweep.loading}
+      <div class="text-xs text-muted italic">
+        Click Run check to test every /system page endpoint.
+      </div>
+    {/if}
   </div>
 </PageLayout>

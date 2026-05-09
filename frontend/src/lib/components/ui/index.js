@@ -11,6 +11,7 @@ export { default as TabButton } from './TabButton.svelte';
 // State display primitives
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as LoadingState } from './LoadingState.svelte';
+export { default as DataFetchError } from './DataFetchError.svelte';
 
 // Infrastructure (rendered globally; not user-facing primitives)
 export { default as RavenLogo } from './RavenLogo.svelte';

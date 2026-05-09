@@ -63,8 +63,12 @@ export class HealthChecker {
     logger.info('🏥 Starting comprehensive health checks...');
     this.results = [];
 
+    // Every /system page's primary GET endpoints have a check here. The
+    // `page` field groups them so the diagnostic UI can list checks
+    // alongside the page they back — that way a failure has an obvious
+    // home, not just an opaque check name.
     const checks: HealthCheckDefinition[] = [
-      // Critical
+      // Critical infrastructure
       { name: 'Health Endpoint', fn: () => this.checkEndpoint('/api/health'), critical: true },
       { name: 'Session ID', fn: () => this.checkEndpoint('/api/session-id'), critical: true },
       { name: 'Database Connection', fn: () => this.checkEndpoint('/api/health'), critical: true },
@@ -74,33 +78,103 @@ export class HealthChecker {
         critical: true
       },
 
-      // Dashboard & Overview
+      // /system Overview
+      {
+        name: 'System Introspection',
+        fn: () => this.checkEndpoint('/api/system/introspection'),
+        critical: false
+      },
+      {
+        name: 'System Tables',
+        fn: () => this.checkEndpoint('/api/system/tables'),
+        critical: false
+      },
+      {
+        name: 'System Routes',
+        fn: () => this.checkEndpoint('/api/system/routes'),
+        critical: false
+      },
+      {
+        name: 'System Hardware',
+        fn: () => this.checkEndpoint('/api/system/hardware'),
+        critical: false
+      },
+      {
+        // Catches the 'localhost vs 127.0.0.1' IPv6 trap that previously
+        // returned 200 with {error:'fetch failed'} silently.
+        name: 'System Models (Ollama)',
+        fn: () => this.checkEndpoint('/api/system/models'),
+        critical: false
+      },
+
+      // /system/projects
+      { name: 'Projects List', fn: () => this.checkEndpoint('/api/projects'), critical: false },
+
+      // /system/storage
+      { name: 'Storage Info', fn: () => this.checkEndpoint('/api/storage'), critical: false },
+      {
+        name: 'Storage by Project',
+        fn: () => this.checkEndpoint('/api/storage/projects'),
+        critical: false
+      },
+      {
+        name: 'Storage Retention Config',
+        fn: () => this.checkEndpoint('/api/storage/retention'),
+        critical: false
+      },
+
+      // /system/safety
+      {
+        name: 'Pattern Warnings',
+        fn: () => this.checkEndpoint('/api/pattern-warnings'),
+        critical: false
+      },
+      {
+        name: 'Pattern Warning Ignores',
+        fn: () => this.checkEndpoint('/api/pattern-warnings/ignores'),
+        critical: false
+      },
+
+      // /system/errors
+      { name: 'Errors Log', fn: () => this.checkEndpoint('/api/errors?limit=1'), critical: false },
+
+      // /system/plugins
+      { name: 'Plugins List', fn: () => this.checkEndpoint('/api/plugins'), critical: false },
+
+      // /system/triggers
+      {
+        name: 'Triggers Config',
+        fn: () => this.checkEndpoint('/api/triggers-config'),
+        critical: false
+      },
+      {
+        name: 'Triggered Events',
+        fn: () => this.checkEndpoint('/api/triggered-events?limit=1'),
+        critical: false
+      },
+      {
+        name: 'Trigger Stats',
+        fn: () => this.checkEndpoint('/api/trigger-stats'),
+        critical: false
+      },
+
+      // Dashboard / Today / Activity feeders
       {
         name: 'Dashboard Stats',
         fn: () => this.checkEndpoint('/api/dashboard-stats'),
         critical: false
       },
-      { name: 'Projects List', fn: () => this.checkEndpoint('/api/projects'), critical: false },
       {
         name: 'Agents Status',
         fn: () => this.checkEndpoint('/api/agents-status'),
         critical: false
       },
-
-      // Safety
       { name: 'Sessions API', fn: () => this.checkEndpoint('/api/sessions'), critical: false },
       {
         name: 'Syntax Errors',
         fn: () => this.checkEndpoint('/api/syntax-errors'),
         critical: false
       },
-      {
-        name: 'Pattern Warnings',
-        fn: () => this.checkEndpoint('/api/pattern-warnings'),
-        critical: false
-      },
-
-      // History & Conversations
       {
         name: 'Conversations',
         fn: () => this.checkEndpoint('/api/conversations?limit=1'),
@@ -111,9 +185,6 @@ export class HealthChecker {
         fn: () => this.checkConversationFreshness(),
         critical: false
       },
-
-      // System
-      { name: 'Storage Info', fn: () => this.checkEndpoint('/api/storage'), critical: false },
       {
         name: 'Notifications',
         fn: () => this.checkEndpoint('/api/notifications?limit=1'),

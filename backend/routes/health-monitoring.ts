@@ -5,9 +5,32 @@
 
 import express, { Request, Response } from 'express';
 import { HealthMonitor } from '../services/health-monitor.js';
+import { HealthChecker } from '../services/health-checker.js';
+import type { RavenDB } from '../db.js';
 
-export function createHealthMonitoringRouter(healthMonitor: HealthMonitor) {
+export function createHealthMonitoringRouter(healthMonitor: HealthMonitor, db?: RavenDB) {
   const router = express.Router();
+
+  /**
+   * Comprehensive endpoint sweep — runs HealthChecker.runAll() against every
+   * registered /api/* check (one per /system page's primary endpoint, plus
+   * dashboard/today/conversations feeders). Used by /system/diagnostic to
+   * verify nothing has silently regressed. Slow (parallel network calls,
+   * ~1-3s); rides under the long-running prefix in server.ts so it doesn't
+   * trip the 30s global timeout.
+   */
+  router.get('/comprehensive', async (_req: Request, res: Response) => {
+    try {
+      const checker = new HealthChecker(`http://localhost:${process.env.PORT || 9100}`, db ?? null);
+      const summary = await checker.runAll();
+      res.json(summary);
+    } catch (error: unknown) {
+      res.status(500).json({
+        error: 'Comprehensive health check failed',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   /**
    * Get current health status

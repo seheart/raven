@@ -29,6 +29,8 @@
   /** @type {{usable_vram_gib:number|null, vram_total_gib:number|null}} */
   let modelsMeta = $state({ usable_vram_gib: null, vram_total_gib: null });
   /** @type {string|null} */
+  let modelsError = $state(null);
+  /** @type {string|null} */
   let loadError = $state(null);
   let websocketConnected = $state(false);
 
@@ -50,10 +52,16 @@
       if (hwRes.status === 'fulfilled') hardware = hwRes.value;
       if (modelsRes.status === 'fulfilled') {
         models = modelsRes.value.models || [];
+        // Backend returns 200 with {error: 'fetch failed'} when Ollama is
+        // unreachable. Capture that so the section can show a "service
+        // unavailable" stub instead of silently disappearing.
+        modelsError = modelsRes.value.error || null;
         modelsMeta = {
           usable_vram_gib: modelsRes.value.usable_vram_gib,
           vram_total_gib: modelsRes.value.vram_total_gib
         };
+      } else {
+        modelsError = modelsRes.reason?.message || 'request failed';
       }
     } catch (err) {
       loadError = err instanceof Error ? err.message : String(err);
@@ -383,8 +391,20 @@
       {/if}
     </PageSection>
 
-    <!-- 07 // Installed Models -->
-    {#if models.length > 0}
+    <!-- 07 // Installed Models. Render the section header even when empty
+         so a fetch failure shows up as "service unavailable" instead of
+         silently disappearing — that was the whole genre of bug we hit. -->
+    {#if modelsError && models.length === 0}
+      <PageSection title="07 // Installed Models" meta="ollama unreachable">
+        <ProseBlock>
+          <p class="text-sm text-error font-sans mb-1">Models data unavailable.</p>
+          <p class="text-xs text-muted font-mono">
+            <code>/api/system/models</code> returned: {modelsError}. Verify Ollama is running and
+            reachable from the backend (check OLLAMA_URL env; localhost vs 127.0.0.1 IPv6 traps).
+          </p>
+        </ProseBlock>
+      </PageSection>
+    {:else if models.length > 0}
       <PageSection title="07 // Installed Models" meta="live · fit assessment vs. usable VRAM">
         <ProseBlock>
           <p class="text-sm text-body font-sans mb-3">

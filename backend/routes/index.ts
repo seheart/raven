@@ -253,7 +253,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
 
   app.use('/api', createAgentsRouter(fileEventsRepository, agentRegistry, agentEventsRepository));
 
-  app.use('/api/health', createHealthMonitoringRouter(healthMonitor));
+  app.use('/api/health', createHealthMonitoringRouter(healthMonitor, db));
 
   app.use('/api/insights', createInsightsRouter(insightsService, db, diffRiskRepository));
   app.use('/api/errors', createErrorsRouter(errorsRepository, io));
