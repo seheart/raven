@@ -128,12 +128,31 @@
   }
 
   let healthNarratives = $state({});
+  // Live elapsed counter for the active AI Summary run. The earlier
+  // "Analyzing..." button label was too quiet for a 30-90s wait — users
+  // clicked and didn't know whether anything was happening. Same fix
+  // pattern as /insights: a loud banner + ticking counter + scroll-to.
+  let activeProjectName = $state(null);
+  let activeStartedAt = $state(0);
+  let elapsedTick = $state(0);
+  let elapsedTimer = null;
+  let highlightProjectName = $state(null);
+
+  const elapsed = $derived.by(() => {
+    void elapsedTick;
+    if (!activeStartedAt) return 0;
+    return Math.max(0, Math.floor((Date.now() - activeStartedAt) / 1000));
+  });
 
   async function getProjectHealth(projectName) {
     healthNarratives = {
       ...healthNarratives,
       [projectName]: { loading: true, content: null, error: null }
     };
+    activeProjectName = projectName;
+    activeStartedAt = Date.now();
+    elapsedTick = 0;
+    elapsedTimer = setInterval(() => (elapsedTick += 1), 1000);
     try {
       const result = await api.post(
         '/insights/generate/project-health',
@@ -152,11 +171,28 @@
           error: null
         }
       };
+      // Highlight the row so the user can find what just landed; auto-scroll
+      // it into view since the projects list can be long.
+      highlightProjectName = projectName;
+      setTimeout(() => {
+        if (highlightProjectName === projectName) highlightProjectName = null;
+      }, 3000);
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`project-summary-${projectName}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     } catch (err) {
       healthNarratives = {
         ...healthNarratives,
         [projectName]: { loading: false, content: null, error: friendlyError(err.message) }
       };
+    } finally {
+      if (elapsedTimer) {
+        clearInterval(elapsedTimer);
+        elapsedTimer = null;
+      }
+      activeProjectName = null;
+      activeStartedAt = 0;
     }
   }
 
@@ -265,6 +301,37 @@
       {/snippet}
     </PageHeader>
 
+    {#if activeProjectName}
+      <!-- Loud feedback while AI Summary is generating. The earlier
+           button-label-only "Analyzing..." was too quiet for a 30-90s
+           wait. Same pattern as /insights: animated dot, what's being
+           written, copy explaining the wait, live elapsed counter. -->
+      <div
+        class="bg-accent-subtle border border-accent rounded-lg p-4 mb-4 flex items-center gap-3"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="flex-shrink-0 relative w-3 h-3">
+          <span class="absolute inset-0 bg-accent rounded-full animate-ping opacity-60"></span>
+          <span class="absolute inset-0 bg-accent rounded-full"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-accent">
+            Raven is writing the project summary for
+            <span class="font-mono">{activeProjectName}</span>…
+          </div>
+          <div class="text-xs text-muted mt-0.5">
+            Local AI is reading the project's recent activity. Usually 30 seconds to a minute,
+            sometimes longer on the first run while the model loads. The summary will appear under
+            the project row when it's ready.
+          </div>
+        </div>
+        <div class="text-xs font-mono text-muted tabular-nums flex-shrink-0">
+          {elapsed}s
+        </div>
+      </div>
+    {/if}
+
     {#if loading}
       <div class="space-y-3">
         {#each Array(3) as _, i (i)}
@@ -361,9 +428,12 @@
               </div>
             </div>
             {#if healthNarratives[project.name]?.content}
-              <div class="px-5 pb-4 -mt-2">
+              <div id="project-summary-{project.name}" class="px-5 pb-4 -mt-2">
                 <div
-                  class="bg-canvas border border-border rounded p-4 text-base text-body font-sans leading-relaxed"
+                  class="bg-canvas border rounded p-4 text-base text-body font-sans leading-relaxed transition-colors {highlightProjectName ===
+                  project.name
+                    ? 'border-accent shadow-[0_0_0_1px_var(--accent)]'
+                    : 'border-border'}"
                 >
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
                   {@html renderMarkdown(healthNarratives[project.name].content)}
