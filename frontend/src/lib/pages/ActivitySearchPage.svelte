@@ -29,14 +29,14 @@
     if (searchType !== 'all') {
       filtered = filtered.filter(r => {
         switch (searchType) {
-        case 'files':
-          return r.filepath;
-        case 'messages':
-          return r.message;
-        case 'agents':
-          return r.agent;
-        default:
-          return true;
+          case 'files':
+            return r.filepath;
+          case 'messages':
+            return r.message;
+          case 'agents':
+            return r.agent;
+          default:
+            return true;
         }
       });
     }
@@ -139,26 +139,26 @@
 
   function getEventColor(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-      return 'var(--success)';
-    case 'change':
-    case 'edit':
-    case 'modified':
-      return 'var(--accent)';
-    case 'unlink':
-    case 'delete':
-      return 'var(--error)';
-    case 'tool_call':
-      return 'var(--warning)';
-    case 'tool_result':
-      return 'var(--info)';
-    case 'user_message':
-      return 'var(--accent)';
-    case 'assistant_text':
-      return 'var(--info)';
-    default:
-      return 'var(--muted)';
+      case 'add':
+      case 'create':
+        return 'var(--success)';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return 'var(--accent)';
+      case 'unlink':
+      case 'delete':
+        return 'var(--error)';
+      case 'tool_call':
+        return 'var(--warning)';
+      case 'tool_result':
+        return 'var(--info)';
+      case 'user_message':
+        return 'var(--accent)';
+      case 'assistant_text':
+        return 'var(--info)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -171,121 +171,120 @@
 <PageLayout>
   <PageHeader title="Global Search" description="Search across all files, events, and activity" />
 
-    <!-- Search Bar -->
-    <div class="bg-surface border border-border rounded-lg p-4 mb-6">
-      <div class="flex gap-3 mb-3">
-        <input
-          type="text"
-          bind:value={searchQuery}
-          onkeypress={handleKeyPress}
-          placeholder="Search files, messages, agents..."
-          class="flex-1 px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
-        />
-        <ToolbarButton onClick={performSearch} disabled={loading || !searchQuery.trim()}>{loading ? '...' : '↻'} Search</ToolbarButton>
-      </div>
+  <!-- Search Bar -->
+  <div class="bg-surface border border-border rounded-lg p-4 mb-6">
+    <div class="flex gap-3 mb-3">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        onkeypress={handleKeyPress}
+        placeholder="Search files, messages, agents..."
+        class="flex-1 px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
+      />
+      <ToolbarButton onClick={performSearch} disabled={loading || !searchQuery.trim()}
+        >{loading ? '...' : '↻'} Search</ToolbarButton
+      >
+    </div>
 
-      <div class="flex flex-wrap gap-2">
-        {#each [['all', 'All Results'], ['files', 'Files Only'], ['messages', 'Messages Only'], ['agents', 'Agents Only']] as [value, label] (value)}
-          <FilterToggle active={searchType === value} onClick={() => (searchType = value)}>
-            {label}
-          </FilterToggle>
-        {/each}
+    <div class="flex flex-wrap gap-2">
+      {#each [['all', 'All Results'], ['files', 'Files Only'], ['messages', 'Messages Only'], ['agents', 'Agents Only']] as [value, label] (value)}
+        <FilterToggle active={searchType === value} onClick={() => (searchType = value)}>
+          {label}
+        </FilterToggle>
+      {/each}
+    </div>
+  </div>
+
+  <!-- Search Results -->
+  {#if loading}
+    <div class="text-center py-12">
+      <div class="text-sm text-muted font-sans">Searching...</div>
+    </div>
+  {:else if !hasSearched}
+    <EmptyState
+      title="Search across everything"
+      description="Looks through every file event, agent action, and edited path Raven has recorded. Try a filename, a project name, or part of a path."
+      icon="?"
+    />
+  {:else if filteredResults.length === 0}
+    <EmptyState
+      title="Nothing matches “{searchQuery}”"
+      description="Try a partial filename, a project slug, or drop the file extension. Search is case-insensitive but exact on substrings."
+      icon="∅"
+    />
+  {:else}
+    <!-- Results Header -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Results</div>
+        <div class="text-sm font-mono text-body">
+          {filteredResults.length} in {searchTime}ms
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Unique Files
+        </div>
+        <div class="text-sm font-mono text-body">{stats.filesFound}</div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          File Changes
+        </div>
+        <div class="text-sm font-mono text-body">{stats.fileChanges}</div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Agent Events
+        </div>
+        <div class="text-sm font-mono text-body">{stats.agentEvents}</div>
       </div>
     </div>
 
-    <!-- Search Results -->
-    {#if loading}
-      <div class="text-center py-12">
-        <div class="text-sm text-muted font-sans">Searching...</div>
-      </div>
-    {:else if !hasSearched}
-      <EmptyState
-        title="Search across everything"
-        description="Looks through every file event, agent action, and edited path Raven has recorded. Try a filename, a project name, or part of a path."
-        icon="?"
-      />
-    {:else if filteredResults.length === 0}
-      <EmptyState
-        title="Nothing matches “{searchQuery}”"
-        description="Try a partial filename, a project slug, or drop the file extension. Search is case-insensitive but exact on substrings."
-        icon="∅"
-      />
-    {:else}
-      <!-- Results Header -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Results
-          </div>
-          <div class="text-sm font-mono text-body">
-            {filteredResults.length} in {searchTime}ms
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Unique Files
-          </div>
-          <div class="text-sm font-mono text-body">{stats.filesFound}</div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            File Changes
-          </div>
-          <div class="text-sm font-mono text-body">{stats.fileChanges}</div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Agent Events
-          </div>
-          <div class="text-sm font-mono text-body">{stats.agentEvents}</div>
-        </div>
-      </div>
-
-      <!-- Results List -->
-      <div class="space-y-3">
-        {#each filteredResults as result (result.id || result.timestamp)}
-          <div
-            class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
-            style="border-left: 3px solid {getEventColor(result.change_type)}"
-          >
-            <div class="flex justify-between items-start mb-2">
-              <div class="flex items-center gap-2">
-                <span
-                  class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
-                  style="background: {getEventColor(result.change_type)}15; color: {getEventColor(
-                    result.change_type
-                  )}"
-                >
-                  {result.change_type?.toUpperCase() || 'EVENT'}
-                </span>
-                {#if result.agent}
-                  <span class="text-xs text-muted font-mono">
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    {@html highlightMatch(result.agent, searchQuery)}
-                  </span>
-                {/if}
-              </div>
-              <span class="text-xs text-muted font-mono flex-shrink-0">
-                {formatTimestamp(result.timestamp)}
+    <!-- Results List -->
+    <div class="space-y-3">
+      {#each filteredResults as result, i (result.id || result.timestamp + ':' + i)}
+        <div
+          class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
+          style="border-left: 3px solid {getEventColor(result.change_type)}"
+        >
+          <div class="flex justify-between items-start mb-2">
+            <div class="flex items-center gap-2">
+              <span
+                class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
+                style="background: {getEventColor(result.change_type)}15; color: {getEventColor(
+                  result.change_type
+                )}"
+              >
+                {result.change_type?.toUpperCase() || 'EVENT'}
               </span>
+              {#if result.agent}
+                <span class="text-xs text-muted font-mono">
+                  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                  {@html highlightMatch(result.agent, searchQuery)}
+                </span>
+              {/if}
             </div>
-
-            {#if result.filepath}
-              <div class="text-sm font-mono text-body truncate mb-1">
-                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                {@html highlightMatch(result.filepath, searchQuery)}
-              </div>
-            {/if}
-
-            {#if result.message}
-              <div class="text-xs text-muted font-mono truncate">
-                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                {@html highlightMatch(result.message, searchQuery)}
-              </div>
-            {/if}
+            <span class="text-xs text-muted font-mono flex-shrink-0">
+              {formatTimestamp(result.timestamp)}
+            </span>
           </div>
-        {/each}
-      </div>
-    {/if}
-</PageLayout>
 
+          {#if result.filepath}
+            <div class="text-sm font-mono text-body truncate mb-1">
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+              {@html highlightMatch(result.filepath, searchQuery)}
+            </div>
+          {/if}
+
+          {#if result.message}
+            <div class="text-xs text-muted font-mono truncate">
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+              {@html highlightMatch(result.message, searchQuery)}
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+</PageLayout>

@@ -745,7 +745,7 @@
       </div>
     {:else}
       <div class="space-y-2">
-        {#each filteredEvents as event (event.id || event.timestamp)}
+        {#each filteredEvents as event, i (event.id || event.timestamp + ':' + i)}
           <div
             class="flex items-start gap-3 p-3 bg-canvas rounded hover:bg-surface-2 transition-all"
           >
