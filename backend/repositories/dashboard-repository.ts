@@ -57,6 +57,23 @@ interface DashboardStats {
   creates_today: number;
   edits_today: number;
   deletes_today: number;
+  /** Rolling 14-day average of distinct files touched per active day,
+   *  excluding today. The header strip uses this as the baseline so
+   *  "121 files" gets framed as "1.4× usual" instead of standing
+   *  alone with no reference point. Days with zero activity are
+   *  excluded from the average so a weekend off doesn't drag the
+   *  baseline to zero. */
+  files_avg_14d: number;
+  /** Total Claude API cost in USD since local midnight. Surfaced in the
+   *  header strip when billing mode is 'api'; subscription users see
+   *  a flat fee elsewhere so the dollar number would mislead. */
+  cost_today_usd: number;
+  /** ISO timestamp of the first agent_event today, or null if none yet.
+   *  Used as the denominator for burn-rate ($/hr) — comparing cost to
+   *  hours-since-midnight is misleading for anyone who didn't start
+   *  working at midnight. Hours since the first event is the honest
+   *  active-time window. */
+  first_agent_event_today_at: string | null;
   app_errors: number;
 }
 
@@ -389,9 +406,7 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
       const activeTodaySql = projectFilter
         ? `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ? AND project_name = ?`
         : `SELECT COUNT(DISTINCT filepath) as count FROM events WHERE filepath IS NOT NULL AND timestamp >= ?`;
-      const activeTodayParams = projectFilter
-        ? [todayStart, projectFilter]
-        : [todayStart];
+      const activeTodayParams = projectFilter ? [todayStart, projectFilter] : [todayStart];
       const activeTodayRow = db.db.prepare(activeTodaySql).get(...activeTodayParams) as
         | { count: number }
         | undefined;
@@ -414,6 +429,51 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
       const todayChangesRow = db.db.prepare(todayChangesSql).get(...todayChangesParams) as
         | { creates_today: number; edits_today: number; deletes_today: number }
         | undefined;
+
+      // 14-day baseline: average distinct files per active day, excluding
+      // today. Active-day filter (HAVING count > 0 is implicit via GROUP BY)
+      // means a weekend off doesn't drag the average to zero — the strip
+      // compares like-for-like working days.
+      const fourteenAgo = new Date();
+      fourteenAgo.setDate(fourteenAgo.getDate() - 14);
+      const fourteenAgoStart = fourteenAgo.toISOString().split('T')[0] + 'T00:00:00';
+      const baselineSql = projectFilter
+        ? `SELECT AVG(daily_files) as avg_files FROM (
+             SELECT date(timestamp) as day, COUNT(DISTINCT filepath) as daily_files
+             FROM events
+             WHERE filepath IS NOT NULL
+               AND timestamp >= ? AND timestamp < ?
+               AND project_name = ?
+             GROUP BY day
+           )`
+        : `SELECT AVG(daily_files) as avg_files FROM (
+             SELECT date(timestamp) as day, COUNT(DISTINCT filepath) as daily_files
+             FROM events
+             WHERE filepath IS NOT NULL
+               AND timestamp >= ? AND timestamp < ?
+             GROUP BY day
+           )`;
+      const baselineParams = projectFilter
+        ? [fourteenAgoStart, todayStart, projectFilter]
+        : [fourteenAgoStart, todayStart];
+      const baselineRow = db.db.prepare(baselineSql).get(...baselineParams) as
+        | { avg_files: number | null }
+        | undefined;
+
+      // Cost today: SUM(estimated_cost_usd) since local midnight from
+      // token_usage (same source as costsSinceStmt). Inlined so the
+      // single dashboardStats() call is one round-trip from the header.
+      const costTodayRow = db.db
+        .prepare(
+          `SELECT COALESCE(SUM(estimated_cost_usd), 0) as cost FROM token_usage WHERE timestamp >= ?`
+        )
+        .get(todayStart) as { cost: number } | undefined;
+
+      // First agent event today — the honest start of "active time" for
+      // burn-rate calculation. Null if you haven't done anything yet.
+      const firstEventTodayRow = db.db
+        .prepare(`SELECT MIN(timestamp) as first_at FROM agent_events WHERE timestamp >= ?`)
+        .get(todayStart) as { first_at: string | null } | undefined;
       // session_id intentionally unused — current implementation aggregates
       // across the database; session-scoped stats land in dashboardRepo.
       void session_id;
@@ -430,6 +490,9 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
         creates_today: todayChangesRow?.creates_today || 0,
         edits_today: todayChangesRow?.edits_today || 0,
         deletes_today: todayChangesRow?.deletes_today || 0,
+        files_avg_14d: baselineRow?.avg_files || 0,
+        cost_today_usd: costTodayRow?.cost || 0,
+        first_agent_event_today_at: firstEventTodayRow?.first_at || null,
         app_errors: 0 // Filled in by the route from errors repo
       };
     }

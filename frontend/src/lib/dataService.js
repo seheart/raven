@@ -38,6 +38,9 @@ const BASE_URL = API_CONFIG.BASE_URL;
  * @property {number} total_agents - Total agents count
  * @property {number} session_duration_seconds - Session duration
  * @property {number} active_files_today - Active files today
+ * @property {number} files_avg_14d - 14-day rolling avg of distinct files/day, excluding today
+ * @property {number} cost_today_usd - Total Claude API cost since local midnight
+ * @property {string|null} first_agent_event_today_at - ISO timestamp of today's first agent event (burn-rate denominator)
  * @property {number} total_changes - Total changes
  * @property {number} creates - Number of creates
  * @property {number} edits - Number of edits

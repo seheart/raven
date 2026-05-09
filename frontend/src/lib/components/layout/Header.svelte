@@ -5,19 +5,56 @@
   import { onMount } from 'svelte';
   import { dataService } from '../../dataService.js';
   import { projectFilter, availableProjects } from '../../projectFilterStore.js';
+  import { settings } from '../../stores/settingsStore.js';
   import { get } from 'svelte/store';
 
   let { activeTab = 'overview', activeSubTab = '', _onLogoutClick = () => {} } = $props();
 
-  // Header strip shows TODAY's activity, not lifetime totals. The +/-
-  // styling reads like a diff, so it should mean "today's net activity"
-  // not "every event ever recorded".
-  let stats = $state({ filesToday: 0, editsToday: 0, createsToday: 0, deletesToday: 0 });
+  // Header strip frames today's file activity against a 14-day baseline
+  // so the number means something. Raw counts ("121 files") have no
+  // reference point — a multiplier ("1.4× usual") tells you whether
+  // today is a busy day or a quiet one. The previous +/- styling read
+  // like a git line-diff but actually counted file create/delete events,
+  // which silently misled anyone who'd ever used `git diff --stat`.
+  let stats = $state({ filesToday: 0, filesAvg: 0, costToday: 0 });
   // CPU/MEM display moved to VitalsStrip; state removed.
   let projects = $state([]);
   let currentFilter = $state(get(projectFilter));
+  let billingMode = $state(get(settings)?.billing?.mode || 'subscription');
+  const unsubBilling = settings.subscribe(s => {
+    billingMode = s?.billing?.mode || 'subscription';
+  });
 
-  // Sync store to local state
+  // Bucket today's file count against the 14-day baseline. The bands
+  // (0.85–1.15 = typical) are wide enough that day-to-day noise reads
+  // as "typical pace" rather than oscillating between "busy" and
+  // "quiet" for no real reason.
+  const framing = $derived.by(() => {
+    if (stats.filesAvg <= 0) return { label: '', tone: 'muted' };
+    const ratio = stats.filesToday / stats.filesAvg;
+    if (ratio >= 1.15) return { label: `${ratio.toFixed(1)}× usual`, tone: 'body' };
+    if (ratio >= 0.85) return { label: 'typical pace', tone: 'muted' };
+    if (stats.filesToday === 0) return { label: 'quiet so far', tone: 'muted' };
+    return { label: 'quieter than usual', tone: 'muted' };
+  });
+  const baselineTip = $derived(
+    stats.filesAvg > 0
+      ? `vs your 14-day average of ${stats.filesAvg.toFixed(0)} files/day`
+      : 'Distinct files touched since local midnight (no baseline yet)'
+  );
+
+  // Compact dollar formatting. Header has no room for "$1,234.56" so
+  // anything four-figure rounds to whole dollars; sub-dollar shows cents.
+  function formatCostShort(usd) {
+    if (!usd || usd <= 0) return '';
+    if (usd >= 1000) return `$${Math.round(usd).toLocaleString()}`;
+    if (usd >= 10) return `$${usd.toFixed(0)}`;
+    return `$${usd.toFixed(2)}`;
+  }
+  const costLabel = $derived(billingMode === 'api' ? formatCostShort(stats.costToday) : '');
+
+  // Sync filter store to local state so the <select> reflects the
+  // current filter even when changed elsewhere.
   const unsubFilter = projectFilter.subscribe(v => {
     currentFilter = v;
   });
@@ -101,9 +138,8 @@
       const data = await dataService.fetchDashboardStats();
       stats = {
         filesToday: data.active_files_today || 0,
-        editsToday: data.edits_today || 0,
-        createsToday: data.creates_today || 0,
-        deletesToday: data.deletes_today || 0
+        filesAvg: data.files_avg_14d || 0,
+        costToday: data.cost_today_usd || 0
       };
     } catch {
       // Silent fail — stats are supplementary
@@ -129,14 +165,14 @@
       if (!d || typeof d !== 'object') return;
       stats = {
         filesToday: d.active_files_today || 0,
-        editsToday: d.edits_today || 0,
-        createsToday: d.creates_today || 0,
-        deletesToday: d.deletes_today || 0
+        filesAvg: d.files_avg_14d || 0,
+        costToday: d.cost_today_usd || 0
       };
     });
     return () => {
       unsubStats();
       unsubFilter();
+      unsubBilling();
     };
   });
 </script>
@@ -173,18 +209,33 @@
       {/each}
     </nav>
 
-    <!-- Activity Stats — TODAY-scoped so the +/- actually means "net
-         activity today" instead of "lifetime odometer". Hidden until xl
+    <!-- Activity Strip — file count framed against a 14-day baseline,
+         plus today's API cost (USD billing only). Project focus lives
+         in the filter dropdown to the right rather than as a passive
+         display, since users routinely work across multiple projects
+         and the "top project" framing was misleading. Hidden until xl
          so the nav has room at typical laptop widths. -->
     <div
-      class="hidden xl:flex items-baseline gap-2 lg:gap-3 text-xs font-mono text-[var(--muted)] pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
-      title="Today's file activity since local midnight"
+      class="hidden xl:flex items-baseline gap-2 lg:gap-3 text-xs font-mono pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
+      title={baselineTip}
     >
       <span class="text-[10px] uppercase tracking-wide text-[var(--muted)]/70">Today</span>
-      <span>{stats.filesToday} files</span>
-      <span>~{stats.editsToday}</span>
-      <span class="text-[var(--success)]">+{stats.createsToday}</span>
-      <span class="text-[var(--error)]">-{stats.deletesToday}</span>
+      <span class="text-[var(--text)]">{stats.filesToday} files</span>
+      {#if framing.label}
+        <span class="text-[var(--border)]">·</span>
+        <span class={framing.tone === 'body' ? 'text-[var(--text)]' : 'text-[var(--muted)]'}
+          >{framing.label}</span
+        >
+      {/if}
+      {#if costLabel}
+        <span class="text-[var(--border)]">·</span>
+        <button
+          onclick={e => handleNavClick(e, '/insights/costs')}
+          class="text-[var(--text)] bg-transparent border-0 cursor-pointer p-0 hover:text-[var(--accent)] transition-colors"
+          title="Estimated Claude API cost since local midnight. Click for the full breakdown."
+          >{costLabel}</button
+        >
+      {/if}
     </div>
 
     <!-- Persistent agent heartbeat — global presence element. Visible on

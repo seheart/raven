@@ -4,7 +4,6 @@
   import { formatRelativeTime, formatDateOnly } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
@@ -36,13 +35,10 @@
     memory_used_mb: 0,
     memory_total_mb: 0
   });
-  let agentStatus = $state(null);
   let recentFiles = $state([]);
   let recentAgentEvents = $state([]);
   let liveEvents = $state([]);
   let agents = $state([]);
-  let loading = $state(false);
-  let lastUpdated = $state(new Date());
 
   // Costs & sub-agent state
   import { settings } from '../stores/settingsStore.js';
@@ -106,6 +102,46 @@
     if (isNaN(newest.getTime()) || isNaN(oldest.getTime())) return '0';
     const minutes = Math.max(1, (newest - oldest) / 60000);
     return (recentFiles.length / minutes).toFixed(1);
+  });
+
+  // Cache hit % — punchy "is prompt caching working?" signal. Derived
+  // from the same token counters shown to the right of the bar; no
+  // backend round-trip needed. Healthy is >80%; <50% means context
+  // is being rebuilt every turn (system prompt drift, cache eviction).
+  const cacheHitPct = $derived.by(() => {
+    const cIn = sessionCosts.total_input_tokens || 0;
+    const cCreate = sessionCosts.total_cache_creation_tokens || 0;
+    const cRead = sessionCosts.total_cache_read_tokens || 0;
+    const totalIn = cIn + cCreate + cRead;
+    if (totalIn === 0) return null;
+    return Math.round((cRead / totalIn) * 100);
+  });
+
+  // Cost burn rate — $/hr since today's first agent event. The honest
+  // active-time window: comparing cost to hours-since-midnight is
+  // misleading for anyone who didn't start working at midnight. Null
+  // until at least 5 minutes of activity so the rate isn't dominated
+  // by a single startup cache_creation spike.
+  const burnRatePerHour = $derived.by(() => {
+    const cost = sessionCosts.total_cost_usd || 0;
+    const firstAt = stats.first_agent_event_today_at;
+    if (!firstAt || cost <= 0) return null;
+    const hours = (Date.now() - new Date(firstAt).getTime()) / 3_600_000;
+    if (hours < 5 / 60) return null;
+    return cost / hours;
+  });
+
+  // Active agents — count of agents that have reported via WS process-
+  // activity within the last 30s. Distinct from `agents.length` which
+  // includes the lifetime registry.
+  const activeAgentCount = $derived.by(() => {
+    const now = Date.now();
+    let count = 0;
+    for (const p of Object.values(processActivity)) {
+      const ts = p?.timestamp ? new Date(p.timestamp).getTime() : 0;
+      if (now - ts < 30_000) count++;
+    }
+    return count;
   });
 
   // Describe a single agent event in one short line.
@@ -506,7 +542,6 @@
         })();
       }
       agents = Array.isArray(data.agentsStatus) ? data.agentsStatus : [];
-      agentStatus = agents[0] || null;
 
       if (Array.isArray(data.processActivity)) {
         const pa = {};
@@ -519,12 +554,9 @@
         latestApiLatency = data.apiLatency.recent[0];
       }
 
-      lastUpdated = new Date();
-      loading = false;
       setTimeout(createCharts, 100);
     } catch (err) {
       logger.error('Dashboard load failed:', err);
-      loading = false;
     }
   }
 
@@ -818,43 +850,7 @@
   <div class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col">
     <div class="mx-auto px-2 flex flex-col flex-1 min-h-0 w-full">
       <div class="mb-3">
-        <PageHeader size="medium" title="Dashboard" description="Real-time monitoring">
-          {#snippet actions()}
-            <div class="flex items-center gap-3">
-              {#if agentStatus}
-                {@const pa = Object.values(processActivity)[0]}
-                <span class="flex items-center gap-2 text-sm font-mono">
-                  <span
-                    class="w-2 h-2 rounded-full"
-                    class:bg-warning={pa?.activity_state === 'thinking'}
-                    class:activity-pulse={pa?.activity_state === 'thinking'}
-                    class:bg-success={pa?.activity_state === 'executing' ||
-                      (!pa && agentStatus.is_running)}
-                    class:animate-pulse={pa?.activity_state === 'executing' ||
-                      (!pa && agentStatus.is_running)}
-                    class:bg-muted={pa?.activity_state === 'idle' ||
-                      (!pa && !agentStatus.is_running)}
-                  ></span>
-                  <span class="text-body">{agentStatus.agent_name}</span>
-                  {#if pa?.activity_state === 'thinking'}
-                    <span class="text-[10px] text-warning"
-                      >API call{pa.api_connections > 1 ? ` (${pa.api_connections})` : ''}</span
-                    >
-                  {:else if pa?.activity_state === 'executing'}
-                    <span class="text-[10px] text-success">Executing</span>
-                  {:else if pa}
-                    <span class="text-[10px] text-muted">Idle</span>
-                  {/if}
-                  {#if pa?.network_connections}
-                    <span class="text-[9px] text-muted">{pa.network_connections} conn</span>
-                  {/if}
-                </span>
-              {/if}
-              <span class="text-xs text-muted font-mono">{formatTime(lastUpdated)}</span>
-              <RefreshButton onClick={loadData} {loading} />
-            </div>
-          {/snippet}
-        </PageHeader>
+        <PageHeader size="medium" title="Dashboard" description="Real-time monitoring" />
       </div>
 
       <!-- Event Feed + AI Pulse -->
@@ -965,6 +961,30 @@
           <span class="font-semibold text-body">{eventsPerMin}/m</span>
         </span>
 
+        {#if activeAgentCount > 0}
+          <span class="text-border">|</span>
+          <button
+            onclick={() => navigate('/agents')}
+            class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
+            title="Agents that have reported a heartbeat in the last 30s. Click for the full agent monitor."
+          >
+            <span class="text-muted">Agents</span>
+            <span class="font-semibold text-body">{activeAgentCount}</span>
+          </button>
+        {/if}
+
+        {#if billingMode === 'api' && burnRatePerHour !== null}
+          <span class="text-border">|</span>
+          <button
+            onclick={() => navigate('/insights/costs')}
+            class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
+            title="Spend rate since today's first agent event. Cost per hour of active time, not wall-clock since midnight."
+          >
+            <span class="text-muted">Burn</span>
+            <span class="font-semibold text-body">{formatCost(burnRatePerHour)}/hr</span>
+          </button>
+        {/if}
+
         {#if stats.app_errors > 0}
           <span class="text-border">|</span>
           <button
@@ -1039,6 +1059,18 @@
             >
               <span class="text-muted">Cached</span>
               <span class="text-body">{formatTokens(cRead)}</span>
+              {#if cacheHitPct !== null}
+                <span
+                  class="text-[10px]"
+                  style="color: {cacheHitPct >= 80
+                    ? 'var(--success)'
+                    : cacheHitPct >= 50
+                      ? 'var(--warning)'
+                      : 'var(--error)'}"
+                  title="Cache hit %: cache_read / total input. >80% healthy, 50-80% degrading, <50% means context is being rebuilt every turn."
+                  >({cacheHitPct}%)</span
+                >
+              {/if}
             </span>
           {/if}
           <span
