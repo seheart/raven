@@ -36,10 +36,10 @@
 
   const variantClass = $derived(
     variant === 'primary'
-      ? 'bg-accent text-canvas border-accent hover:opacity-90'
+      ? 'bg-accent text-canvas border-accent hover:bg-accent-strong hover:border-accent-strong'
       : variant === 'danger'
         ? 'bg-surface text-error border-error hover:bg-error-subtle'
-        : 'bg-surface border-border hover:border-accent'
+        : 'bg-surface border-border hover:border-accent hover:text-accent'
   );
 </script>
 

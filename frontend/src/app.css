@@ -412,6 +412,39 @@ body {
   color: white;
 }
 
+/* Global safety net for inline accent-fill buttons.
+   Any <button class="... bg-accent ..."> that doesn't ride through the
+   <ToolbarButton variant="primary"> / .btn-primary pipeline still gets a
+   visible hover: background swap to the brighter --accent-2, plus a 1px
+   lift and faint shadow for tactile feedback. The previous default of
+   hover:opacity-90 was barely perceptible and the user called it out.
+   Disabled buttons are exempt so the affordance stays trustworthy. */
+button.bg-accent:not(:disabled),
+[role='button'].bg-accent:not(:disabled) {
+  transition:
+    background-color 120ms ease-out,
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    opacity 120ms ease-out;
+}
+button.bg-accent:not(:disabled):hover,
+[role='button'].bg-accent:not(:disabled):hover {
+  background-color: var(--accent-2);
+  transform: translateY(-1px);
+}
+button.bg-accent:not(:disabled):active,
+[role='button'].bg-accent:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Same idea for inline outline-style buttons (success/error borders).
+   Resolve, Remove, etc. were already OK via hover:bg-*-subtle, but a
+   subtle lift makes it feel pressable. */
+button.border-success:not(:disabled):hover,
+button.border-error:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
 .btn-secondary {
   background: var(--surface-2);
   color: var(--text);

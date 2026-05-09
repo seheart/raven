@@ -245,7 +245,7 @@
           <div class="flex flex-col gap-1.5">
             <a
               href="/today"
-              class="text-sm font-sans px-3 py-2 bg-accent text-canvas rounded text-center hover:opacity-90 transition-opacity"
+              class="text-sm font-sans px-3 py-2 bg-accent text-canvas rounded text-center hover:bg-accent-strong transition-colors"
               >Open Today →</a
             >
             <a
@@ -602,7 +602,7 @@
           href="https://github.com/seheart/raven"
           target="_blank"
           rel="noopener noreferrer"
-          class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:opacity-90 transition-colors"
+          class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:bg-accent-strong hover:border-accent-strong transition-colors"
           >[ ★ Star on GitHub ]</a
         >
         <a

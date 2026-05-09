@@ -28,7 +28,9 @@ function renderMarkdown(text) {
       /^- (.+)$/gm,
       '<div class="flex gap-2 ml-2"><span class="text-[var(--muted)]">-</span><span>$1</span></div>'
     )
-    .replace(/\n/g, '<br>');
+    .replace(/\n/g, '<br>')
+    .replace(/<\/(h3|h4|p|div)>(?:\s*<br>)+/g, '</$1>')
+    .replace(/(<br>\s*){2,}/g, '<br>');
 }
 
 describe('renderMarkdown', () => {
@@ -94,6 +96,19 @@ Use \`npm test\` to verify.`;
     expect(result).toContain('<strong');
     expect(result).toContain('<code');
     expect(result).toContain('No issues found');
+  });
+
+  it('should not stack <br> after a heading even when LLM pads with blank lines', () => {
+    // LLM commonly emits `### Title\n\n1. Item` — naive newline→<br> conversion
+    // produces `</h4><br><br>1. ...` which renders as ~2em of dead space.
+    const result = renderMarkdown('### Project Health\n\n1. **Status**: Healthy');
+    expect(result).not.toContain('</h4><br>');
+    expect(result).not.toMatch(/<br>\s*<br>/);
+  });
+
+  it('should collapse runs of newlines to a single break', () => {
+    const result = renderMarkdown('Line 1\n\n\n\nLine 2');
+    expect(result).not.toMatch(/<br>\s*<br>/);
   });
 
   it('should handle LLM-style output with bold sections', () => {

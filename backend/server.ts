@@ -165,7 +165,12 @@ const LONG_RUNNING_PREFIXES = [
   '/api/storage/vacuum/',
   '/api/storage/export/',
   '/api/storage/clean/',
-  '/api/health/comprehensive'
+  '/api/health/comprehensive',
+  // Local-LLM generation: cold model loads can take 30–90s on a 14B+ model
+  // and the inference itself often runs 60–120s for project-health prompts.
+  // The frontend already passes its own 2-minute timeout; the server ceiling
+  // just needs to be larger than that. 5 min covers the worst case.
+  '/api/insights/generate/'
 ];
 const SHORT_TIMEOUT_MS = 30000;
 const LONG_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
