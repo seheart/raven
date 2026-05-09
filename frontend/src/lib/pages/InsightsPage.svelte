@@ -80,13 +80,16 @@
       previewLine: p => {
         const r = p?.recent_activity;
         if (!r || (r.events === 0 && r.agent_events === 0)) {
-          return 'Quiet in the last hour — no events to recap yet.';
+          return "Quiet hour. Nothing's stirred — want a recap of when it does?";
         }
-        const bits = [];
-        if (r.events > 0) bits.push(`${r.events.toLocaleString()} file events`);
-        if (r.agent_events > 0) bits.push(`${r.agent_events.toLocaleString()} agent turns`);
-        if (r.projects > 0) bits.push(`${r.projects} project${r.projects === 1 ? '' : 's'}`);
-        return `In the last hour: ${bits.join(' · ')}.`;
+        const turns = r.agent_events;
+        const proj = r.projects;
+        if (turns > 0 && proj > 0) {
+          return `You've been busy: ${turns.toLocaleString()} AI turn${turns === 1 ? '' : 's'} across ${proj} project${proj === 1 ? '' : 's'} in the last hour.`;
+        }
+        if (turns > 0)
+          return `${turns.toLocaleString()} AI turn${turns === 1 ? '' : 's'} in the last hour. Want a recap?`;
+        return `${r.events.toLocaleString()} file event${r.events === 1 ? '' : 's'} in the last hour.`;
       }
     },
     {
@@ -99,8 +102,9 @@
       generate: 'review',
       previewLine: p => {
         const r = p?.code_review;
-        if (!r || r.changes === 0) return 'No agent file changes in the last 24 hours yet.';
-        return `${r.changes.toLocaleString()} agent file changes in the last 24 hours waiting for a read-through.`;
+        if (!r || r.changes === 0)
+          return "Your agents haven't shipped anything in the last day. Quiet stretch.";
+        return `Your AI helpers shipped ${r.changes.toLocaleString()} change${r.changes === 1 ? '' : 's'} in the last 24 hours. Want a read-through?`;
       }
     },
     {
@@ -114,13 +118,14 @@
       previewLine: p => {
         const r = p?.today_digest;
         if (!r || (r.events === 0 && r.agent_events === 0)) {
-          return 'Today is still wide open — nothing to digest yet.';
+          return "Today's still wide open. Come back at end of day for the wrap-up.";
         }
-        const bits = [];
-        if (r.events > 0) bits.push(`${r.events.toLocaleString()} events`);
-        if (r.files > 0) bits.push(`${r.files.toLocaleString()} files`);
-        if (r.projects > 0) bits.push(`${r.projects} project${r.projects === 1 ? '' : 's'}`);
-        return `Today so far: ${bits.join(' · ')}.`;
+        const proj = r.projects;
+        const files = r.files;
+        if (files > 0 && proj > 0) {
+          return `Pretty active day — ${files.toLocaleString()} file${files === 1 ? '' : 's'} across ${proj} project${proj === 1 ? '' : 's'} so far. Want the TL;DR?`;
+        }
+        return `${r.events.toLocaleString()} event${r.events === 1 ? '' : 's'} today. Want the TL;DR?`;
       }
     },
     {
@@ -133,13 +138,12 @@
       generate: 'agent-comparison',
       previewLine: p => {
         const r = p?.agent_comparison?.agents;
-        if (!r?.length) return 'No AI tool activity in the last 24 hours yet.';
-        const top = r
-          .slice(0, 3)
-          .map(a => `${a.agent} (${a.events.toLocaleString()})`)
-          .join(' · ');
-        const more = r.length > 3 ? ` · +${r.length - 3} more` : '';
-        return `Last 24h: ${top}${more}.`;
+        if (!r?.length) return 'Your AI tools have been quiet for the last day.';
+        if (r.length === 1) {
+          return `${r[0].agent} carried the day — ${r[0].events.toLocaleString()} turn${r[0].events === 1 ? '' : 's'}. Curious how they compare to others?`;
+        }
+        const lead = r[0];
+        return `${lead.agent} did most of the work today (${lead.events.toLocaleString()} turn${lead.events === 1 ? '' : 's'}), with ${r.length - 1} other tool${r.length - 1 === 1 ? '' : 's'} chipping in. See the lineup?`;
       }
     }
   ];
@@ -275,6 +279,54 @@
     return opts;
   });
 
+  // Personal hero. Time-aware greeting + a sentence built from the
+  // right_now block of /insights/preview. Goal: make the page feel like
+  // it knows you, instead of being a generic dashboard. The earlier
+  // version skipped this opening narrative and went straight to story
+  // cards — accurate but cold.
+  const greeting = $derived.by(() => {
+    const h = new Date().getHours();
+    if (h < 5) return 'Late night';
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    if (h < 22) return 'Good evening';
+    return 'Late night';
+  });
+
+  /** @returns {string|null} */
+  function streakLine(rn) {
+    if (!rn?.current_streak_days || rn.current_streak_days < 2) return null;
+    const d = rn.current_streak_days;
+    const proj = rn?.top_project_7d?.name;
+    if (proj) {
+      return `You're ${d} day${d === 1 ? '' : 's'} into a streak, mostly on ${proj}.`;
+    }
+    return `You're ${d} day${d === 1 ? '' : 's'} into a streak.`;
+  }
+
+  /** @returns {string|null} */
+  function partnerLine(rn) {
+    const ag = rn?.top_agent_7d?.name;
+    const md = rn?.top_model_7d?.name;
+    if (ag && md)
+      return `${ag} has been your main partner this week, with ${md} doing the heavy thinking.`;
+    if (ag) return `${ag} has been your main partner this week.`;
+    if (md) return `${md} has been doing the heavy thinking.`;
+    return null;
+  }
+
+  /** @returns {string|null} */
+  function lastTouchedLine(rn) {
+    const le = rn?.last_event;
+    if (!le) return null;
+    const ago = timeAgo(le.timestamp);
+    const file = le.file ? le.file.split('/').pop() : null;
+    if (file) {
+      return `Last touched ${file} in ${le.project} — ${ago}.`;
+    }
+    return `Last touched ${le.project} — ${ago}.`;
+  }
+
   onMount(() => loadInsights());
   onDestroy(() => abortRequests());
 </script>
@@ -340,6 +392,38 @@
       hint={loadError}
       onRetry={loadInsights}
     />
+  {/if}
+
+  {#if preview?.right_now}
+    <!-- Personal hero. Time-aware greeting + 1-3 sentence observations
+         pulled from the right_now block (current streak, top project,
+         top AI partner, last touched). Goal: page should feel like it
+         knows you, not like a generic dashboard. -->
+    {@const rn = preview.right_now}
+    {@const sLine = streakLine(rn)}
+    {@const pLine = partnerLine(rn)}
+    {@const lLine = lastTouchedLine(rn)}
+    <div class="bg-surface border border-border rounded-lg p-6 mb-6">
+      <div class="text-[11px] font-mono uppercase tracking-widest text-muted mb-2">
+        {greeting}
+      </div>
+      <div class="text-base sm:text-lg text-body font-sans leading-relaxed space-y-1.5">
+        {#if sLine}
+          <p>{sLine}</p>
+        {/if}
+        {#if pLine}
+          <p>{pLine}</p>
+        {/if}
+        {#if !sLine && !pLine}
+          <p class="text-muted italic">
+            Once you have a few days of activity, this is where Raven will tell you what it sees.
+          </p>
+        {/if}
+        {#if lLine}
+          <p class="text-sm text-muted">{lLine}</p>
+        {/if}
+      </div>
+    </div>
   {/if}
 
   <!-- Your journey: before/after stats. Skipped if too early. -->

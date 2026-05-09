@@ -161,8 +161,96 @@ export function createInsightsRouter(
         )
         .all(oneDayAgo) as Array<{ agent: string; events: number }>;
 
+      // Right-now block: drives the personal hero panel on the
+      // /insights overview. Lightweight queries — last event, top
+      // project + agent over the last 7 days, current streak.
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString();
+      const lastEvent = sql
+        .prepare(
+          `SELECT timestamp, project_name, filepath, agent_source
+             FROM events
+            WHERE project_name IS NOT NULL AND project_name != ''
+            ORDER BY timestamp DESC LIMIT 1`
+        )
+        .get() as
+        | {
+            timestamp: string;
+            project_name: string;
+            filepath: string | null;
+            agent_source: string | null;
+          }
+        | undefined;
+      const top7Project = sql
+        .prepare(
+          `SELECT project_name AS name, COUNT(*) AS events
+             FROM events
+            WHERE timestamp > ? AND project_name IS NOT NULL AND project_name != ''
+            GROUP BY project_name ORDER BY events DESC LIMIT 1`
+        )
+        .get(sevenDaysAgo) as { name: string; events: number } | undefined;
+      const top7Agent = sql
+        .prepare(
+          `SELECT agent AS name, COUNT(*) AS events
+             FROM agent_events
+            WHERE timestamp > ? AND agent IS NOT NULL AND agent != ''
+            GROUP BY agent ORDER BY events DESC LIMIT 1`
+        )
+        .get(sevenDaysAgo) as { name: string; events: number } | undefined;
+
+      // Current streak: walk distinct localtime days backwards from today.
+      // The streak is unbroken as long as each prior day also has events.
+      const recentDays = sql
+        .prepare(
+          `SELECT DISTINCT date(timestamp, 'localtime') AS d
+             FROM events
+            WHERE timestamp > date('now', '-60 days')
+            ORDER BY d DESC`
+        )
+        .all() as Array<{ d: string }>;
+      const today = new Date();
+      const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      let currentStreak = 0;
+      let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const haveDay = new Set(recentDays.map(r => r.d));
+      // Streak counts back from today (or yesterday if today has nothing yet).
+      if (!haveDay.has(todayLocal)) cursor.setDate(cursor.getDate() - 1);
+      while (true) {
+        const k = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+        if (!haveDay.has(k)) break;
+        currentStreak++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      // Top model over the last 7 days (by output tokens).
+      const top7Model = sql
+        .prepare(
+          `SELECT model AS name, COALESCE(SUM(output_tokens), 0) AS out_tok
+             FROM token_usage
+            WHERE timestamp > ? AND model IS NOT NULL AND model != ''
+            GROUP BY model ORDER BY out_tok DESC LIMIT 1`
+        )
+        .get(sevenDaysAgo) as { name: string; out_tok: number } | undefined;
+
       res.json({
         generated_at: new Date().toISOString(),
+        right_now: {
+          last_event: lastEvent
+            ? {
+                timestamp: lastEvent.timestamp,
+                project: lastEvent.project_name,
+                file: lastEvent.filepath,
+                agent: lastEvent.agent_source
+              }
+            : null,
+          current_streak_days: currentStreak,
+          top_project_7d: top7Project
+            ? { name: top7Project.name, events: top7Project.events }
+            : null,
+          top_agent_7d: top7Agent ? { name: top7Agent.name, events: top7Agent.events } : null,
+          top_model_7d: top7Model
+            ? { name: top7Model.name, output_tokens: top7Model.out_tok }
+            : null
+        },
         recent_activity: {
           window_minutes: 60,
           events: recentEvents,
