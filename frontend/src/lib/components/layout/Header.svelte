@@ -9,6 +9,7 @@
   import { projectFilter, availableProjects } from '../../projectFilterStore.js';
   import { settings } from '../../stores/settingsStore.js';
   import { get } from 'svelte/store';
+  import { formatUsd } from '../../utils/formatUsd.js';
 
   let { activeTab = 'overview', activeSubTab = '', _onLogoutClick = () => {} } = $props();
 
@@ -47,11 +48,12 @@
 
   // Compact dollar formatting. Header has no room for "$1,234.56" so
   // anything four-figure rounds to whole dollars; sub-dollar shows cents.
+  // Uses the canonical formatter to keep comma grouping consistent
+  // with the rest of the app.
   function formatCostShort(usd) {
     if (!usd || usd <= 0) return '';
-    if (usd >= 1000) return `$${Math.round(usd).toLocaleString()}`;
-    if (usd >= 10) return `$${usd.toFixed(0)}`;
-    return `$${usd.toFixed(2)}`;
+    if (usd >= 10) return formatUsd(usd, { precision: 0 });
+    return formatUsd(usd);
   }
   const costLabel = $derived(billingMode === 'api' ? formatCostShort(stats.costToday) : '');
 

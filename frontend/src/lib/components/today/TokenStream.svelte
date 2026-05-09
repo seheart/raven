@@ -14,6 +14,7 @@
 
   import { onMount, onDestroy } from 'svelte';
   import { websocketService } from '../../services/websocket.js';
+  import { formatUsd } from '../../utils/formatUsd.js';
 
   /**
    * @typedef {{
@@ -73,10 +74,13 @@
     return String(n);
   }
 
+  // Per-event costs use 4-decimal precision because individual API
+  // requests are typically pennies. Uses the canonical formatter so
+  // larger session totals get thousands separators.
   function fmtUsd(n) {
     if (!n || n < 0.0001) return '$0';
     if (n < 0.01) return '<$0.01';
-    return `$${n.toFixed(4)}`;
+    return formatUsd(n, { precision: 4 });
   }
 
   function relAge(ms) {

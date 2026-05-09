@@ -7,6 +7,7 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import { formatUsd } from '../utils/formatUsd.js';
   import TokenStream from '../components/today/TokenStream.svelte';
   import ContextVessel from '../components/today/ContextVessel.svelte';
   import AnomalyBanner from '../components/today/AnomalyBanner.svelte';
@@ -90,8 +91,7 @@
   /** @param {number|null|undefined} n */
   function fmtUsd(n) {
     if (n == null) return '$—';
-    if (n < 0.01) return '<$0.01';
-    return `$${n.toFixed(2)}`;
+    return formatUsd(n);
   }
 
   /** @param {number|null|undefined} n */
@@ -331,7 +331,7 @@
     if (today.events > 0 && today.top_project && (Number(costs?.total_cost_usd) || 0) > 0) {
       const cost = Number(costs.total_cost_usd) || 0;
       const reqs = Number(costs?.total_requests) || 0;
-      const costStr = cost >= 0.01 ? `$${cost.toFixed(2)}` : '<$0.01';
+      const costStr = cost >= 0.01 ? formatUsd(cost) : '<$0.01';
       beats.push({
         glyph: '☼',
         tone: 'accent',

@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { formatUsd } from '../utils/formatUsd.js';
   import { RefreshButton, TabButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount, tick } from 'svelte';
@@ -135,7 +136,7 @@
             tooltip: {
               callbacks: {
                 label: ctx =>
-                  isApi ? `$${ctx.parsed.y.toFixed(4)}` : `${formatTokens(ctx.parsed.y)} tokens`
+                  isApi ? formatCost(ctx.parsed.y) : `${formatTokens(ctx.parsed.y)} tokens`
               }
             }
           },
@@ -143,7 +144,7 @@
             y: {
               beginAtZero: true,
               ticks: {
-                callback: v => (isApi ? `$${Number(v).toFixed(3)}` : formatTokens(Number(v))),
+                callback: v => (isApi ? formatCost(Number(v)) : formatTokens(Number(v))),
                 color: colors.muted
               },
               grid: { color: colors.border }
@@ -185,7 +186,7 @@
               callbacks: {
                 label: ctx =>
                   isApi
-                    ? `${ctx.label || 'Unknown'}: $${(ctx.parsed || 0).toFixed(4)}`
+                    ? `${ctx.label || 'Unknown'}: ${formatCost(ctx.parsed || 0)}`
                     : `${ctx.label || 'Unknown'}: ${formatTokens(ctx.parsed || 0)} tokens`
               }
             }
@@ -195,11 +196,14 @@
     }
   }
 
+  // formatCost: small values keep extra precision (so per-request micro-
+  // costs are legible); $1+ uses the canonical comma formatter so $2206
+  // doesn't read like a phone number.
   function formatCost(usd) {
     if (usd === 0) return '$0.00';
     if (usd < 0.01) return `$${usd.toFixed(4)}`;
     if (usd < 1) return `$${usd.toFixed(3)}`;
-    return `$${usd.toFixed(2)}`;
+    return formatUsd(usd);
   }
 
   function formatTokens(n) {

@@ -2,6 +2,7 @@
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { formatRelativeTime, formatDateOnly } from '../timeFormat.js';
+  import { formatUsd } from '../utils/formatUsd.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -237,7 +238,7 @@
     if (!usd || usd === 0) return '$0.00';
     if (usd < 0.01) return `$${usd.toFixed(4)}`;
     if (usd < 1) return `$${usd.toFixed(3)}`;
-    return `$${usd.toFixed(2)}`;
+    return formatUsd(usd);
   }
 
   function formatTokens(n) {
