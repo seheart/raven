@@ -37,8 +37,8 @@ vi.mock('../../../projectFilterStore.js', async () => {
 const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }));
 vi.mock('../../../utils/router.svelte.js', () => ({
   navigate: (...args) => mockNavigate(...args),
-  getPath: () => '/overview',
-  router: { path: '/overview', isActive: () => false, navigate: mockNavigate }
+  getPath: () => '/today',
+  router: { path: '/today', isActive: () => false, navigate: mockNavigate }
 }));
 
 import Header from '../Header.svelte';
@@ -49,49 +49,51 @@ describe('Header', () => {
   });
 
   it('renders the canonical top-level tabs', () => {
-    render(Header, { props: { activeTab: 'overview', activeSubTab: '' } });
-    for (const label of [
-      'Dashboard',
-      'Insights',
-      'Analysis',
-      'Code Changes',
-      'History',
-      'System'
-    ]) {
+    render(Header, { props: { activeTab: 'today', activeSubTab: '' } });
+    // "Today" appears in the stats strip too, so prefer button-role lookups
+    // for tabs. Activity / Agents / Insights / System are unique strings.
+    expect(screen.getByRole('button', { name: 'Today' })).toBeTruthy();
+    for (const label of ['Activity', 'Agents', 'Insights', 'System']) {
       expect(screen.getByText(label)).toBeTruthy();
     }
   });
 
-  it('renders the History sub-tabs when activeTab="history"', () => {
-    render(Header, { props: { activeTab: 'history', activeSubTab: '' } });
+  it('renders the Activity sub-tabs when activeTab="activity"', () => {
+    render(Header, { props: { activeTab: 'activity', activeSubTab: '' } });
+    expect(screen.getByText('Live')).toBeTruthy();
     expect(screen.getByText('Timeline')).toBeTruthy();
-    expect(screen.getByText('File Browser')).toBeTruthy();
-    expect(screen.getByText('Global Search')).toBeTruthy();
+    expect(screen.getByText('Search')).toBeTruthy();
   });
 
-  it('renders the Analysis sub-tabs when activeTab="analysis"', () => {
-    render(Header, { props: { activeTab: 'analysis', activeSubTab: '' } });
-    expect(screen.getByText('Token Usage')).toBeTruthy();
+  it('renders the Agents sub-tabs when activeTab="agents"', () => {
+    render(Header, { props: { activeTab: 'agents', activeSubTab: '' } });
+    expect(screen.getByText('Stats')).toBeTruthy();
     expect(screen.getByText('Sub-Agents')).toBeTruthy();
-    expect(screen.getByText('Triggers')).toBeTruthy();
+    expect(screen.getByText('Models')).toBeTruthy();
   });
 
-  it('does not render sub-tabs for sections without any (e.g. overview)', () => {
-    render(Header, { props: { activeTab: 'overview', activeSubTab: '' } });
-    // Analysis sub-tabs should not be present
-    expect(screen.queryByText('Token Usage')).toBeNull();
-    expect(screen.queryByText('Sub-Agents')).toBeNull();
+  it('renders Insights sub-tabs including Wrapped', () => {
+    render(Header, { props: { activeTab: 'insights', activeSubTab: '' } });
+    expect(screen.getByText('Costs')).toBeTruthy();
+    expect(screen.getByText('Trends')).toBeTruthy();
+    expect(screen.getByText('Wrapped')).toBeTruthy();
+  });
+
+  it('renders System sub-tabs including the relocated Triggers', () => {
+    render(Header, { props: { activeTab: 'system', activeSubTab: '' } });
+    expect(screen.getByText('Triggers')).toBeTruthy();
+    expect(screen.getByText('Plugins')).toBeTruthy();
   });
 
   it('navigates when a top-level tab is clicked', async () => {
-    render(Header, { props: { activeTab: 'overview', activeSubTab: '' } });
+    render(Header, { props: { activeTab: 'today', activeSubTab: '' } });
     await fireEvent.click(screen.getByText('System'));
     expect(mockNavigate).toHaveBeenCalledWith('/system');
   });
 
   it('navigates with the sub-tab path when a sub-tab is clicked', async () => {
-    render(Header, { props: { activeTab: 'history', activeSubTab: '' } });
+    render(Header, { props: { activeTab: 'activity', activeSubTab: '' } });
     await fireEvent.click(screen.getByText('Timeline'));
-    expect(mockNavigate).toHaveBeenCalledWith('/history/timeline');
+    expect(mockNavigate).toHaveBeenCalledWith('/activity/timeline');
   });
 });

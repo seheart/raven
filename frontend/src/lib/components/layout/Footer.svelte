@@ -8,7 +8,6 @@
     sessionId = 'Loading...',
     onSessionClick = () => {},
     onAboutClick = () => {},
-    onTechStackClick = () => {},
     onDesignSystemClick = () => {},
     onRoadmapClick = () => {},
     onSettingsClick = () => {}
@@ -66,13 +65,6 @@
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
       >
         About
-      </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={onTechStackClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
-      >
-        System
       </button>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <button

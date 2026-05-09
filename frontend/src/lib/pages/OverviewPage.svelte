@@ -979,7 +979,7 @@
         {#if latestApiLatency}
           <span class="text-border">|</span>
           <button
-            onclick={() => navigate('/analysis/network')}
+            onclick={() => navigate('/agents/network')}
             class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
             title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for the full network view."
           >
@@ -1050,7 +1050,7 @@
           </span>
         {/snippet}
         <button
-          onclick={() => navigate('/analysis/costs')}
+          onclick={() => navigate('/insights/costs')}
           class="flex items-center gap-2 text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
         >
           {@render tokenStats()}
@@ -1062,8 +1062,8 @@
         <!-- Agents — top-level + sub-agents in one list, most recent first -->
         <div
           class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col"
-          onclick={() => navigate('/analysis/monitoring')}
-          onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/analysis/monitoring')}
+          onclick={() => navigate('/agents')}
+          onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/agents')}
           role="link"
           tabindex="0"
         >

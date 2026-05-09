@@ -105,10 +105,6 @@
     navigate('/about');
   }
 
-  function handleTechStackClick() {
-    navigate('/system');
-  }
-
   function handleDesignSystemClick() {
     navigate('/design-system');
   }
@@ -166,55 +162,57 @@
                 Try Again
               </button>
               <button
-                onclick={() => navigate('/overview')}
+                onclick={() => navigate('/today')}
                 class="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
               >
-                Back to Dashboard
+                Back to Today
               </button>
             </div>
           </div>
         </div>
       {/snippet}
       {#if activeTab === 'today'}
-        {#await import('./lib/pages/TodayPage.svelte')}
-          <PlaceholderPage title="Today" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Today" description="Failed to load" />
-        {/await}
-      {:else if activeTab === 'live'}
-        {#await import('./lib/pages/LivePage.svelte')}
-          <PlaceholderPage title="Live Monitor" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Live Monitor" description="Failed to load" />
-        {/await}
-      {:else if activeTab === 'overview'}
-        {#await import('./lib/pages/OverviewPage.svelte')}
-          <PlaceholderPage title="Dashboard" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Dashboard" description="Failed to load" />
-        {/await}
-      {:else if activeTab === 'insights'}
-        {#await import('./lib/pages/InsightsPage.svelte')}
-          <PlaceholderPage title="Insights" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Insights" description="Failed to load" />
-        {/await}
-      {:else if activeTab === 'history'}
-        {#if !activeSubTab}
-          {#await import('./lib/pages/ActivityOverviewPage.svelte')}
-            <PlaceholderPage title="Activity Log" description="Loading..." />
+        {#if activeSubTab === 'power'}
+          {#await import('./lib/pages/OverviewPage.svelte')}
+            <PlaceholderPage title="Power view" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Activity Log" description="Failed to load" />
+            <PlaceholderPage title="Power view" description="Failed to load" />
+          {/await}
+        {:else}
+          {#await import('./lib/pages/TodayPage.svelte')}
+            <PlaceholderPage title="Today" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Today" description="Failed to load" />
+          {/await}
+        {/if}
+      {:else if activeTab === 'activity'}
+        {#if !activeSubTab}
+          {#await import('./lib/pages/ActivityOverviewPage.svelte')}
+            <PlaceholderPage title="Activity" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Activity" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'live'}
+          {#await import('./lib/pages/LivePage.svelte')}
+            <PlaceholderPage title="Live" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Live" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'changes'}
+          {#await import('./lib/pages/ActivityCodeChangesPage.svelte')}
+            <PlaceholderPage title="Changes" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Changes" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'timeline'}
           {#await import('./lib/pages/ActivityTimelinePage.svelte')}
@@ -224,76 +222,92 @@
           {:catch}
             <PlaceholderPage title="Timeline" description="Failed to load" />
           {/await}
-        {:else if activeSubTab === 'code'}
-          {#await import('./lib/pages/ActivityCodeChangesPage.svelte')}
-            <PlaceholderPage title="Code Changes" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Code Changes" description="Failed to load" />
-          {/await}
         {:else if activeSubTab === 'files'}
           {#await import('./lib/pages/ActivityFileBrowserPage.svelte')}
-            <PlaceholderPage title="File Browser" description="Loading..." />
+            <PlaceholderPage title="Files" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="File Browser" description="Failed to load" />
+            <PlaceholderPage title="Files" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'projects'}
           {#await import('./lib/pages/ProjectsComparisonPage.svelte')}
-            <PlaceholderPage title="Projects Comparison" description="Loading..." />
+            <PlaceholderPage title="Projects" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Projects Comparison" description="Failed to load" />
+            <PlaceholderPage title="Projects" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'health'}
           {#await import('./lib/pages/OverviewHealthPage.svelte')}
-            <PlaceholderPage title="Project Health" description="Loading..." />
+            <PlaceholderPage title="Health" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Project Health" description="Failed to load" />
+            <PlaceholderPage title="Health" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'search'}
           {#await import('./lib/pages/ActivitySearchPage.svelte')}
-            <PlaceholderPage title="Global Search" description="Loading..." />
+            <PlaceholderPage title="Search" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Global Search" description="Failed to load" />
+            <PlaceholderPage title="Search" description="Failed to load" />
           {/await}
         {:else}
           <PlaceholderPage
-            title="History - {activeSubTab}"
+            title="Activity - {activeSubTab}"
             description="This page is coming soon"
           />
         {/if}
-      {:else if activeTab === 'analysis'}
+      {:else if activeTab === 'agents'}
         {#if !activeSubTab}
-          {#await import('./lib/pages/AnalysisPage.svelte')}
-            <PlaceholderPage title="Analysis" description="Loading..." />
+          {#await import('./lib/pages/AgentMonitoringPage.svelte')}
+            <PlaceholderPage title="Agents" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Analysis" description="Failed to load" />
+            <PlaceholderPage title="Agents" description="Failed to load" />
           {/await}
-        {:else if activeSubTab === 'costs'}
-          {#await import('./lib/pages/CostsPage.svelte')}
-            <PlaceholderPage title="Costs" description="Loading..." />
+        {:else if activeSubTab === 'stats'}
+          {#await import('./lib/pages/AgentStatsPage.svelte')}
+            <PlaceholderPage title="Stats" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Costs" description="Failed to load" />
+            <PlaceholderPage title="Stats" description="Failed to load" />
           {/await}
-        {:else if activeSubTab === 'subagents'}
+        {:else if activeSubTab === 'convos'}
+          {#await import('./lib/pages/AgentConversationsPage.svelte')}
+            <PlaceholderPage title="Conversations" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Conversations" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'sub-agents'}
           {#await import('./lib/pages/SubAgentTreePage.svelte')}
             <PlaceholderPage title="Sub-Agents" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
             <PlaceholderPage title="Sub-Agents" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'sessions'}
+          {#await import('./lib/pages/SessionActivityPage.svelte')}
+            <PlaceholderPage title="Sessions" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Sessions" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'network'}
+          {#await import('./lib/pages/ProcessActivityPage.svelte')}
+            <PlaceholderPage title="Network" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Network" description="Failed to load" />
           {/await}
         {:else if activeSubTab === 'models'}
           {#await import('./lib/pages/ModelsPage.svelte')}
@@ -311,65 +325,45 @@
           {:catch}
             <PlaceholderPage title="Performance" description="Failed to load" />
           {/await}
+        {:else}
+          <PlaceholderPage title="Agents - {activeSubTab}" description="This page is coming soon" />
+        {/if}
+      {:else if activeTab === 'insights'}
+        {#if !activeSubTab}
+          {#await import('./lib/pages/InsightsPage.svelte')}
+            <PlaceholderPage title="Insights" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Insights" description="Failed to load" />
+          {/await}
+        {:else if activeSubTab === 'costs'}
+          {#await import('./lib/pages/CostsPage.svelte')}
+            <PlaceholderPage title="Costs" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Costs" description="Failed to load" />
+          {/await}
         {:else if activeSubTab === 'trends'}
           {#await import('./lib/pages/AnalysisHistoricalTrendsPage.svelte')}
-            <PlaceholderPage title="Historical Trends" description="Loading..." />
+            <PlaceholderPage title="Trends" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Historical Trends" description="Failed to load" />
+            <PlaceholderPage title="Trends" description="Failed to load" />
           {/await}
-        {:else if activeSubTab === 'triggers'}
-          {#await import('./lib/pages/AnalysisTriggersPage.svelte')}
-            <PlaceholderPage title="Triggers" description="Loading..." />
+        {:else if activeSubTab === 'wrapped'}
+          {#await import('./lib/pages/WrappedPage.svelte')}
+            <PlaceholderPage title="Wrapped" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Triggers" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'stats'}
-          {#await import('./lib/pages/AgentStatsPage.svelte')}
-            <PlaceholderPage title="Agent Performance" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Agent Performance" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'monitoring'}
-          {#await import('./lib/pages/AgentMonitoringPage.svelte')}
-            <PlaceholderPage title="Live Agents" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Live Agents" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'conversations'}
-          {#await import('./lib/pages/AgentConversationsPage.svelte')}
-            <PlaceholderPage title="Agent Conversations" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Agent Conversations" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'activity'}
-          {#await import('./lib/pages/SessionActivityPage.svelte')}
-            <PlaceholderPage title="Session Activity" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Session Activity" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'network'}
-          {#await import('./lib/pages/ProcessActivityPage.svelte')}
-            <PlaceholderPage title="Network Activity" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Network Activity" description="Failed to load" />
+            <PlaceholderPage title="Wrapped" description="Failed to load" />
           {/await}
         {:else}
           <PlaceholderPage
-            title="Analysis - {activeSubTab}"
+            title="Insights - {activeSubTab}"
             description="This page is coming soon"
           />
         {/if}
@@ -438,6 +432,14 @@
           {:catch}
             <PlaceholderPage title="Plugins" description="Failed to load" />
           {/await}
+        {:else if activeSubTab === 'triggers'}
+          {#await import('./lib/pages/AnalysisTriggersPage.svelte')}
+            <PlaceholderPage title="Triggers" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Triggers" description="Failed to load" />
+          {/await}
         {:else}
           <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
         {/if}
@@ -505,14 +507,6 @@
         {:catch}
           <PlaceholderPage title="Roadmap" description="Failed to load" />
         {/await}
-      {:else if activeTab === 'wrapped'}
-        {#await import('./lib/pages/WrappedPage.svelte')}
-          <PlaceholderPage title="Wrapped" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Wrapped" description="Failed to load" />
-        {/await}
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
           <div class="text-center max-w-[28rem]">
@@ -522,10 +516,10 @@
               There's nothing at <span class="font-mono text-[var(--text)]">/{activeTab}</span>
             </p>
             <button
-              onclick={() => navigate('/overview')}
+              onclick={() => navigate('/today')}
               class="px-4 py-2 bg-[var(--accent)] text-canvas rounded text-sm font-sans hover:opacity-90 transition-opacity"
             >
-              Back to Dashboard
+              Back to Today
             </button>
           </div>
         </div>
@@ -539,7 +533,6 @@
     version={appVersion}
     onSessionClick={handleSessionClick}
     onAboutClick={handleAboutClick}
-    onTechStackClick={handleTechStackClick}
     onDesignSystemClick={handleDesignSystemClick}
     onRoadmapClick={handleRoadmapClick}
     onSettingsClick={handleSettingsClick}

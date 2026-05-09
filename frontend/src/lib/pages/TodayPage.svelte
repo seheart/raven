@@ -686,21 +686,21 @@
             <li>
               <button
                 type="button"
-                onclick={() => navigate('/overview')}
+                onclick={() => navigate('/today/power')}
                 class="text-accent hover:underline">→ Full dashboard</button
               >
             </li>
             <li>
               <button
                 type="button"
-                onclick={() => navigate('/analysis/costs')}
+                onclick={() => navigate('/insights/costs')}
                 class="text-accent hover:underline">→ Token usage breakdown</button
               >
             </li>
             <li>
               <button
                 type="button"
-                onclick={() => navigate('/live')}
+                onclick={() => navigate('/activity/live')}
                 class="text-accent hover:underline">→ Live code changes</button
               >
             </li>
@@ -714,7 +714,7 @@
             <li>
               <button
                 type="button"
-                onclick={() => navigate('/wrapped')}
+                onclick={() => navigate('/insights/wrapped')}
                 class="text-accent hover:underline">→ Your Wrapped</button
               >
             </li>

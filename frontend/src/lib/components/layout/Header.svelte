@@ -7,12 +7,7 @@
   import { projectFilter, availableProjects } from '../../projectFilterStore.js';
   import { get } from 'svelte/store';
 
-  let {
-    activeTab = 'overview',
-    activeSubTab = '',
-    _onLogoutClick = () => {}
-  } = $props();
-
+  let { activeTab = 'overview', activeSubTab = '', _onLogoutClick = () => {} } = $props();
 
   // Header strip shows TODAY's activity, not lifetime totals. The +/-
   // styling reads like a diff, so it should mean "today's net activity"
@@ -31,43 +26,48 @@
     projectFilter.set(value);
   }
 
+  // Five top-level tabs after the May 2026 IA refactor.
+  // Today = narrative landing; Activity = "what happened" (live + history of
+  // file/code events); Agents = "what are my agents doing"; Insights = the
+  // narrated reflection layer (costs, trends, Wrapped); System = ops + config.
   const tabs = [
     { id: 'today', label: 'Today', path: '/today' },
-    { id: 'overview', label: 'Dashboard', path: '/overview' },
+    { id: 'activity', label: 'Activity', path: '/activity' },
+    { id: 'agents', label: 'Agents', path: '/agents' },
     { id: 'insights', label: 'Insights', path: '/insights' },
-    { id: 'analysis', label: 'Analysis', path: '/analysis' },
-    { id: 'live', label: 'Code Changes', path: '/live' },
-    { id: 'history', label: 'History', path: '/history' },
     { id: 'system', label: 'System', path: '/system' }
   ];
 
   const subTabs = {
-    today: [],
-    overview: [],
-    insights: [],
-    live: [],
-    history: [
-      { id: '', label: 'Activity Log' },
-      { id: 'timeline', label: 'Timeline' },
-      { id: 'code', label: 'Code Changes' },
-      { id: 'files', label: 'File Browser' },
-      { id: 'projects', label: 'Projects Comparison' },
-      { id: 'health', label: 'Project Health' },
-      { id: 'search', label: 'Global Search' }
+    today: [
+      { id: '', label: 'Narrative' },
+      { id: 'power', label: 'Power' }
     ],
-    analysis: [
+    activity: [
       { id: '', label: 'Overview' },
-      { id: 'costs', label: 'Token Usage' },
-      { id: 'subagents', label: 'Sub-Agents' },
+      { id: 'live', label: 'Live' },
+      { id: 'changes', label: 'Changes' },
+      { id: 'timeline', label: 'Timeline' },
+      { id: 'files', label: 'Files' },
+      { id: 'projects', label: 'Projects' },
+      { id: 'health', label: 'Health' },
+      { id: 'search', label: 'Search' }
+    ],
+    agents: [
+      { id: '', label: 'Monitor' },
+      { id: 'stats', label: 'Stats' },
+      { id: 'convos', label: 'Conversations' },
+      { id: 'sub-agents', label: 'Sub-Agents' },
+      { id: 'sessions', label: 'Sessions' },
+      { id: 'network', label: 'Network' },
       { id: 'models', label: 'Models' },
-      { id: 'performance', label: 'Performance' },
-      { id: 'trends', label: 'Historical Trends' },
-      { id: 'stats', label: 'Agent Stats' },
-      { id: 'monitoring', label: 'Agent Monitoring' },
-      { id: 'conversations', label: 'Agent Conversations' },
-      { id: 'activity', label: 'Session Activity' },
-      { id: 'network', label: 'Network Activity' },
-      { id: 'triggers', label: 'Triggers' }
+      { id: 'performance', label: 'Performance' }
+    ],
+    insights: [
+      { id: '', label: 'Overview' },
+      { id: 'costs', label: 'Costs' },
+      { id: 'trends', label: 'Trends' },
+      { id: 'wrapped', label: 'Wrapped' }
     ],
     system: [
       { id: '', label: 'Overview' },
@@ -77,7 +77,8 @@
       { id: 'errors', label: 'Errors' },
       { id: 'projects', label: 'Projects' },
       { id: 'storage', label: 'Storage' },
-      { id: 'plugins', label: 'Plugins' }
+      { id: 'plugins', label: 'Plugins' },
+      { id: 'triggers', label: 'Triggers' }
     ],
     settings: []
   };
@@ -144,16 +145,19 @@
   <div class="flex items-center gap-2 lg:gap-4 px-2 lg:px-3 py-2 h-12">
     <!-- Logo -->
     <button
-      onclick={e => handleNavClick(e, '/overview')}
+      onclick={e => handleNavClick(e, '/today')}
       class="flex items-center gap-2 font-semibold text-[var(--text-heading)] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0 shrink-0"
-      aria-label="Go to Dashboard"
+      aria-label="Go to Today"
     >
       <RavenLogo size={18} />
       <span class="hidden lg:inline">Raven</span>
     </button>
 
     <!-- Main Navigation -->
-    <nav class="flex gap-0.5 lg:gap-1 flex-1 font-sans overflow-x-auto" aria-label="Main navigation">
+    <nav
+      class="flex gap-0.5 lg:gap-1 flex-1 font-sans overflow-x-auto"
+      aria-label="Main navigation"
+    >
       {#each tabs as tab (tab.id)}
         <button
           onclick={e => handleNavClick(e, tab.path)}
@@ -206,7 +210,6 @@
         </select>
       </div>
     {/if}
-
   </div>
 
   <!-- Sub-Navigation -->
