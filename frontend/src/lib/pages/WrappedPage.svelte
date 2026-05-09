@@ -2,31 +2,47 @@
   /**
    * WrappedPage — Spotify-Wrapped-style year-in-review.
    *
-   * Renders the full-bleed sequence of cards returned by /api/wrapped
-   * as a vertical stack with snap-scroll for a slide-by-slide feel.
-   * No image-export yet — that's a follow-up.
+   * Story flow: 10 cards (opener → 8 stats → closing). Each card is one
+   * full viewport tall and scroll-snaps so the next slides in cleanly.
    *
-   * @typedef {{
-   *   id:string, label:string, headline:string, stat:string,
-   *   support:string|null, tone:'accent'|'success'|'info'|'warning'|'muted'
-   * }} Card
-   * @typedef {{
-   *   window_start:string, window_end:string, span_days:number,
-   *   cards: Card[], stats: Record<string, any>
-   * }} WrappedPayload
+   * Key design choices, learned from the previous version:
+   *
+   *  1. Scroll-snap on the page itself (NOT a nested overflow:auto
+   *     container). The earlier version's nested container fought with
+   *     document scroll and the wheel events frequently went nowhere —
+   *     "scroll doesn't even work" in the user's words.
+   *
+   *  2. Page indicators on the right edge. Each dot is a clickable
+   *     anchor that smooth-scrolls to its card. Keyboard ↑/↓ arrows also
+   *     advance one card at a time.
+   *
+   *  3. Card backgrounds use the warm Anthropic chart palette via
+   *     bg-[var(--chart-N)]/X tokens — same family as the graphs, so the
+   *     whole app feels cohesive.
+   *
+   *  4. Cards lazy-fade-in via IntersectionObserver to avoid the
+   *     "everything is mounted at full opacity" flat feel; even on a
+   *     slow box this stays cheap because each card just toggles a class.
    */
 
   import { onMount, onDestroy } from 'svelte';
-  import { PageLayout } from '../components/layout/index.js';
   import { createPageApi } from '../apiClient.js';
+  import { DataFetchError } from '../components/ui/index.js';
 
   const { api, abort } = createPageApi();
 
-  /** @type {WrappedPayload|null} */
+  /** @type {{
+   *   window_start:string, window_end:string, span_days:number,
+   *   cards: Array<{id:string,label:string,headline:string,stat:string,support:string|null,tone:string}>,
+   *   stats: Record<string, any>
+   * }|null} */
   let payload = $state(null);
   let loading = $state(true);
   /** @type {string|null} */
   let loadError = $state(null);
+  let activeIdx = $state(0);
+  /** @type {HTMLElement|null} */
+  let stackEl = $state(null);
 
   async function load() {
     loading = true;
@@ -41,38 +57,85 @@
     }
   }
 
-  onMount(load);
-  onDestroy(() => abort());
-
-  /** @param {string} tone */
-  function toneAccent(tone) {
-    switch (tone) {
-      case 'accent':
-        return 'text-accent';
-      case 'success':
-        return 'text-success';
-      case 'info':
-        return 'text-info';
-      case 'warning':
-        return 'text-warning';
-      default:
-        return 'text-muted';
+  function scrollToCard(idx) {
+    const card = stackEl?.querySelectorAll?.('section[data-card]')?.[idx];
+    if (card && typeof card.scrollIntoView === 'function') {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
-  /** @param {string} tone */
-  function toneBg(tone) {
-    switch (tone) {
-      case 'accent':
-        return 'from-accent/10 via-canvas to-canvas';
-      case 'success':
-        return 'from-success/10 via-canvas to-canvas';
-      case 'info':
-        return 'from-info/10 via-canvas to-canvas';
-      case 'warning':
-        return 'from-warning/10 via-canvas to-canvas';
-      default:
-        return 'from-surface via-canvas to-canvas';
+
+  function onKey(e) {
+    if (!payload) return;
+    const last = payload.cards.length - 1;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      scrollToCard(Math.min(activeIdx + 1, last));
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      scrollToCard(Math.max(activeIdx - 1, 0));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      scrollToCard(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      scrollToCard(last);
     }
+  }
+
+  /** @type {IntersectionObserver|null} */
+  let observer = null;
+  $effect(() => {
+    if (!payload || !stackEl) return;
+    if (observer) observer.disconnect();
+    // 60% threshold so the indicator only flips when the next card is
+    // mostly on-screen — avoids flicker mid-scroll on slower phones.
+    observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.getAttribute('data-card'));
+            if (Number.isFinite(idx)) activeIdx = idx;
+            entry.target.classList.add('is-visible');
+          }
+        }
+      },
+      { threshold: [0.6] }
+    );
+    const sections = stackEl.querySelectorAll('section[data-card]');
+    sections.forEach(s => observer.observe(s));
+    return () => observer?.disconnect();
+  });
+
+  onMount(() => {
+    load();
+    window.addEventListener('keydown', onKey);
+  });
+
+  onDestroy(() => {
+    abort();
+    observer?.disconnect();
+    window.removeEventListener('keydown', onKey);
+  });
+
+  // Tone → CSS variable. Pulls from the new --chart-N palette so cards
+  // use the same warm rust / peach / amber / coral / teal sequence as the
+  // graphs. Three tones recycle through the palette so a 10-card stack
+  // doesn't repeat hues back-to-back.
+  function toneStyle(tone, idx) {
+    const seq = [
+      '--chart-1', // rust
+      '--chart-3', // amber
+      '--chart-2', // peach
+      '--chart-6', // teal (contrast break)
+      '--chart-4', // coral
+      '--chart-5', // sienna
+      '--chart-7', // violet
+      '--chart-1', // rust again for the home stretch
+      '--chart-3',
+      '--chart-6'
+    ];
+    const colorVar = seq[idx % seq.length];
+    return `--card-color: var(${colorVar});`;
   }
 
   /** @param {string} iso */
@@ -83,72 +146,323 @@
       year: 'numeric'
     });
   }
+
+  function spanLabel(p) {
+    if (!p) return '';
+    const d = p.span_days;
+    if (d >= 350) return `your year with Raven`;
+    if (d >= 28) return `your last ${d} days`;
+    if (d > 1) return `your first ${d} days`;
+    return `your first day`;
+  }
 </script>
 
-<PageLayout variant="dashboard">
-  <div class="min-h-screen w-full">
-    {#if loading}
-      <div class="flex items-center justify-center min-h-[60vh] text-sm text-muted font-mono">
-        Building your Wrapped…
-      </div>
-    {:else if loadError}
-      <div
-        class="max-w-[36rem] mx-auto mt-12 bg-error/10 border border-error/30 text-error rounded-lg p-4 text-sm"
-      >
-        Failed to load Wrapped: {loadError}
-      </div>
-    {:else if payload}
-      <!-- Status bar at top — non-card chrome -->
-      <div
-        class="px-6 py-3 flex items-center justify-between text-xs font-mono text-muted border-b border-border"
-      >
-        <div class="flex items-center gap-2">
-          <span class="text-accent font-semibold">RAVEN.WRAPPED</span>
-          <span aria-hidden="true">::</span>
-          <span class="uppercase tracking-wide">
-            {fmtDate(payload.window_start)} – {fmtDate(payload.window_end)} · {payload.span_days}
-            {payload.span_days === 1 ? 'day' : 'days'} of data
-          </span>
-        </div>
-        <span class="text-[10px] uppercase tracking-wide">scroll for the whole story</span>
-      </div>
+<svelte:head>
+  <title>Wrapped · Raven</title>
+</svelte:head>
 
-      <!-- Card stack with scroll-snap so each card lands cleanly. -->
-      <div class="snap-y snap-mandatory overflow-y-auto" style="height: calc(100vh - 7rem);">
-        {#each payload.cards as card (card.id)}
-          <section
-            class="snap-start min-h-[calc(100vh-7rem)] flex items-center justify-center px-6 py-12 bg-gradient-to-b {toneBg(
-              card.tone
-            )}"
-            aria-label={card.label}
-          >
-            <div class="w-full max-w-[48rem]">
-              <div class="text-xs font-mono uppercase tracking-widest mb-4 {toneAccent(card.tone)}">
-                {card.label}
-              </div>
-              <div
-                role="heading"
-                aria-level="2"
-                class="text-3xl md:text-5xl font-bold text-heading tracking-[-0.025em] leading-tight mb-6"
-              >
-                {card.headline}
-              </div>
-              <div
-                class="text-5xl md:text-7xl font-mono font-bold tracking-tight {toneAccent(
-                  card.tone
-                )} mb-4 break-words"
-              >
-                {card.stat}
-              </div>
-              {#if card.support}
-                <p class="text-base md:text-lg text-body font-sans leading-relaxed">
-                  {card.support}
-                </p>
-              {/if}
-            </div>
-          </section>
+<div class="wrapped-root" bind:this={stackEl}>
+  {#if loading}
+    <div class="loading-state">
+      <div class="pulse-dot"></div>
+      <span>Building your Wrapped…</span>
+    </div>
+  {:else if loadError}
+    <div class="error-wrap">
+      <DataFetchError
+        endpoint="/api/wrapped"
+        message="Failed to load Wrapped"
+        hint={loadError}
+        onRetry={load}
+      />
+    </div>
+  {:else if payload}
+    <!-- Side rail: window label + dot indicators. Fixed so it floats on
+         every card. Each dot is a focusable button so keyboard users can
+         tab to it; click smooth-scrolls to that card. -->
+    <aside class="rail" aria-label="Wrapped navigation">
+      <div class="rail-window">
+        <span class="rail-window-label">{spanLabel(payload)}</span>
+        <span class="rail-window-range"
+          >{fmtDate(payload.window_start)} – {fmtDate(payload.window_end)}</span
+        >
+      </div>
+      <div class="rail-dots" role="tablist">
+        {#each payload.cards as card, i (card.id)}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeIdx === i}
+            aria-label="Go to {card.label}"
+            class="rail-dot"
+            class:is-active={activeIdx === i}
+            onclick={() => scrollToCard(i)}
+          ></button>
         {/each}
       </div>
-    {/if}
-  </div>
-</PageLayout>
+      <div class="rail-counter">
+        <span class="rail-counter-num">{String(activeIdx + 1).padStart(2, '0')}</span>
+        <span class="rail-counter-sep">/</span>
+        <span class="rail-counter-tot">{String(payload.cards.length).padStart(2, '0')}</span>
+      </div>
+    </aside>
+
+    {#each payload.cards as card, i (card.id)}
+      <section
+        data-card={i}
+        class="card"
+        class:is-opener={i === 0}
+        class:is-closing={i === payload.cards.length - 1}
+        style={toneStyle(card.tone, i)}
+        aria-label={card.label}
+      >
+        <div class="card-inner">
+          <div class="card-label">{card.label}</div>
+          <h2 class="card-headline">{card.headline}</h2>
+          <div class="card-stat">{card.stat}</div>
+          {#if card.support}
+            <p class="card-support">{card.support}</p>
+          {/if}
+          {#if i < payload.cards.length - 1}
+            <button
+              type="button"
+              class="card-next"
+              aria-label="Next slide"
+              onclick={() => scrollToCard(i + 1)}
+            >
+              ↓ next
+            </button>
+          {/if}
+        </div>
+      </section>
+    {/each}
+  {/if}
+</div>
+
+<style>
+  /* Page-level scroll-snap — works on the document scroll, not a nested
+     container, so the user's wheel events always do the right thing.
+     Earlier nested-overflow approach intermittently swallowed the scroll
+     because the outer body and inner div both wanted to be scrollable. */
+  .wrapped-root {
+    scroll-snap-type: y mandatory;
+    /* Fallback: contain layout/paint to keep snap behavior cheap. */
+    contain: layout paint;
+  }
+
+  .loading-state {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+  }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--chart-1);
+    box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.5);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 14px rgba(217, 119, 87, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(217, 119, 87, 0);
+    }
+  }
+
+  .error-wrap {
+    max-width: 36rem;
+    margin: 4rem auto;
+    padding: 0 1.5rem;
+  }
+
+  /* Side rail. Fixed positioning + a small responsive breakpoint hide on
+     narrow screens (the dots become a top progress strip if we ever want
+     mobile, but for now we just keep them inline at the right). */
+  .rail {
+    position: fixed;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+    pointer-events: none;
+  }
+  .rail > * {
+    pointer-events: auto;
+  }
+  .rail-window {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.15rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+  }
+  .rail-window-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .rail-window-range {
+    color: var(--muted);
+  }
+  .rail-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .rail-dot {
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease,
+      transform 0.18s ease;
+  }
+  .rail-dot:hover {
+    border-color: var(--chart-1);
+  }
+  .rail-dot.is-active {
+    background: var(--chart-1);
+    border-color: var(--chart-1);
+    transform: scale(1.3);
+  }
+  .rail-counter {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .rail-counter-num {
+    color: var(--chart-1);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .rail {
+      display: none;
+    }
+  }
+
+  /* Card. One per viewport. The tone CSS variable on the section sets a
+     subtle radial wash up top, then a soft vertical gradient toward the
+     canvas color, so successive cards feel atmospherically distinct
+     without losing the page's overall warm-cream / dark calm. */
+  .card {
+    scroll-snap-align: start;
+    scroll-snap-stop: always; /* don't skip cards on a fast wheel flick */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    background:
+      radial-gradient(
+        1200px 600px at 30% -10%,
+        color-mix(in oklab, var(--card-color) 24%, transparent) 0%,
+        transparent 60%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--card-color) 6%, var(--bg)) 0%,
+        var(--bg) 80%
+      );
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.55s ease-out,
+      transform 0.55s ease-out;
+  }
+  .card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .card-inner {
+    max-width: 56rem;
+    width: 100%;
+  }
+  .card-label {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--card-color);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+  .card-headline {
+    font-size: clamp(1.75rem, 4vw, 3.25rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--text-heading);
+    margin: 0 0 2rem 0;
+    max-width: 42rem;
+  }
+  .card-stat {
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    font-size: clamp(2.25rem, 7vw, 5.5rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--card-color);
+    margin-bottom: 1.5rem;
+    word-break: break-word;
+    /* Subtle text shadow that picks up the card color so the giant stat
+       doesn't sit dead on the canvas. Tuned faint enough that light mode
+       still reads as crisp. */
+    text-shadow: 0 4px 20px color-mix(in oklab, var(--card-color) 22%, transparent);
+  }
+  .card-support {
+    color: var(--text);
+    font-family: var(--font-sans, system-ui);
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    line-height: 1.6;
+    max-width: 36rem;
+    margin: 0;
+  }
+  .card-next {
+    appearance: none;
+    background: transparent;
+    border: 1px solid color-mix(in oklab, var(--card-color) 40%, transparent);
+    color: var(--card-color);
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    cursor: pointer;
+    margin-top: 2rem;
+    transition:
+      background 0.18s ease,
+      transform 0.18s ease;
+  }
+  .card-next:hover {
+    background: color-mix(in oklab, var(--card-color) 12%, transparent);
+    transform: translateY(-1px);
+  }
+</style>
