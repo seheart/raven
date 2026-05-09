@@ -7,12 +7,9 @@ import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createDiffsRouter } from '../../dist/routes/diffs.js';
-import {
-  createDiffAnnotationsRepository
-} from '../../dist/repositories/diff-annotations-repository.js';
-import {
-  createDiffAnnotationService
-} from '../../dist/services/diff-annotation-service.js';
+import { createDiffAnnotationsRepository } from '../../dist/repositories/diff-annotations-repository.js';
+import { createFileEventsRepository } from '../../dist/repositories/file-events-repository.js';
+import { createDiffAnnotationService } from '../../dist/services/diff-annotation-service.js';
 import { RavenDB } from '../../dist/db.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -56,13 +53,22 @@ beforeAll(() => {
     `INSERT INTO events (timestamp, filepath, change_type, diff, session_id, project_name)
      VALUES (?, ?, ?, ?, ?, ?)`
   );
-  safeEventId = Number(insert.run(now, 'src/foo.js', 'change', SAFE_DIFF, 'sess-a', 'demo').lastInsertRowid);
-  riskyEventId = Number(insert.run(now, 'src/foo.js', 'change', RISKY_DIFF, 'sess-a', 'demo').lastInsertRowid);
-  envEventId = Number(insert.run(now, '.env', 'change', SAFE_DIFF, 'sess-a', 'demo').lastInsertRowid);
+  safeEventId = Number(
+    insert.run(now, 'src/foo.js', 'change', SAFE_DIFF, 'sess-a', 'demo').lastInsertRowid
+  );
+  riskyEventId = Number(
+    insert.run(now, 'src/foo.js', 'change', RISKY_DIFF, 'sess-a', 'demo').lastInsertRowid
+  );
+  envEventId = Number(
+    insert.run(now, '.env', 'change', SAFE_DIFF, 'sess-a', 'demo').lastInsertRowid
+  );
 
   app = express();
   app.use(express.json());
-  app.use('/api/diffs', createDiffsRouter(db, annotationsRepo, annotationService));
+  app.use(
+    '/api/diffs',
+    createDiffsRouter(createFileEventsRepository(db), annotationsRepo, annotationService)
+  );
 });
 
 afterAll(() => {
@@ -143,8 +149,7 @@ describe('Diff Routes', () => {
     const before = await request(app).get(`/api/diffs/${riskyEventId}/annotations`);
     expect(before.body.length).toBeGreaterThan(0);
 
-    const recompute = await request(app)
-      .post(`/api/diffs/${riskyEventId}/annotations/recompute`);
+    const recompute = await request(app).post(`/api/diffs/${riskyEventId}/annotations/recompute`);
     expect(recompute.status).toBe(200);
     expect(recompute.body.event_id).toBe(riskyEventId);
     expect(recompute.body.annotations.length).toEqual(before.body.length);

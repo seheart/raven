@@ -6,6 +6,7 @@ import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createJourneyRouter } from '../../dist/routes/journey.js';
+import { createJourneyRepository } from '../../dist/repositories/journey-repository.js';
 import { RavenDB } from '../../dist/db.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -42,7 +43,7 @@ beforeAll(() => {
   insEv.run(iso(27, 9), 'demo/d.ts', 'change', 'demo', 'fw-3');
   insEv.run(iso(25, 9), 'demo/e.ts', 'change', 'demo', 'fw-4');
   insTok.run(iso(30, 9), 'fw-1', 'demo', 'claude-haiku-4-5', 1000, 200, 0.05);
-  insTok.run(iso(28, 14), 'fw-2', 'demo', 'claude-haiku-4-5', 2000, 400, 0.10);
+  insTok.run(iso(28, 14), 'fw-2', 'demo', 'claude-haiku-4-5', 2000, 400, 0.1);
 
   // Current week: last 7 days — many more events on 'raven', claude-opus.
   // Use daysAgo in 1..6 so all timestamps are reliably in the past
@@ -53,12 +54,12 @@ beforeAll(() => {
   }
   for (let i = 0; i < 10; i++) {
     const daysAgo = 1 + (i % 6);
-    insTok.run(iso(daysAgo, 9), `cw-${i % 5}`, 'raven', 'claude-opus-4-7', 5000, 1000, 0.50);
+    insTok.run(iso(daysAgo, 9), `cw-${i % 5}`, 'raven', 'claude-opus-4-7', 5000, 1000, 0.5);
   }
 
   app = express();
   app.use(express.json());
-  app.use('/api/journey', createJourneyRouter(db));
+  app.use('/api/journey', createJourneyRouter(createJourneyRepository(db)));
 });
 
 afterAll(() => {
@@ -96,7 +97,7 @@ describe('GET /api/journey/before-after', () => {
     const db2 = new RavenDB(join(tmp2, 'test.db'));
     try {
       const app2 = express();
-      app2.use('/journey-empty', createJourneyRouter(db2));
+      app2.use('/journey-empty', createJourneyRouter(createJourneyRepository(db2)));
       const res = await request(app2).get('/journey-empty/before-after');
       expect(res.status).toBe(200);
       expect(res.body.too_early).toBe(true);

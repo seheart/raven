@@ -6,6 +6,7 @@ import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createTodayNarrativeRouter } from '../../dist/routes/today-narrative.js';
+import { createTodayNarrativeRepository } from '../../dist/repositories/today-narrative-repository.js';
 import { RavenDB } from '../../dist/db.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -59,7 +60,7 @@ beforeAll(() => {
   insert.run(isoDaysAgo(4, 10), 'atf/legacy.js', 'change', 'atf', 'sess-old');
 
   app = express();
-  app.use('/api/today', createTodayNarrativeRouter(db));
+  app.use('/api/today', createTodayNarrativeRouter(createTodayNarrativeRepository(db)));
 });
 
 afterAll(() => {

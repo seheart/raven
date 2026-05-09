@@ -6,6 +6,7 @@ import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createContextWindowRouter } from '../../dist/routes/context-window.js';
+import { createTokenUsageRepository } from '../../dist/repositories/token-usage-repository.js';
 import { RavenDB } from '../../dist/db.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -44,7 +45,7 @@ beforeAll(() => {
 
   app = express();
   app.use(express.json());
-  app.use('/api/context', createContextWindowRouter(db));
+  app.use('/api/context', createContextWindowRouter(createTokenUsageRepository(db)));
 });
 
 afterAll(() => {
