@@ -243,6 +243,12 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             model: modelName,
             endpoint: ollamaPath,
             project,
+            // Caller identity. Lets the "current consumers" view on
+            // ActiveModelCard distinguish "atf is using this" from
+            // "sightline is using this" even when both share the same
+            // project=null/unknown attribution.
+            caller_pid: attrPid,
+            caller_cwd: attrCwd,
             ...metrics,
             prompt_preview:
               typeof req.body?.prompt === 'string' ? req.body.prompt.substring(0, 100) : undefined
@@ -299,7 +305,14 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
             null,
             durationMs,
             `${ollamaPath === '/api/chat' ? 'Chat' : 'Generate'} completion (${metrics.tokens} tokens, ${metrics.gen_tps} tps)`,
-            { model: modelName, endpoint: ollamaPath, project, ...metrics },
+            {
+              model: modelName,
+              endpoint: ollamaPath,
+              project,
+              caller_pid: attrPid,
+              caller_cwd: attrCwd,
+              ...metrics
+            },
             SESSION_ID,
             project
           );

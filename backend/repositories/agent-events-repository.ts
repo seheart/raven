@@ -18,6 +18,14 @@ interface LastModelLoad {
   timestamp: string;
 }
 
+interface ModelConsumer {
+  project: string | null;
+  pid: number | null;
+  cwd: string | null;
+  request_count: number;
+  last_seen: string;
+}
+
 interface AgentStatsRow {
   agent: string;
   total_events: number;
@@ -97,6 +105,15 @@ export interface AgentEventsRepository {
    * May be null if the loader's connection had already closed.
    */
   lastModelLoad(modelName: string): LastModelLoad | undefined;
+
+  /**
+   * Distinct callers that have hit a given model recently. Aggregates the
+   * inference/api_call rows by caller_pid (or project when pid is null)
+   * to answer "who is currently using this model" — not just who first
+   * loaded it. Used to surface multiple consumers (e.g. atf + sightline
+   * both calling the same gemma3 instance) on the active-models card.
+   */
+  recentModelConsumers(modelName: string, sinceISO: string): ModelConsumer[];
 
   /** Per-agent activity rollup. Limited to top 100 by total_events. */
   agentStats(): AgentStatsRow[];
@@ -217,6 +234,30 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
     FROM agent_events
     WHERE agent = ? AND event_type = 'model_load'
     ORDER BY timestamp DESC LIMIT 1
+  `);
+
+  // Distinct callers in a recent window. Group by caller_pid first
+  // (most-specific signal — distinguishes two processes from the same
+  // project), falling back to project when pid is missing. The HAVING
+  // clause skips rows where every identifier is null so the UI doesn't
+  // render meaningless "pid undefined" chips for anonymous traffic
+  // (typically pre-instrumentation history before caller_pid was logged).
+  // Limit 8 so a chatty test loop doesn't blow up the response.
+  const recentConsumersStmt = db.db.prepare(`
+    SELECT
+      COALESCE(project_name, json_extract(metadata, '$.project')) AS project,
+      CAST(json_extract(metadata, '$.caller_pid') AS INTEGER) AS pid,
+      json_extract(metadata, '$.caller_cwd') AS cwd,
+      COUNT(*) AS request_count,
+      MAX(timestamp) AS last_seen
+    FROM agent_events
+    WHERE agent = ?
+      AND event_type IN ('inference', 'api_call')
+      AND timestamp >= ?
+    GROUP BY pid, project
+    HAVING project IS NOT NULL OR pid IS NOT NULL
+    ORDER BY last_seen DESC
+    LIMIT 8
   `);
 
   const agentStatsStmt = db.db.prepare(`
@@ -394,6 +435,9 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
     },
     lastModelLoad(modelName) {
       return lastLoadStmt.get(modelName) as LastModelLoad | undefined;
+    },
+    recentModelConsumers(modelName, sinceISO) {
+      return recentConsumersStmt.all(modelName, sinceISO) as ModelConsumer[];
     },
     agentStats() {
       return agentStatsStmt.all() as AgentStatsRow[];

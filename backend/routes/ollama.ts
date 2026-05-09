@@ -78,6 +78,11 @@ export function createOllamaDetailRouter(
       if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
       const data = (await r.json()) as { models?: OllamaPsModel[] };
 
+      // Window for "recent" model consumers — anything that hit the
+      // model in the last 5 minutes counts as currently using it. Matches
+      // Ollama's default 5-minute keep-alive: a process that called
+      // within the keep-alive window is plausibly still active.
+      const consumerWindowIso = new Date(Date.now() - 5 * 60_000).toISOString();
       const models = (data.models || []).map(m => {
         const proj = agentEventsRepo.lastProjectForModel(m.name);
         const load = agentEventsRepo.lastModelLoad(m.name);
@@ -88,6 +93,12 @@ export function createOllamaDetailRouter(
         // attribution still surfaces in the latter case but the frontend
         // can render it muted with a "(gone)" suffix.
         const loaderAlive = load ? isPidAlive(load.pid) : null;
+        // All distinct callers in the recent window, with per-caller
+        // liveness so the UI can show "atf + sightline are sharing this
+        // model" rather than just whoever loaded it first.
+        const consumers = agentEventsRepo
+          .recentModelConsumers(m.name, consumerWindowIso)
+          .map(c => ({ ...c, process_alive: isPidAlive(c.pid) }));
         return {
           name: m.name,
           size: m.size,
@@ -107,7 +118,8 @@ export function createOllamaDetailRouter(
                 at: load.timestamp,
                 process_alive: loaderAlive
               }
-            : null
+            : null,
+          current_consumers: consumers
         };
       });
       return res.json({ models, count: models.length, ollama_status: 'online' });

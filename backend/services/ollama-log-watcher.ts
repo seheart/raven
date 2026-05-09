@@ -18,6 +18,7 @@
 
 import { spawn, type ChildProcess } from 'child_process';
 import readline, { type Interface as ReadlineInterface } from 'readline';
+import { findPidsByDestPort, getProcessCwd, cwdToProject } from '../utils/process-attribution.js';
 
 interface MinimalLogger {
   debug: (msg: string, meta?: object) => void;
@@ -77,6 +78,12 @@ function parseDurationMs(token: string | undefined): number | null {
 interface OllamaWatcherOptions {
   unit?: string;
   since?: string;
+  /** Returns the current list of projects, used to map caller cwds to
+   *  project names. Optional; without it, attribution still records
+   *  pid/cwd, just no project label. */
+  getProjects?: () => Array<{ name: string; path: string }>;
+  /** TCP port Ollama listens on. Defaults to 11434. */
+  ollamaPort?: number;
 }
 
 interface OllamaInferenceEvent {
@@ -91,6 +98,11 @@ interface OllamaInferenceEvent {
   // to pulse ActiveModelCard for the right resident-model row.
   model?: string;
   agentNameOverride?: string;
+  // Caller attribution (best-effort; null when /proc-scan came up empty).
+  // Stored as the agent_events.project_name column so SQL aggregates that
+  // group by project_name (consumer queries, dashboard counts) catch it
+  // without having to fall back to the json_extract path every time.
+  projectName?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -153,6 +165,8 @@ export class OllamaLogWatcher {
   private rl: ReadlineInterface | null;
   private starting: boolean;
   private stopped: boolean;
+  private getProjects: () => Array<{ name: string; path: string }>;
+  private ollamaPort: number;
 
   constructor(
     eventCallback: OllamaEventCallback,
@@ -167,6 +181,45 @@ export class OllamaLogWatcher {
     this.rl = null;
     this.starting = false;
     this.stopped = false;
+    this.getProjects = options.getProjects || (() => []);
+    this.ollamaPort = options.ollamaPort || 11434;
+  }
+
+  /**
+   * Best-effort caller attribution for a logged inference. Scans /proc
+   * for any process holding a connection to the Ollama port — picks the
+   * one with project attribution if any, otherwise the first. Misses
+   * are silent; pid attribution from a journal-based watcher is
+   * fundamentally a "guess at the time of observation" since the
+   * connection may have already closed when the line is parsed.
+   */
+  private async attributeCaller(): Promise<{
+    pid: number | null;
+    cwd: string | null;
+    project: string | null;
+  }> {
+    try {
+      const allPids = await findPidsByDestPort(this.ollamaPort);
+      // Raven itself constantly polls Ollama (/api/ps, /api/tags, /api/show
+      // for the resident-model lookup) so our own PID would otherwise win
+      // every attribution. Exclude self before evaluating candidates.
+      const selfPid = process.pid;
+      const pids = allPids.filter(p => p !== selfPid);
+      if (pids.length === 0) return { pid: null, cwd: null, project: null };
+      const projects = this.getProjects();
+      const candidates = await Promise.all(
+        pids.map(async pid => {
+          const cwd = await getProcessCwd(pid);
+          return { pid, cwd, project: cwdToProject(cwd, projects) };
+        })
+      );
+      // Prefer a candidate with project attribution — if multiple exist,
+      // any of them is plausibly "the" caller and the user-visible chip
+      // benefits from a real project name. Fall back to the first PID.
+      return candidates.find(c => c.project) ?? candidates[0];
+    } catch {
+      return { pid: null, cwd: null, project: null };
+    }
   }
 
   async start(): Promise<void> {
@@ -291,6 +344,13 @@ export class OllamaLogWatcher {
     // gives us the model that just served the request (cached 5s).
     const { model, details } = isError ? { model: null, details: null } : await getResidentModel();
 
+    // Caller attribution. /proc-scan happens at log-parse time, which
+    // is after the request completed — so the connection may already
+    // be closed for one-shot clients. Picks up well for keep-alive
+    // clients (the common case: aider, atf's worker pool, sightline's
+    // diagnostic loop, etc.) and is silent on miss.
+    const caller = await this.attributeCaller();
+
     const metadata: Record<string, unknown> = {
       endpoint: path,
       method,
@@ -304,6 +364,9 @@ export class OllamaLogWatcher {
       metadata.quantization_level = details.quantization_level;
       metadata.family = details.family;
     }
+    if (caller.pid !== null) metadata.caller_pid = caller.pid;
+    if (caller.cwd) metadata.caller_cwd = caller.cwd;
+    if (caller.project) metadata.project = caller.project;
 
     await this.eventCallback({
       // Promote successful chat/generate/embed calls to 'inference' so the
@@ -318,6 +381,7 @@ export class OllamaLogWatcher {
       eventCategory: 'agent_event',
       model: model ?? undefined,
       agentNameOverride: model ?? undefined,
+      projectName: caller.project ?? undefined,
       metadata
     });
   }

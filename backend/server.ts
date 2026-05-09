@@ -358,7 +358,14 @@ const codexLogWatcher = new CodexLogWatcher(
 );
 const ollamaLogWatcher = new OllamaLogWatcher(
   createAgentEventHandler({ agentName: 'Ollama', agentType: 'ollama', colorKey: 'ollama' }),
-  logger
+  logger,
+  {
+    // Best-effort caller attribution for journal-derived inferences —
+    // when the transparent proxy isn't intercepting (Ollama owns 11434),
+    // this is the only signal that lets ActiveModelCard distinguish
+    // multiple consumers (atf + sightline) sharing the same resident model.
+    getProjects: () => projectsConfigService.getKnownProjects()
+  }
 );
 
 // Single-project fallback watcher (used if ProjectManager hasn't started yet)

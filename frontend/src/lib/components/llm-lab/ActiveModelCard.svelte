@@ -36,7 +36,13 @@
 
   function ensureState(name) {
     if (!modelState[name]) {
-      modelState[name] = { flashId: 0, tpsHistory: [], loadedAt: Date.now(), lastProject: null };
+      modelState[name] = {
+        flashId: 0,
+        tpsHistory: [],
+        loadedAt: Date.now(),
+        lastProject: null,
+        consumers: []
+      };
     }
     return modelState[name];
   }
@@ -152,6 +158,7 @@
         // Live websocket events overwrite this with newer values.
         if (!s.lastProject && m.last_project) s.lastProject = m.last_project;
         if (m.last_loaded_by) s.loadedBy = m.last_loaded_by;
+        s.consumers = Array.isArray(m.current_consumers) ? m.current_consumers : [];
       }
       // Drop state for models that are no longer resident.
       for (const k of Object.keys(modelState)) {
@@ -456,16 +463,31 @@
                 >
                 <span class="text-[10px] text-[var(--muted)] font-mono">{m.parameter_size}</span>
                 <span class="text-[10px] text-[var(--muted)] font-mono">{m.quantization}</span>
-                {#if s.lastProject}
-                  <span
-                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]"
-                    title={s.loadedBy
-                      ? `Last used by '${s.lastProject}'\nLoaded by: ${s.loadedBy.project ?? s.loadedBy.cmd ?? s.loadedBy.cwd ?? 'unknown'}`
-                      : `Last used by '${s.lastProject}'`}
-                  >
-                    {s.lastProject}
-                  </span>
+                {#if s.consumers && s.consumers.length > 0}
+                  <!-- One chip per distinct caller in the last 5 minutes.
+                       A model in VRAM is shareable — atf and sightline
+                       can both be hitting gemma3:12b at the same time
+                       and the user needs to see both, not just whoever
+                       loaded it first. Each chip carries its own alive
+                       check, so a project that's gone reads muted with
+                       a "· gone" suffix while live ones stay solid. -->
+                  {#each s.consumers as c, i (c.pid ?? c.project ?? i)}
+                    {@const name = c.project ?? c.cwd?.split('/').pop() ?? `pid ${c.pid}`}
+                    {@const gone = c.process_alive === false}
+                    <span
+                      class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] {gone
+                        ? 'opacity-60'
+                        : ''}"
+                      title={`${gone ? 'Was using' : 'Using'} this model — ${c.request_count} ${c.request_count === 1 ? 'request' : 'requests'} in the last 5 min${c.cwd ? `\n${c.cwd}` : ''}`}
+                    >
+                      {name}{#if gone}<span class="ml-1 italic text-[var(--muted)]">· gone</span
+                        >{/if}
+                    </span>
+                  {/each}
                 {:else if s.loadedBy && (s.loadedBy.project || s.loadedBy.cwd)}
+                  <!-- Fallback for models loaded but with no inference activity
+                       in the recent window (e.g. just loaded, awaiting first
+                       call). Keeps the original "loaded by X" treatment. -->
                   {@const loaderName =
                     s.loadedBy.project ?? s.loadedBy.cwd?.split('/').pop() ?? '?'}
                   {@const loaderGone = s.loadedBy.process_alive === false}
