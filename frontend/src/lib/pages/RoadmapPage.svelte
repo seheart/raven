@@ -82,11 +82,6 @@
       added: '2026-05'
     },
     {
-      title: 'Optional sound cues — opt-in only?',
-      note: "A single soft tone on inference can be transformative for embodying the AI. Most users will hate it; the right users will love it forever. Off by default, opt-in via Settings. Decide whether this fits Raven's aesthetic at all before building.",
-      added: '2026-05'
-    },
-    {
       title: 'Auto-detect projects vs explicit registration?',
       note: "For new users, any setup beyond 'open Raven' kills adoption. Auto-detect from Claude Code's CWD on each session. Power users may still want explicit project registration. Default to auto, allow override.",
       added: '2026-05'
