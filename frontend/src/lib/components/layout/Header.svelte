@@ -2,6 +2,7 @@
   import RavenLogo from '../ui/RavenLogo.svelte';
   import HeartbeatIndicator from './HeartbeatIndicator.svelte';
   import HeaderLlmPill from './HeaderLlmPill.svelte';
+  import EndpointHealthPill from './EndpointHealthPill.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from '../../dataService.js';
@@ -238,6 +239,11 @@
         >
       {/if}
     </div>
+
+    <!-- Endpoint health pill — only renders when one or more /system page
+         endpoints are currently failing the periodic HealthChecker sweep.
+         Hidden when all green; red + count when not. Click → diagnostic. -->
+    <EndpointHealthPill />
 
     <!-- Local LLM status pill — always-on view of what's resident in
          VRAM, GPU temp, and model library size. Sits between the

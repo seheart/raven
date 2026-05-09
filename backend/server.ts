@@ -33,6 +33,7 @@ import { TriggerEngine } from './trigger-engine.js';
 import { FileWatcher, GitMonitor } from './modules/index.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { noSilentFailures } from './middleware/no-silent-failures.js';
 import { apiLimiter, setupHelmet } from './middleware/security.js';
 import { performanceMonitoring } from './middleware/performance.js';
 import { ClaudeLogWatcher } from './services/claude-log-watcher.js';
@@ -154,6 +155,10 @@ app.use(
 );
 app.use(express.json({ limit: '50mb' }));
 app.use(performanceMonitoring);
+// Promote "200 + {error: ...}" responses to 5xx so apiClient/UI/health
+// checks see real failures instead of silent empty data. Endpoints that
+// truly want a soft error can set res.locals.allowSoftError = true.
+app.use(noSilentFailures);
 
 // Server-side request timeout — kill requests that take too long.
 // Some operations (VACUUM, full-DB export, comprehensive health probes) can
@@ -680,6 +685,48 @@ httpServer.listen(PORT, BIND_HOST, async () => {
   setInterval(() => {
     projectsConfigService.refreshKnownProjects().catch(() => {});
   }, 300_000).unref();
+
+  // Periodic comprehensive health sweep — every /system page's primary
+  // endpoint exercised every 5 minutes. When checks fail, emit an
+  // `endpoint-health` event so the header chip can turn red and link to
+  // /system/diagnostic. Without this, regressions only surface when a
+  // human happens to visit the broken page. Pinned to 127.0.0.1 to dodge
+  // the IPv6 ::1 trap.
+  const { HealthChecker } = await import('./services/health-checker.js');
+  const portForChecks = process.env.PORT || '9100';
+  const periodicChecker = new HealthChecker(`http://127.0.0.1:${portForChecks}`, db);
+  const runEndpointSweep = async () => {
+    try {
+      const summary = await periodicChecker.runAll();
+      io.emit('endpoint-health', {
+        healthy: summary.healthy,
+        total: summary.total,
+        passed: summary.passed,
+        failed: summary.failed,
+        criticalFailed: summary.criticalFailed,
+        failures: summary.results
+          .filter(r => r.status === 'failed')
+          .map(r => ({ name: r.name, error: r.error, critical: r.critical })),
+        checked_at: new Date().toISOString()
+      });
+      if (summary.failed > 0) {
+        logger.warn(
+          `🩺 Endpoint sweep: ${summary.failed}/${summary.total} failed${
+            summary.criticalFailed > 0 ? ` (${summary.criticalFailed} critical)` : ''
+          }`
+        );
+      }
+    } catch (err) {
+      logger.error(
+        'Periodic endpoint sweep failed:',
+        err instanceof Error ? err : new Error(String(err))
+      );
+    }
+  };
+  // Defer the first run by 10s so the server has time to settle after
+  // boot, then every 5 min thereafter.
+  setTimeout(runEndpointSweep, 10_000).unref();
+  setInterval(runEndpointSweep, 5 * 60_000).unref();
 
   logger.info('✅ All services started successfully');
 });
