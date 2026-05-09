@@ -1,6 +1,7 @@
 <script>
   import RavenLogo from '../ui/RavenLogo.svelte';
   import HeartbeatIndicator from './HeartbeatIndicator.svelte';
+  import HeaderLlmPill from './HeaderLlmPill.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
   import { dataService } from '../../dataService.js';
@@ -237,6 +238,13 @@
         >
       {/if}
     </div>
+
+    <!-- Local LLM status pill — always-on view of what's resident in
+         VRAM, GPU temp, and model library size. Sits between the
+         activity strip and the heartbeat so the eyebrow tells a complete
+         "what's happening right now" story across project work, local
+         LLM, and agent activity. Hidden under xl to make room for nav. -->
+    <HeaderLlmPill />
 
     <!-- Persistent agent heartbeat — global presence element. Visible on
          every page; rhythm + color reflect the most-active agent's state.
