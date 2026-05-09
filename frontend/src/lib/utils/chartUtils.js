@@ -92,30 +92,38 @@ export function getChartPalette(count = 6) {
  * @returns {CanvasGradient | string}
  */
 export function chartGradient(ctx, opts = {}) {
-  if (!ctx?.createLinearGradient) {
-    return getChartColors().primary;
-  }
-  const y0 = opts.y0 ?? 0;
-  const y1 = opts.y1 ?? ctx.canvas?.height ?? 200;
-  // Guard: a degenerate gradient (y0 === y1) draws as a solid color and
-  // can flicker during the chart's first paint. Skip the gradient until
-  // chartArea has actual dimensions.
-  if (y1 - y0 < 4) {
-    return opts.color || getChartColors().primary;
-  }
-  const grad = ctx.createLinearGradient(0, y0, 0, y1);
-  if (opts.color) {
-    const hex = opts.color.replace('#', '');
-    if (hex.length === 6) {
-      grad.addColorStop(0, `#${hex}b3`); // 70% alpha at top
-      grad.addColorStop(1, `#${hex}0d`); // 5% alpha at bottom
-      return grad;
+  try {
+    if (!ctx?.createLinearGradient) {
+      return opts.color || getChartColors().primary || '#d97757';
     }
+    const y0 = opts.y0 ?? 0;
+    const y1 = opts.y1 ?? ctx.canvas?.height ?? 200;
+    // Guard: a degenerate gradient draws as a solid color and can flicker
+    // during the chart's first paint. Skip until chartArea has dimensions.
+    if (y1 - y0 < 4) {
+      return opts.color || getChartColors().primary || '#d97757';
+    }
+    const grad = ctx.createLinearGradient(0, y0, 0, y1);
+    if (opts.color) {
+      const hex = opts.color.replace('#', '');
+      if (hex.length === 6) {
+        grad.addColorStop(0, `#${hex}b3`);
+        grad.addColorStop(1, `#${hex}0d`);
+        return grad;
+      }
+    }
+    const colors = getChartColors();
+    grad.addColorStop(0, colors.gradTop || 'rgba(217, 119, 87, 0.65)');
+    grad.addColorStop(1, colors.gradBottom || 'rgba(217, 119, 87, 0.04)');
+    return grad;
+  } catch (err) {
+    // Never let a gradient error blank the whole chart — fall back to a
+    // solid color and log so we can find the cause if it ever fires.
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[chartGradient] fallback to solid:', err);
+    }
+    return opts.color || '#d97757';
   }
-  const colors = getChartColors();
-  grad.addColorStop(0, colors.gradTop);
-  grad.addColorStop(1, colors.gradBottom);
-  return grad;
 }
 
 /**
@@ -130,10 +138,17 @@ export function chartGradient(ctx, opts = {}) {
  * gradient a non-brand series.
  */
 export function chartFill(scriptCtx, opts = {}) {
-  const ctx = scriptCtx?.chart?.ctx;
-  const area = scriptCtx?.chart?.chartArea;
-  if (!ctx) return opts.color || getChartColors().primary;
-  return chartGradient(ctx, { y0: area?.top, y1: area?.bottom, ...opts });
+  try {
+    const ctx = scriptCtx?.chart?.ctx;
+    const area = scriptCtx?.chart?.chartArea;
+    if (!ctx) return opts.color || getChartColors().primary || '#d97757';
+    return chartGradient(ctx, { y0: area?.top, y1: area?.bottom, ...opts });
+  } catch (err) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[chartFill] fallback to solid:', err);
+    }
+    return opts.color || '#d97757';
+  }
 }
 
 /**
