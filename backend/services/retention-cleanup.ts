@@ -62,8 +62,7 @@ export function runRetentionCleanup(
     {
       name: 'analysis_checks',
       days: metricsDays,
-      via:
-        'DELETE FROM analysis_checks WHERE run_id IN (SELECT id FROM analysis_runs WHERE timestamp < ?)'
+      via: 'DELETE FROM analysis_checks WHERE run_id IN (SELECT id FROM analysis_runs WHERE timestamp < ?)'
     }
   ];
 

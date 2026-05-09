@@ -52,7 +52,12 @@ function setupApi({
     total_cache_read_tokens: 9_000_000
   },
   activity = [
-    { timestamp: new Date().toISOString(), type: 'tool', content: 'Bash: ls', metadata: { tool: 'Bash' } }
+    {
+      timestamp: new Date().toISOString(),
+      type: 'tool',
+      content: 'Bash: ls',
+      metadata: { tool: 'Bash' }
+    }
   ],
   events = [
     {
@@ -85,7 +90,7 @@ function setupApi({
   },
   insightsLatest = null
 } = {}) {
-  mockApiGet.mockImplementation((endpoint) => {
+  mockApiGet.mockImplementation(endpoint => {
     if (endpoint.startsWith('/costs/summary')) return Promise.resolve(costs);
     if (endpoint.startsWith('/session-activity')) return Promise.resolve({ entries: activity });
     if (endpoint.startsWith('/events/recent')) return Promise.resolve(events);
@@ -173,18 +178,25 @@ describe('TodayPage', () => {
   it('shows the disabled-insights hint when /insights/latest returns 503-shaped error', async () => {
     setupApi();
     // Override to throw a "disabled" error from latest, then have post mirror.
-    mockApiGet.mockImplementation((endpoint) => {
+    mockApiGet.mockImplementation(endpoint => {
       if (endpoint.startsWith('/insights/latest')) {
         return Promise.reject(new Error('API error (503): {"error":"Insights disabled"}'));
       }
       if (endpoint.startsWith('/costs/summary')) return Promise.resolve({ total_cost_usd: 0 });
       if (endpoint.startsWith('/session-activity')) return Promise.resolve({ entries: [] });
       if (endpoint.startsWith('/events/recent')) return Promise.resolve([]);
-      if (endpoint.startsWith('/today/narrative')) return Promise.resolve({
-        today: { events: 0, files: 0, projects: [], top_project: null, longest_session_seconds: 0 },
-        week: { events: 0, files: 0, projects: [], top_project: null, days_active: 0 },
-        returning: []
-      });
+      if (endpoint.startsWith('/today/narrative'))
+        return Promise.resolve({
+          today: {
+            events: 0,
+            files: 0,
+            projects: [],
+            top_project: null,
+            longest_session_seconds: 0
+          },
+          week: { events: 0, files: 0, projects: [], top_project: null, days_active: 0 },
+          returning: []
+        });
       return Promise.resolve(null);
     });
     mockApiPost.mockRejectedValue(new Error('API error (503): {"error":"Insights disabled"}'));

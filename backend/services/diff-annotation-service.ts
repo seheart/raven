@@ -44,7 +44,8 @@ const LINE_RULES: AnnotationRule[] = [
     severity: 'critical',
     category: 'security',
     test: line => /\b(password|passwd|pwd)\s*[:=]\s*["'][^"']{4,}["']/i.test(line),
-    message: 'A password literal appears in source. Move it to an environment variable or secret store.'
+    message:
+      'A password literal appears in source. Move it to an environment variable or secret store.'
   },
   {
     id: 'hardcoded-api-key',
@@ -71,8 +72,12 @@ const LINE_RULES: AnnotationRule[] = [
     severity: 'critical',
     category: 'security',
     // Catches AWS, GitHub PAT, Stripe, OpenAI, Anthropic-shaped token prefixes.
-    test: line => /["'](sk-[a-zA-Z0-9-]{20,}|ghp_[a-zA-Z0-9]{20,}|AKIA[A-Z0-9]{16}|xoxb-[a-zA-Z0-9-]{20,})["']/.test(line),
-    message: 'String matches a known credential format. Treat as a leaked secret until verified otherwise.'
+    test: line =>
+      /["'](sk-[a-zA-Z0-9-]{20,}|ghp_[a-zA-Z0-9]{20,}|AKIA[A-Z0-9]{16}|xoxb-[a-zA-Z0-9-]{20,})["']/.test(
+        line
+      ),
+    message:
+      'String matches a known credential format. Treat as a leaked secret until verified otherwise.'
   },
   {
     id: 'eval-usage',
@@ -80,7 +85,8 @@ const LINE_RULES: AnnotationRule[] = [
     severity: 'critical',
     category: 'security',
     test: line => /\b(eval|Function)\s*\(/.test(line) || /new\s+Function\s*\(/.test(line),
-    message: 'Dynamic code execution is a common RCE vector. Replace with explicit dispatch where possible.'
+    message:
+      'Dynamic code execution is a common RCE vector. Replace with explicit dispatch where possible.'
   },
   {
     id: 'no-verify-flag',
@@ -88,7 +94,8 @@ const LINE_RULES: AnnotationRule[] = [
     severity: 'warning',
     category: 'risk',
     test: line => /(--no-verify|--no-gpg-sign|-c\s+commit\.gpgsign\s*=\s*false)\b/.test(line),
-    message: 'Commit hooks or signing are being bypassed. Investigate the underlying failure rather than skipping.'
+    message:
+      'Commit hooks or signing are being bypassed. Investigate the underlying failure rather than skipping.'
   },
   {
     id: 'force-push',
@@ -96,7 +103,8 @@ const LINE_RULES: AnnotationRule[] = [
     severity: 'warning',
     category: 'risk',
     test: line => /git\s+push\s+(--force|-f)\b/.test(line),
-    message: 'Force-push can destroy remote history. Confirm this is intentional and not against a shared branch.'
+    message:
+      'Force-push can destroy remote history. Confirm this is intentional and not against a shared branch.'
   },
   {
     id: 'todo-fixme',
@@ -131,14 +139,18 @@ const FILE_RULES: FileRule[] = [
     severity: 'critical',
     category: 'sensitive-path',
     test: fp => /(^|\/)(secrets|credentials)\//i.test(fp),
-    message: 'Path segment suggests stored secrets. Confirm the file is encrypted or excluded from VCS.'
+    message:
+      'Path segment suggests stored secrets. Confirm the file is encrypted or excluded from VCS.'
   },
   {
     id: 'lockfile-touched',
     name: 'Lockfile touched',
     severity: 'info',
     category: 'sensitive-path',
-    test: fp => /(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Gemfile\.lock|go\.sum)$/i.test(fp),
+    test: fp =>
+      /(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Gemfile\.lock|go\.sum)$/i.test(
+        fp
+      ),
     message: 'Dependency lockfile changed — review carefully if you did not intend a dep update.'
   }
 ];

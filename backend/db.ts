@@ -141,7 +141,9 @@ export class RavenDB {
         session_id TEXT
       )
     `);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_gpu_metrics_timestamp ON gpu_metrics(timestamp DESC)`);
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_gpu_metrics_timestamp ON gpu_metrics(timestamp DESC)`
+    );
 
     // Migrate existing databases: add network/activity columns to process_metrics
     const pmCols = this.db.prepare('PRAGMA table_info(process_metrics)').all() as Array<{
@@ -268,9 +270,9 @@ export class RavenDB {
     `);
 
     // Insights table — local-LLM narrations + structured aggregates
-     // (e.g. weekly digests). Owned canonically here so consumers like
-     // digest-service can read it without depending on InsightsService
-     // having booted first.
+    // (e.g. weekly digests). Owned canonically here so consumers like
+    // digest-service can read it without depending on InsightsService
+    // having booted first.
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS insights (
         id TEXT PRIMARY KEY,

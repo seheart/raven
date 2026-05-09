@@ -67,7 +67,13 @@ function runCommand(
           // generic DISABLE_AUTH name; we clear both for safety during
           // any transitional period.
           RAVEN_DEV_DISABLE_AUTH: '',
-          DISABLE_AUTH: ''
+          DISABLE_AUTH: '',
+          // Same reason: if the dev backend was started with insights
+          // disabled (RAVEN_INSIGHTS_DISABLED=1), the route tests would
+          // inherit that and see 503 from /generate/* instead of the
+          // expected 202. Tests build their own InsightsService and need
+          // a clean env to exercise the enabled path.
+          RAVEN_INSIGHTS_DISABLED: ''
         }
       },
       (error, stdout, stderr) => {
@@ -398,7 +404,12 @@ export class SelfAnalysisService {
             for (const t of failures) {
               readable += `  ✕ ${t.fullName}\n`;
               if (t.failureMessages?.[0]) {
-                readable += `    ${t.failureMessages[0].split('\n')[0]}\n`;
+                // Keep the first ~8 lines of the failure: assertion + the
+                // Expected/Received block + a few stack frames. Single-line
+                // truncation lost the actual values, leaving only "Object.is
+                // equality" — useless for debugging.
+                const trimmed = t.failureMessages[0].split('\n').slice(0, 8).join('\n    ');
+                readable += `    ${trimmed}\n`;
               }
             }
             readable += '\n';
@@ -728,7 +739,13 @@ export class SelfAnalysisService {
     // Route shape match: strip parameter *names*, keep just ":" placeholders.
     // `/api/projects/{name}` and `/api/projects/:id` both become `/api/projects/:`,
     // so a documented route with a differently-named param still counts as implemented.
-    const normalize = (p: string): string => p.replace(/\{(\w+)\}/g, ':').replace(/:\w+/g, ':');
+    // Also strip a trailing slash so `app.use('/telemetry', router)` + `router.post('/')`
+    // (which enumerates as `/telemetry/`) matches a documented `/telemetry`.
+    const normalize = (p: string): string =>
+      p
+        .replace(/\{(\w+)\}/g, ':')
+        .replace(/:\w+/g, ':')
+        .replace(/(.)\/+$/, '$1');
     const implementedNorm = new Set(Array.from(implemented).map(normalize));
     const missing = documented.filter(p => !implementedNorm.has(normalize(p)));
 

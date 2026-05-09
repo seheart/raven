@@ -289,9 +289,7 @@ export class OllamaLogWatcher {
     // Resolve the resident model so the event attributes to the right row in
     // ActiveModelCard. The journal line only has endpoint + duration; /api/ps
     // gives us the model that just served the request (cached 5s).
-    const { model, details } = isError
-      ? { model: null, details: null }
-      : await getResidentModel();
+    const { model, details } = isError ? { model: null, details: null } : await getResidentModel();
 
     const metadata: Record<string, unknown> = {
       endpoint: path,

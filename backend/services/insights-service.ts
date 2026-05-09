@@ -83,11 +83,7 @@ export class InsightsService {
   // taking down Ollama itself (which other apps may be sharing).
   private readonly disabled: boolean = process.env.RAVEN_INSIGHTS_DISABLED === '1';
 
-  constructor(
-    db: RavenDB,
-    ollamaUrl?: string,
-    model?: string
-  ) {
+  constructor(db: RavenDB, ollamaUrl?: string, model?: string) {
     this.db = db;
     // Only treat explicitly-passed url as override; otherwise read env lazily.
     this.ollamaUrlOverride = ollamaUrl ?? null;
