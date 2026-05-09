@@ -22,6 +22,8 @@
   // State
   let stats = $state({
     total_events: 0,
+    lifetime_events: 0,
+    lifetime_agent_events: 0,
     total_files: 0,
     creates: 0,
     edits: 0,
@@ -74,6 +76,7 @@
   // Visual enhancements
   let prevStats = $state({
     total_events: 0,
+    lifetime_events: 0,
     total_files: 0,
     creates: 0,
     edits: 0,
@@ -306,6 +309,7 @@
     const flashes = {};
     for (const key of [
       'total_events',
+      'lifetime_events',
       'total_files',
       'creates',
       'edits',
@@ -941,7 +945,7 @@
         class="flex flex-wrap items-center gap-2 mb-3 bg-surface border border-border rounded px-3 py-2"
       >
         <!-- Stats inline -->
-        {#each [{ key: 'total_events', label: 'Events', value: stats.total_events, tip: 'Total file-change events recorded today across watched projects.' }] as stat (stat.key)}
+        {#each [{ key: 'lifetime_events', label: 'Events', value: stats.lifetime_events || stats.total_events, tip: stats.lifetime_events && stats.lifetime_events > stats.total_events ? `Lifetime file-change events across watched projects. ${formatNumber(stats.total_events)} are still in the rolling 7-day window; older events were retention-purged but stay counted here.` : 'Lifetime file-change events across watched projects (kept in project_stats so retention purges don’t lose history).' }] as stat (stat.key)}
           <span
             class="text-[11px] font-mono {statsFlash[stat.key] ? 'stat-flash' : ''}"
             title={stat.tip}

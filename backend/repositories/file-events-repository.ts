@@ -63,6 +63,22 @@ export interface FileEventsRepository {
   eventCountsByProject(): Map<string, number>;
 
   /**
+   * Lifetime per-project totals from project_stats — survives the 7-day
+   * retention purge that hits the events table. Returns counts plus
+   * first/last seen timestamps.
+   */
+  lifetimeStatsByProject(): Map<
+    string,
+    {
+      total_events: number;
+      total_agent_events: number;
+      first_seen_at: string | null;
+      last_seen_at: string | null;
+      last_agent_seen_at: string | null;
+    }
+  >;
+
+  /**
    * Single event by id with the columns needed for diff inspection.
    * Returns undefined if no row matches.
    */
@@ -312,6 +328,51 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
         // route behavior of "every count stays 0".
       }
       return counts;
+    },
+
+    lifetimeStatsByProject() {
+      const stats = new Map<
+        string,
+        {
+          total_events: number;
+          total_agent_events: number;
+          first_seen_at: string | null;
+          last_seen_at: string | null;
+          last_agent_seen_at: string | null;
+        }
+      >();
+      try {
+        const rows = db.db
+          .prepare<
+            unknown[],
+            {
+              project_name: string;
+              total_events: number;
+              total_agent_events: number;
+              first_seen_at: string | null;
+              last_seen_at: string | null;
+              last_agent_seen_at: string | null;
+            }
+          >(
+            `SELECT project_name, total_events, total_agent_events,
+                    first_seen_at, last_seen_at, last_agent_seen_at
+               FROM project_stats`
+          )
+          .all();
+        for (const r of rows) {
+          stats.set(r.project_name, {
+            total_events: r.total_events,
+            total_agent_events: r.total_agent_events,
+            first_seen_at: r.first_seen_at,
+            last_seen_at: r.last_seen_at,
+            last_agent_seen_at: r.last_agent_seen_at
+          });
+        }
+      } catch {
+        // Table not yet created (first boot before migration ran) — empty
+        // map keeps the projects route returning sensible zeros.
+      }
+      return stats;
     },
 
     byId(id) {

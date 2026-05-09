@@ -97,14 +97,26 @@ export function createProjectsRouter({
     try {
       const config = await projectsConfigService.load();
 
-      // Single GROUP BY query instead of one COUNT(*) per project — owned
-      // by the repo. Missing-table case keeps every count at 0.
+      // Two views of activity:
+      //  - `eventCount` (recent): live rows in the events table — capped to
+      //    the 7-day retention window. Falls to 0 for projects untouched
+      //    recently, which surprised users.
+      //  - `lifetimeEventCount` / `lifetimeAgentEventCount`: pulled from
+      //    project_stats (trigger-maintained) so totals survive purge.
       const counts = fileEventsRepo.eventCountsByProject();
+      const lifetime = fileEventsRepo.lifetimeStatsByProject();
 
-      const projects = config.projects.map(project => ({
-        ...project,
-        eventCount: counts.get(project.name) ?? 0
-      }));
+      const projects = config.projects.map(project => {
+        const stat = lifetime.get(project.name);
+        return {
+          ...project,
+          eventCount: counts.get(project.name) ?? 0,
+          lifetimeEventCount: stat?.total_events ?? 0,
+          lifetimeAgentEventCount: stat?.total_agent_events ?? 0,
+          firstSeenAt: stat?.first_seen_at ?? null,
+          lastSeenAt: stat?.last_seen_at ?? null
+        };
+      });
 
       return res.json({ ...config, projects });
     } catch (error) {

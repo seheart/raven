@@ -10,6 +10,10 @@
   let loading = $state(true);
   let discovering = $state(false);
   let error = $state(null);
+  // null = unknown (still loading), true/false = checked. Drives the
+  // AI Summary button: when false, we disable it instead of letting the
+  // user click into a guaranteed 503.
+  let insightsAvailable = $state(null);
 
   // Edit/Add state
   let editingProject = $state(null); // null = list view, 'new' = add, or project object = edit
@@ -20,7 +24,19 @@
     ignorePatterns: ['node_modules', '.git', 'dist', 'build']
   });
 
-  onMount(() => loadConfig());
+  onMount(() => {
+    loadConfig();
+    checkInsights();
+  });
+
+  async function checkInsights() {
+    try {
+      const data = await api.get('/insights/status', { silent: true });
+      insightsAvailable = data?.available === true;
+    } catch {
+      insightsAvailable = false;
+    }
+  }
 
   onDestroy(() => abortRequests());
 
@@ -139,9 +155,25 @@
     } catch (err) {
       healthNarratives = {
         ...healthNarratives,
-        [projectName]: { loading: false, content: null, error: err.message }
+        [projectName]: { loading: false, content: null, error: friendlyError(err.message) }
       };
     }
+  }
+
+  // The apiClient throws "API error (503): {raw json body}". When the body
+  // is the structured insights-disabled response, surface its `message`
+  // instead of dumping JSON in the UI; otherwise return the original.
+  function friendlyError(raw) {
+    const m = raw?.match(/^API error \(\d+\): (\{.*\})$/);
+    if (m) {
+      try {
+        const body = JSON.parse(m[1]);
+        if (body?.message) return body.message;
+      } catch {
+        // fall through
+      }
+    }
+    return raw;
   }
 
   function _formatBytes(bytes) {
@@ -272,14 +304,39 @@
                 </div>
                 <div class="text-xs text-muted truncate">{project.path}</div>
               </div>
-              <div class="text-xs text-muted font-mono flex-shrink-0">
-                {project.eventCount || project.event_count || 0} events
+              <div
+                class="text-xs text-muted font-mono flex-shrink-0 text-right leading-tight"
+                title={project.firstSeenAt
+                  ? `First seen ${new Date(project.firstSeenAt).toLocaleDateString()}` +
+                    (project.lastSeenAt
+                      ? ` · last ${new Date(project.lastSeenAt).toLocaleDateString()}`
+                      : '')
+                  : ''}
+              >
+                <div>
+                  {(
+                    project.lifetimeEventCount ??
+                    project.eventCount ??
+                    project.event_count ??
+                    0
+                  ).toLocaleString()} events
+                </div>
+                {#if (project.eventCount ?? 0) > 0 && (project.lifetimeEventCount ?? 0) > (project.eventCount ?? 0)}
+                  <div class="text-[10px] text-muted/70">
+                    {project.eventCount.toLocaleString()} in last 7d
+                  </div>
+                {:else if (project.lifetimeEventCount ?? 0) > 0 && (project.eventCount ?? 0) === 0}
+                  <div class="text-[10px] text-muted/70">none in last 7d</div>
+                {/if}
               </div>
               <div class="flex flex-wrap gap-2 flex-shrink-0">
                 <button
                   onclick={() => getProjectHealth(project.name)}
-                  disabled={healthNarratives[project.name]?.loading}
-                  class="px-2 py-1 bg-accent text-canvas rounded text-xs font-sans hover:opacity-90 transition-opacity disabled:opacity-40"
+                  disabled={healthNarratives[project.name]?.loading || insightsAvailable === false}
+                  title={insightsAvailable === false
+                    ? 'Local-LLM insights are off. Restart Raven without RAVEN_INSIGHTS_DISABLED=1 to enable.'
+                    : ''}
+                  class="px-2 py-1 bg-accent text-canvas rounded text-xs font-sans hover:bg-accent-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
                 </button>
@@ -305,7 +362,7 @@
             {#if healthNarratives[project.name]?.content}
               <div class="px-5 pb-4 -mt-2">
                 <div
-                  class="bg-canvas border border-border rounded p-3 text-sm text-body font-sans leading-relaxed"
+                  class="bg-canvas border border-border rounded p-4 text-base text-body font-sans leading-relaxed"
                 >
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
                   {@html renderMarkdown(healthNarratives[project.name].content)}

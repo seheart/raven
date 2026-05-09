@@ -44,6 +44,13 @@ interface PerformanceCorrelation {
 
 interface DashboardStats {
   total_events: number;
+  /** Lifetime per-project event count summed across all watched projects.
+   *  Pulled from project_stats (trigger-maintained) so it survives the
+   *  7-day retention purge that caps `total_events`. The header uses this
+   *  as the headline number; the recent count rides as a subtitle. */
+  lifetime_events: number;
+  /** Lifetime agent event count, same source. */
+  lifetime_agent_events: number;
   total_files: number;
   total_agents: number;
   session_duration_seconds: number;
@@ -478,8 +485,28 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
       // across the database; session-scoped stats land in dashboardRepo.
       void session_id;
 
+      // Lifetime totals from project_stats — survives retention. Falls back
+      // to 0 if the table is missing (very old DBs that haven't migrated).
+      let lifetimeEvents = 0;
+      let lifetimeAgentEvents = 0;
+      try {
+        const row = db.db
+          .prepare(
+            `SELECT COALESCE(SUM(total_events), 0) AS e,
+                    COALESCE(SUM(total_agent_events), 0) AS a
+               FROM project_stats`
+          )
+          .get() as { e: number; a: number } | undefined;
+        lifetimeEvents = row?.e ?? 0;
+        lifetimeAgentEvents = row?.a ?? 0;
+      } catch {
+        /* project_stats not yet created on first boot */
+      }
+
       return {
         total_events: eventStats?.total_events || 0,
+        lifetime_events: lifetimeEvents,
+        lifetime_agent_events: lifetimeAgentEvents,
         total_files: eventStats?.total_files || 0,
         total_agents: 0, // Filled in by the route from agent registry
         session_duration_seconds,

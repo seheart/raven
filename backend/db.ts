@@ -84,6 +84,80 @@ export class RavenDB {
       this.db.exec('ALTER TABLE agent_events ADD COLUMN project_name TEXT');
     }
 
+    // Lifetime per-project counters. The events/agent_events tables are
+    // retention-purged at 7 days, which made the projects-page "events"
+    // column collapse to 0 for any project not touched recently. This table
+    // is NOT retention-purged — it's an append-only counter kept current via
+    // triggers so totals survive cleanup forever.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS project_stats (
+        project_name TEXT PRIMARY KEY,
+        total_events INTEGER NOT NULL DEFAULT 0,
+        total_agent_events INTEGER NOT NULL DEFAULT 0,
+        first_seen_at TEXT,
+        last_seen_at TEXT,
+        last_agent_seen_at TEXT
+      )
+    `);
+    // Triggers fire atomically with the insert; no app code can forget to
+    // bump counters. ON CONFLICT keeps the upsert single-statement.
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS bump_project_stats_events
+      AFTER INSERT ON events
+      WHEN NEW.project_name IS NOT NULL AND NEW.project_name != ''
+      BEGIN
+        INSERT INTO project_stats (project_name, total_events, first_seen_at, last_seen_at)
+        VALUES (NEW.project_name, 1, NEW.timestamp, NEW.timestamp)
+        ON CONFLICT(project_name) DO UPDATE SET
+          total_events = total_events + 1,
+          last_seen_at = NEW.timestamp,
+          first_seen_at = COALESCE(first_seen_at, NEW.timestamp);
+      END
+    `);
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS bump_project_stats_agent_events
+      AFTER INSERT ON agent_events
+      WHEN NEW.project_name IS NOT NULL AND NEW.project_name != ''
+      BEGIN
+        INSERT INTO project_stats (project_name, total_agent_events, first_seen_at, last_agent_seen_at)
+        VALUES (NEW.project_name, 1, NEW.timestamp, NEW.timestamp)
+        ON CONFLICT(project_name) DO UPDATE SET
+          total_agent_events = total_agent_events + 1,
+          last_agent_seen_at = NEW.timestamp,
+          first_seen_at = COALESCE(first_seen_at, NEW.timestamp);
+      END
+    `);
+    // One-time backfill so projects with surviving (non-yet-purged) events
+    // start with an honest baseline. INSERT OR IGNORE makes this safe to
+    // run on every boot — once a row exists, the trigger owns it.
+    const backfilled = this.db.prepare('SELECT COUNT(*) as n FROM project_stats').get() as {
+      n: number;
+    };
+    if (backfilled.n === 0) {
+      this.db.exec(`
+        INSERT INTO project_stats (project_name, total_events, first_seen_at, last_seen_at)
+        SELECT project_name, COUNT(*), MIN(timestamp), MAX(timestamp)
+          FROM events
+         WHERE project_name IS NOT NULL AND project_name != ''
+         GROUP BY project_name
+        ON CONFLICT(project_name) DO UPDATE SET
+          total_events = excluded.total_events,
+          first_seen_at = COALESCE(project_stats.first_seen_at, excluded.first_seen_at),
+          last_seen_at = excluded.last_seen_at
+      `);
+      this.db.exec(`
+        INSERT INTO project_stats (project_name, total_agent_events, first_seen_at, last_agent_seen_at)
+        SELECT project_name, COUNT(*), MIN(timestamp), MAX(timestamp)
+          FROM agent_events
+         WHERE project_name IS NOT NULL AND project_name != ''
+         GROUP BY project_name
+        ON CONFLICT(project_name) DO UPDATE SET
+          total_agent_events = excluded.total_agent_events,
+          first_seen_at = COALESCE(project_stats.first_seen_at, excluded.first_seen_at),
+          last_agent_seen_at = excluded.last_agent_seen_at
+      `);
+    }
+
     // Performance metrics table
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS raven_metrics (
