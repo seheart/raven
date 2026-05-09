@@ -364,205 +364,177 @@
         <span class="text-xs text-muted font-mono">{timeSinceUpdate}</span>
         <ToolbarButton onClick={exportToCSV}>Export CSV</ToolbarButton>
         <ToolbarButton onClick={exportToJSON}>Export JSON</ToolbarButton>
-        <RefreshButton onClick={loadTrends} loading={loading} />
+        <RefreshButton onClick={loadTrends} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    <!-- Filters -->
+  <!-- Filters -->
+  <div class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-6 flex-wrap">
+    <div class="flex items-center gap-3">
+      <label for="period-select" class="text-sm text-muted">Period</label>
+      <select
+        id="period-select"
+        value={period}
+        onchange={handlePeriodChange}
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+      >
+        <option value="hourly">Hourly</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-3">
+      <label for="days-select" class="text-sm text-muted">Last</label>
+      <select
+        id="days-select"
+        value={days}
+        onchange={handleDaysChange}
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+      >
+        <option value="1">24 hours</option>
+        <option value="7">7 days</option>
+        <option value="14">14 days</option>
+        <option value="30">30 days</option>
+        <option value="90">90 days</option>
+      </select>
+    </div>
+  </div>
+
+  {#if loading}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {#each Array(4) as _, i (i)}
+        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
+      {/each}
+    </div>
+  {:else if error}
     <div
-      class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-6 flex-wrap"
+      class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
     >
-      <div class="flex items-center gap-3">
-        <label for="period-select" class="text-sm text-muted">Period</label>
-        <select
-          id="period-select"
-          value={period}
-          onchange={handlePeriodChange}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
-        >
-          <option value="hourly">Hourly</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-        </select>
+      <span class="text-sm text-error font-sans">Error loading trends: {error}</span>
+      <ToolbarButton variant="danger" onClick={loadTrends}>Try Again</ToolbarButton>
+    </div>
+  {:else if initialized && trends.length === 0}
+    <EmptyState
+      size="compact"
+      title="No activity data for the selected period"
+      description="Try selecting a longer time range"
+    />
+  {:else}
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Total Events
+        </div>
+        <div class="text-sm font-mono text-body">
+          {totalEvents.toLocaleString()}
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <label for="days-select" class="text-sm text-muted">Last</label>
-        <select
-          id="days-select"
-          value={days}
-          onchange={handleDaysChange}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
-        >
-          <option value="1">24 hours</option>
-          <option value="7">7 days</option>
-          <option value="14">14 days</option>
-          <option value="30">30 days</option>
-          <option value="90">90 days</option>
-        </select>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Modifications
+        </div>
+        <div class="text-sm font-mono text-body">
+          {totalModifications.toLocaleString()}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Creations</div>
+        <div class="text-sm font-mono text-body">
+          {totalCreations.toLocaleString()}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Deletions</div>
+        <div class="text-sm font-mono text-body">
+          {totalDeletions.toLocaleString()}
+        </div>
+      </div>
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Unique Files
+        </div>
+        <div class="text-sm font-mono text-body">
+          {totalUniqueFiles.toLocaleString()}
+        </div>
       </div>
     </div>
 
-    {#if loading}
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {#each Array(4) as _, i (i)}
-          <div
-            class="h-24 bg-surface border border-border rounded-lg animate-pulse"
-          ></div>
-        {/each}
-      </div>
-    {:else if error}
-      <div
-        class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
-      >
-        <span class="text-sm text-error font-sans">Error loading trends: {error}</span>
-        <ToolbarButton variant="danger" onClick={loadTrends}>Try Again</ToolbarButton>
-      </div>
-    {:else if initialized && trends.length === 0}
-      <EmptyState
-        size="compact"
-        title="No activity data for the selected period"
-        description="Try selecting a longer time range"
-      />
-    {:else}
-      <!-- Summary Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Events
-          </div>
-          <div class="text-sm font-mono text-body">
-            {totalEvents.toLocaleString()}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Modifications
-          </div>
-          <div class="text-sm font-mono text-body">
-            {totalModifications.toLocaleString()}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Creations
-          </div>
-          <div class="text-sm font-mono text-body">
-            {totalCreations.toLocaleString()}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Deletions
-          </div>
-          <div class="text-sm font-mono text-body">
-            {totalDeletions.toLocaleString()}
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Unique Files
-          </div>
-          <div class="text-sm font-mono text-body">
-            {totalUniqueFiles.toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      <!-- Visualizations Section -->
-      <div class="bg-surface border border-border rounded-lg p-5 mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
-            Analytics Visualizations
-          </h3>
-          <button
-            onclick={() => (showCharts = !showCharts)}
-            class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >
-            {showCharts ? 'Hide Charts' : 'Show Charts'}
-          </button>
-        </div>
-
-        {#if showCharts}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Trends Over Time Chart -->
-            <div class="bg-canvas border border-border rounded-lg p-4">
-              <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">
-                <canvas id="chart-trends-over-time"></canvas>
-              </div>
-            </div>
-
-            <!-- Period Comparison Chart -->
-            <div class="bg-canvas border border-border rounded-lg p-4">
-              <div role="img" aria-label={periodComparisonAriaLabel} style="height: 250px;">
-                <canvas id="chart-period-comparison"></canvas>
-              </div>
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <!-- Data Table -->
-      <div class="bg-surface border border-border rounded-lg p-5">
-        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-          Period Breakdown
+    <!-- Visualizations Section -->
+    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
+          Analytics Visualizations
         </h3>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas border-b border-border">
-              <tr class="text-left">
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
-                  >Period</th
+        <button
+          onclick={() => (showCharts = !showCharts)}
+          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-sans hover:border-accent transition-colors"
+        >
+          {showCharts ? 'Hide Charts' : 'Show Charts'}
+        </button>
+      </div>
+
+      {#if showCharts}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Trends Over Time Chart -->
+          <div class="bg-canvas border border-border rounded-lg p-4">
+            <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">
+              <canvas id="chart-trends-over-time"></canvas>
+            </div>
+          </div>
+
+          <!-- Period Comparison Chart -->
+          <div class="bg-canvas border border-border rounded-lg p-4">
+            <div role="img" aria-label={periodComparisonAriaLabel} style="height: 250px;">
+              <canvas id="chart-period-comparison"></canvas>
+            </div>
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Data Table -->
+    <div>
+      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
+        Period Breakdown
+      </h3>
+      <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-canvas">
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Period</th>
+              <th class="text-right font-semibold px-3 py-1">Events</th>
+              <th class="text-right font-semibold px-3 py-1">Modified</th>
+              <th class="text-right font-semibold px-3 py-1">Created</th>
+              <th class="text-right font-semibold px-3 py-1">Deleted</th>
+              <th class="text-right font-semibold px-3 py-1">Files</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each trends as t (t.period)}
+              <tr class="hover:bg-surface/40">
+                <td class="px-3 py-0.5 text-body">{formatPeriod(t.period)}</td>
+                <td class="px-3 py-0.5 text-body text-right"
+                  >{(t.event_count || 0).toLocaleString()}</td
                 >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Events</th
+                <td class="px-3 py-0.5 text-body text-right"
+                  >{(t.modifications || 0).toLocaleString()}</td
                 >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Modified</th
+                <td class="px-3 py-0.5 text-body text-right"
+                  >{(t.creations || 0).toLocaleString()}</td
                 >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Created</th
+                <td class="px-3 py-0.5 text-body text-right"
+                  >{(t.deletions || 0).toLocaleString()}</td
                 >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Deleted</th
-                >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Files</th
+                <td class="px-3 py-0.5 text-body text-right"
+                  >{(t.unique_files || 0).toLocaleString()}</td
                 >
               </tr>
-            </thead>
-            <tbody>
-              {#each trends as t (t.period)}
-                <tr class="border-b border-border hover:bg-canvas transition-colors">
-                  <td class="px-3 py-2 text-sm font-mono text-body"
-                    >{formatPeriod(t.period)}</td
-                  >
-                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
-                    >{(t.event_count || 0).toLocaleString()}</td
-                  >
-                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
-                    >{(t.modifications || 0).toLocaleString()}</td
-                  >
-                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
-                    >{(t.creations || 0).toLocaleString()}</td
-                  >
-                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
-                    >{(t.deletions || 0).toLocaleString()}</td
-                  >
-                  <td class="px-3 py-2 text-sm font-mono text-body text-right"
-                    >{(t.unique_files || 0).toLocaleString()}</td
-                  >
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+            {/each}
+          </tbody>
+        </table>
       </div>
-    {/if}
+    </div>
+  {/if}
 </PageLayout>

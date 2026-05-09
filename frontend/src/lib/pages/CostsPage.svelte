@@ -393,34 +393,31 @@
 
     <!-- Model Breakdown -->
     {#if byModel.length > 0}
-      <div class="bg-surface border border-border rounded p-4 mb-6">
+      <div class="mb-6">
         <h3 class="text-sm font-semibold text-heading mb-3">Usage by Model</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm font-mono">
-            <thead>
-              <tr
-                class="text-left text-xs text-muted uppercase tracking-wide border-b border-border"
-              >
-                <th class="pb-2 pr-4">Model</th>
-                <th class="pb-2 pr-4 text-right">Requests</th>
-                <th class="pb-2 pr-4 text-right">Input</th>
-                <th class="pb-2 pr-4 text-right">Output</th>
-                {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
+        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-canvas">
+              <tr class="text-[11px] text-muted uppercase tracking-wide">
+                <th class="text-left font-semibold px-3 py-1">Model</th>
+                <th class="text-right font-semibold px-3 py-1">Requests</th>
+                <th class="text-right font-semibold px-3 py-1">Input</th>
+                <th class="text-right font-semibold px-3 py-1">Output</th>
+                {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
               </tr>
             </thead>
             <tbody>
               {#each byModel as model (model.model)}
-                <tr
-                  class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors"
-                >
-                  <td class="py-2 pr-4 text-body">{model.model_family || model.model}</td>
-                  <td class="py-2 pr-4 text-right text-muted">{model.requests}</td>
-                  <td class="py-2 pr-4 text-right text-muted">{formatTokens(model.input_tokens)}</td
+                <tr class="hover:bg-surface/40">
+                  <td class="px-3 py-0.5 text-body">{model.model_family || model.model}</td>
+                  <td class="px-3 py-0.5 text-right text-muted">{model.requests}</td>
+                  <td class="px-3 py-0.5 text-right text-muted"
+                    >{formatTokens(model.input_tokens)}</td
                   >
-                  <td class="py-2 pr-4 text-right text-accent font-semibold"
+                  <td class="px-3 py-0.5 text-right text-accent font-semibold"
                     >{formatTokens(model.output_tokens)}</td
                   >
-                  {#if isApi}<td class="py-2 text-right text-accent font-semibold"
+                  {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
                       >{formatCost(model.cost_usd)}</td
                     >{/if}
                 </tr>
@@ -433,35 +430,31 @@
 
     <!-- Project Breakdown -->
     {#if byProject.length > 0}
-      <div class="bg-surface border border-border rounded p-4 mb-6">
+      <div class="mb-6">
         <h3 class="text-sm font-semibold text-heading mb-3">Usage by Project</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm font-mono">
-            <thead>
-              <tr
-                class="text-left text-xs text-muted uppercase tracking-wide border-b border-border"
-              >
-                <th class="pb-2 pr-4">Project</th>
-                <th class="pb-2 pr-4 text-right">Requests</th>
-                <th class="pb-2 pr-4 text-right">Input</th>
-                <th class="pb-2 pr-4 text-right">Output</th>
-                {#if isApi}<th class="pb-2 text-right">Est. Cost</th>{/if}
+        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-canvas">
+              <tr class="text-[11px] text-muted uppercase tracking-wide">
+                <th class="text-left font-semibold px-3 py-1">Project</th>
+                <th class="text-right font-semibold px-3 py-1">Requests</th>
+                <th class="text-right font-semibold px-3 py-1">Input</th>
+                <th class="text-right font-semibold px-3 py-1">Output</th>
+                {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
               </tr>
             </thead>
             <tbody>
               {#each byProject as project (project.project_name)}
-                <tr
-                  class="border-b border-border border-opacity-50 hover:bg-canvas transition-colors"
-                >
-                  <td class="py-2 pr-4 text-body">{project.project_name || '(unknown)'}</td>
-                  <td class="py-2 pr-4 text-right text-muted">{project.requests}</td>
-                  <td class="py-2 pr-4 text-right text-muted"
+                <tr class="hover:bg-surface/40">
+                  <td class="px-3 py-0.5 text-body">{project.project_name || '(unknown)'}</td>
+                  <td class="px-3 py-0.5 text-right text-muted">{project.requests}</td>
+                  <td class="px-3 py-0.5 text-right text-muted"
                     >{formatTokens(project.input_tokens)}</td
                   >
-                  <td class="py-2 pr-4 text-right text-accent font-semibold"
+                  <td class="px-3 py-0.5 text-right text-accent font-semibold"
                     >{formatTokens(project.output_tokens)}</td
                   >
-                  {#if isApi}<td class="py-2 text-right text-accent font-semibold"
+                  {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
                       >{formatCost(project.cost_usd)}</td
                     >{/if}
                 </tr>

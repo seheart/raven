@@ -282,111 +282,90 @@
     />
   {:else}
     <!-- Table -->
-    <div class="bg-surface border border-border rounded-lg overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-canvas border-b border-border">
-            <tr class="text-left">
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
-                onclick={() => handleSort('name')}
-              >
-                Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}
-              </th>
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
-                onclick={() => handleSort('path')}
-              >
-                Path {sortBy === 'path' ? (sortDesc ? '▼' : '▲') : ''}
-              </th>
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
-                onclick={() => handleSort('events')}
-              >
-                Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}
-              </th>
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
-                onclick={() => handleSort('files')}
-              >
-                Files {sortBy === 'files' ? (sortDesc ? '▼' : '▲') : ''}
-              </th>
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors text-right font-sans"
-                onclick={() => handleSort('agent')}
-              >
-                Agent Events {sortBy === 'agent' ? (sortDesc ? '▼' : '▲') : ''}
-              </th>
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide cursor-pointer hover:text-accent transition-colors font-sans"
-                onclick={() => handleSort('activity')}
-              >
-                Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}
-              </th>
-              <th
-                class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide font-sans"
-              >
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each sortedProjects as project (project.name)}
-              {@const status = getActivityStatus(project.last_activity)}
-              <tr class="border-b border-border hover:bg-canvas transition-colors">
-                <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
-                  {project.name}
-                </td>
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-muted font-mono truncate max-w-[28rem]">
-                      {project.path || 'N/A'}
-                    </span>
-                    {#if project.path}
-                      <button
-                        class="text-sm opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
-                        onclick={() => copyPath(project.path)}
-                        title="Copy path"
-                      >
-                      </button>
-                    {/if}
-                  </div>
-                </td>
-                <td class="px-4 py-3 text-sm font-semibold text-body font-mono text-right">
-                  {formatNumber(project.total_events)}
-                </td>
-                <td class="px-4 py-3 text-sm font-mono text-body text-right">
-                  {formatNumber(project.file_count)}
-                </td>
-                <td class="px-4 py-3 text-sm font-mono text-body text-right">
-                  {formatNumber(project.agent_events)}
-                </td>
-                <td class="px-4 py-3 text-sm text-body font-mono">
-                  {#if project.last_activity}
-                    {formatDateTime(project.last_activity)}
-                  {:else}
-                    Never
+    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-canvas">
+          <tr class="text-[11px] text-muted uppercase tracking-wide">
+            <th
+              class="text-left font-semibold px-3 py-1 cursor-pointer hover:text-accent transition-colors"
+              onclick={() => handleSort('name')}
+              >Project {sortBy === 'name' ? (sortDesc ? '▼' : '▲') : ''}</th
+            >
+            <th
+              class="text-left font-semibold px-3 py-1 cursor-pointer hover:text-accent transition-colors"
+              onclick={() => handleSort('path')}
+              >Path {sortBy === 'path' ? (sortDesc ? '▼' : '▲') : ''}</th
+            >
+            <th
+              class="text-right font-semibold px-3 py-1 cursor-pointer hover:text-accent transition-colors"
+              onclick={() => handleSort('events')}
+              >Events {sortBy === 'events' ? (sortDesc ? '▼' : '▲') : ''}</th
+            >
+            <th
+              class="text-right font-semibold px-3 py-1 cursor-pointer hover:text-accent transition-colors"
+              onclick={() => handleSort('files')}
+              >Files {sortBy === 'files' ? (sortDesc ? '▼' : '▲') : ''}</th
+            >
+            <th
+              class="text-right font-semibold px-3 py-1 cursor-pointer hover:text-accent transition-colors"
+              onclick={() => handleSort('agent')}
+              >Agent Events {sortBy === 'agent' ? (sortDesc ? '▼' : '▲') : ''}</th
+            >
+            <th
+              class="text-left font-semibold px-3 py-1 cursor-pointer hover:text-accent transition-colors"
+              onclick={() => handleSort('activity')}
+              >Last Activity {sortBy === 'activity' ? (sortDesc ? '▼' : '▲') : ''}</th
+            >
+            <th class="text-left font-semibold px-3 py-1">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each sortedProjects as project (project.name)}
+            {@const status = getActivityStatus(project.last_activity)}
+            <tr class="hover:bg-surface/40">
+              <td class="px-3 py-0.5 font-semibold text-accent">{project.name}</td>
+              <td class="px-3 py-0.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-muted truncate max-w-[28rem]">{project.path || 'N/A'}</span>
+                  {#if project.path}
+                    <button
+                      class="opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+                      onclick={() => copyPath(project.path)}
+                      title="Copy path"
+                    ></button>
                   {/if}
-                </td>
-                <td class="px-4 py-3">
-                  <span class="flex items-center gap-2 text-sm font-mono">
-                    <span
-                      class="w-2 h-2 rounded-full {status.class === 'active'
-                        ? 'bg-success'
-                        : status.class === 'recent'
-                          ? 'bg-info'
-                          : status.class === 'idle'
-                            ? 'bg-muted'
-                            : 'bg-border'}"
-                    ></span>
-                    <span class="text-body">{status.label}</span>
-                  </span>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+              <td class="px-3 py-0.5 font-semibold text-body text-right"
+                >{formatNumber(project.total_events)}</td
+              >
+              <td class="px-3 py-0.5 text-body text-right">{formatNumber(project.file_count)}</td>
+              <td class="px-3 py-0.5 text-body text-right">{formatNumber(project.agent_events)}</td>
+              <td class="px-3 py-0.5 text-body">
+                {#if project.last_activity}
+                  {formatDateTime(project.last_activity)}
+                {:else}
+                  Never
+                {/if}
+              </td>
+              <td class="px-3 py-0.5">
+                <span class="flex items-center gap-2">
+                  <span
+                    class="w-2 h-2 rounded-full {status.class === 'active'
+                      ? 'bg-success'
+                      : status.class === 'recent'
+                        ? 'bg-info'
+                        : status.class === 'idle'
+                          ? 'bg-muted'
+                          : 'bg-border'}"
+                  ></span>
+                  <span class="text-body">{status.label}</span>
+                </span>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
 
     <!-- Summary -->

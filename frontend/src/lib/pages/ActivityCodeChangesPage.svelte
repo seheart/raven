@@ -198,14 +198,14 @@
 
   function getChangeTypeColor(changeType) {
     switch (changeType) {
-    case 'created':
-      return 'var(--success)';
-    case 'modified':
-      return 'var(--accent)';
-    case 'deleted':
-      return 'var(--error)';
-    default:
-      return 'var(--text)';
+      case 'created':
+        return 'var(--success)';
+      case 'modified':
+        return 'var(--accent)';
+      case 'deleted':
+        return 'var(--error)';
+      default:
+        return 'var(--text)';
     }
   }
 
@@ -240,164 +240,139 @@
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted font-mono">{formatTimeOnly(lastUpdated)}</span>
-        <RefreshButton onClick={loadEvents} loading={loading} />
+        <RefreshButton onClick={loadEvents} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    {#if error}
-      <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
-        <span class="text-sm text-error font-sans"> {error}</span>
-      </div>
-    {/if}
-
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Total Changes
-        </div>
-        <div class="text-sm font-mono text-body">{stats.total}</div>
-      </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Created
-        </div>
-        <div class="text-sm font-mono text-body">{stats.created}</div>
-      </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Modified
-        </div>
-        <div class="text-sm font-mono text-body">{stats.modified}</div>
-      </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Deleted
-        </div>
-        <div class="text-sm font-mono text-body">{stats.deleted}</div>
-      </div>
+  {#if error}
+    <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
+      <span class="text-sm text-error font-sans"> {error}</span>
     </div>
+  {/if}
 
-    <!-- Filters -->
-    <div class="bg-surface border border-border rounded-lg p-4 mb-6">
-      <div class="flex flex-wrap gap-4 items-center">
-        <input
-          type="text"
-          bind:value={searchQuery}
-          placeholder="Search files or projects..."
-          class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
-        />
-        <select
-          bind:value={selectedType}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-        >
-          <option value="all">All Types</option>
-          <option value="created">Created</option>
-          <option value="modified">Modified</option>
-          <option value="deleted">Deleted</option>
-        </select>
-        <div class="text-xs text-muted font-mono">
-          {filteredEvents.length} of {events.length} changes
-        </div>
-      </div>
+  <!-- Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Changes</div>
+      <div class="text-sm font-mono text-body">{stats.total}</div>
     </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Created</div>
+      <div class="text-sm font-mono text-body">{stats.created}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Modified</div>
+      <div class="text-sm font-mono text-body">{stats.modified}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Deleted</div>
+      <div class="text-sm font-mono text-body">{stats.deleted}</div>
+    </div>
+  </div>
 
-    <!-- Events List -->
-    {#if loading}
-      <div class="text-center py-12">
-        <div class="text-sm text-muted font-sans">Loading changes...</div>
-      </div>
-    {:else if filteredEvents.length === 0}
-      <EmptyState
-        title="No changes found"
-        description={searchQuery || selectedType !== 'all' ? 'Try adjusting your filters' : 'Waiting for code changes to be detected'}
+  <!-- Filters -->
+  <div class="bg-surface border border-border rounded-lg p-4 mb-6">
+    <div class="flex flex-wrap gap-4 items-center">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Search files or projects..."
+        class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
       />
-    {:else}
-      <div class="bg-surface border border-border rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas border-b border-border">
-              <tr class="text-left">
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
-                  >Type</th
-                >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
-                  >File</th
-                >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide"
-                  >Project</th
-                >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Size</th
-                >
-                <th
-                  class="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide text-right"
-                  >Time</th
-                >
-              </tr>
-            </thead>
-            <tbody>
-              {#each filteredEvents as event (event.id)}
-                <tr
-                  class="border-b border-border hover:bg-canvas transition-colors cursor-pointer"
-                  onclick={() => viewDiff(event)}
-                >
-                  <td class="px-3 py-2">
-                    <span
-                      class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
-                      style="background: {getChangeTypeColor(
-                        event.change_type
-                      )}15; color: {getChangeTypeColor(event.change_type)}"
-                    >
-                      {event.change_type?.toUpperCase() || 'UNKNOWN'}
-                    </span>
-                  </td>
-                  <td class="px-3 py-2 text-sm font-mono text-body max-w-[28rem]">
-                    <div class="flex items-baseline gap-2">
-                      {#if riskByEventId[event.id]?.highest_severity}
-                        {@const r = riskByEventId[event.id]}
-                        <span
-                          class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border flex-shrink-0 {r.highest_severity === 'critical' ? 'bg-error/15 text-error border-error/30' : r.highest_severity === 'warning' ? 'bg-warning/15 text-warning border-warning/30' : 'bg-info/15 text-info border-info/30'}"
-                          title="{r.critical_count} critical · {r.warning_count} warning · {r.info_count} info"
-                          aria-label="risk: {r.highest_severity}"
-                        >{r.highest_severity === 'critical' ? '!' : r.highest_severity === 'warning' ? '⚠' : 'i'}</span>
-                      {/if}
-                      <span class="truncate" title={event.filepath}>
-                        {event.filepath || 'Unknown'}
-                      </span>
-                    </div>
-                  </td>
-                  <td class="px-3 py-2 text-sm font-mono text-muted">
-                    {event.project || '-'}
-                  </td>
-                  <td class="px-3 py-2 text-sm font-mono text-muted text-right">
-                    {formatBytes(event.event_size)}
-                  </td>
-                  <td class="px-3 py-2 text-xs font-mono text-muted text-right">
-                    {formatTime(event.timestamp)}
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+      <select
+        bind:value={selectedType}
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+      >
+        <option value="all">All Types</option>
+        <option value="created">Created</option>
+        <option value="modified">Modified</option>
+        <option value="deleted">Deleted</option>
+      </select>
+      <div class="text-xs text-muted font-mono">
+        {filteredEvents.length} of {events.length} changes
       </div>
+    </div>
+  </div>
 
-      {#if filteredEvents.length < events.length}
-        <div class="mt-4 text-center">
-          <ToolbarButton onClick={loadMore}>Load More ({filteredEvents.length} of {events.length})</ToolbarButton>
-        </div>
-      {:else if events.length > 0}
-        <div class="mt-4 text-center text-sm text-muted font-sans">
-          Showing all {filteredEvents.length} changes
-        </div>
-      {/if}
+  <!-- Events List -->
+  {#if loading}
+    <div class="text-center py-12">
+      <div class="text-sm text-muted font-sans">Loading changes...</div>
+    </div>
+  {:else if filteredEvents.length === 0}
+    <EmptyState
+      title="No changes found"
+      description={searchQuery || selectedType !== 'all'
+        ? 'Try adjusting your filters'
+        : 'Waiting for code changes to be detected'}
+    />
+  {:else}
+    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-canvas">
+          <tr class="text-[11px] text-muted uppercase tracking-wide">
+            <th class="text-left font-semibold px-3 py-1 w-24">Type</th>
+            <th class="text-left font-semibold px-3 py-1">File</th>
+            <th class="text-left font-semibold px-3 py-1">Project</th>
+            <th class="text-right font-semibold px-3 py-1">Size</th>
+            <th class="text-right font-semibold px-3 py-1">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each filteredEvents as event (event.id)}
+            <tr class="hover:bg-surface/40 cursor-pointer" onclick={() => viewDiff(event)}>
+              <td class="px-3 py-0.5">
+                <span
+                  class="font-bold uppercase"
+                  style="color: {getChangeTypeColor(event.change_type)}"
+                  >{event.change_type?.toUpperCase() || 'UNKNOWN'}</span
+                >
+              </td>
+              <td class="px-3 py-0.5 text-body max-w-[28rem]">
+                <div class="flex items-baseline gap-2">
+                  {#if riskByEventId[event.id]?.highest_severity}
+                    {@const r = riskByEventId[event.id]}
+                    <span
+                      class="inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold border flex-shrink-0 {r.highest_severity ===
+                      'critical'
+                        ? 'bg-error/15 text-error border-error/30'
+                        : r.highest_severity === 'warning'
+                          ? 'bg-warning/15 text-warning border-warning/30'
+                          : 'bg-info/15 text-info border-info/30'}"
+                      title="{r.critical_count} critical · {r.warning_count} warning · {r.info_count} info"
+                      aria-label="risk: {r.highest_severity}"
+                      >{r.highest_severity === 'critical'
+                        ? '!'
+                        : r.highest_severity === 'warning'
+                          ? '⚠'
+                          : 'i'}</span
+                    >
+                  {/if}
+                  <span class="truncate" title={event.filepath}>{event.filepath || 'Unknown'}</span>
+                </div>
+              </td>
+              <td class="px-3 py-0.5 text-muted">{event.project || '-'}</td>
+              <td class="px-3 py-0.5 text-muted text-right">{formatBytes(event.event_size)}</td>
+              <td class="px-3 py-0.5 text-muted text-right">{formatTime(event.timestamp)}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
+
+    {#if filteredEvents.length < events.length}
+      <div class="mt-4 text-center">
+        <ToolbarButton onClick={loadMore}
+          >Load More ({filteredEvents.length} of {events.length})</ToolbarButton
+        >
+      </div>
+    {:else if events.length > 0}
+      <div class="mt-4 text-center text-sm text-muted font-sans">
+        Showing all {filteredEvents.length} changes
+      </div>
     {/if}
+  {/if}
 
   <!-- DiffViewer Modal -->
   {#if showDiff}

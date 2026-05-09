@@ -60,7 +60,9 @@
     }
 
     websocketConnected = websocketService.isConnected();
-    const updateStatus = () => { websocketConnected = websocketService.isConnected(); };
+    const updateStatus = () => {
+      websocketConnected = websocketService.isConnected();
+    };
     websocketService.on('connect', updateStatus);
     websocketService.on('disconnect', updateStatus);
     return () => {
@@ -70,7 +72,9 @@
   });
 
   /** @param {number|null|undefined} n */
-  function fmtGiB(n) { return n == null ? '—' : `${n.toFixed(1)} GiB`; }
+  function fmtGiB(n) {
+    return n == null ? '—' : `${n.toFixed(1)} GiB`;
+  }
 
   /** @param {number|null|undefined} s */
   function fmtUptime(s) {
@@ -85,35 +89,49 @@
   }
 
   /** @param {string} method */
-  function methodBadgeClass(method) {
+  function methodTextClass(method) {
     switch (method) {
-      case 'GET': return 'bg-info/15 text-info';
-      case 'POST': return 'bg-success/15 text-success';
+      case 'GET':
+        return 'text-info';
+      case 'POST':
+        return 'text-success';
       case 'PUT':
-      case 'PATCH': return 'bg-warning/15 text-warning';
-      case 'DELETE': return 'bg-error/15 text-error';
-      default: return 'bg-surface-2 text-muted';
+      case 'PATCH':
+        return 'text-warning';
+      case 'DELETE':
+        return 'text-error';
+      default:
+        return 'text-muted';
     }
   }
 
   /** @param {string} fit */
-  function fitBadgeClass(fit) {
+  function fitTextClass(fit) {
     switch (fit) {
-      case 'fits': return 'bg-success/15 text-success';
-      case 'tight': return 'bg-warning/15 text-warning';
-      case 'overflow': return 'bg-error/15 text-error';
-      default: return 'bg-surface-2 text-muted';
+      case 'fits':
+        return 'text-success';
+      case 'tight':
+        return 'text-warning';
+      case 'overflow':
+        return 'text-error';
+      default:
+        return 'text-muted';
     }
   }
 
   /** @param {string} status */
-  function statusBadgeClass(status) {
+  function statusTextClass(status) {
     switch (status) {
-      case 'selected': return 'bg-success/15 text-success';
-      case 'backup': return 'bg-info/15 text-info';
-      case 'manual': return 'bg-warning/15 text-warning';
-      case 'excluded': return 'bg-error/15 text-error';
-      default: return 'bg-surface-2 text-muted';
+      case 'selected':
+        return 'text-success';
+      case 'backup':
+        return 'text-info';
+      case 'manual':
+        return 'text-warning';
+      case 'excluded':
+        return 'text-error';
+      default:
+        return 'text-muted';
     }
   }
 
@@ -123,7 +141,9 @@
     warning: 'bg-warning',
     info: 'bg-info'
   };
-  function tierDotClass(c) { return TIER_DOT_CLASS[c] || TIER_DOT_CLASS.accent; }
+  function tierDotClass(c) {
+    return TIER_DOT_CLASS[c] || TIER_DOT_CLASS.accent;
+  }
 
   const visibleTiers = $derived(
     toolTier === 'all' ? TOOL_CATALOG : TOOL_CATALOG.filter(g => g.tier === toolTier)
@@ -132,17 +152,24 @@
 
 <PageLayout>
   <div class="space-y-12">
-
     <!-- Status bar -->
-    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
+    <div
+      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
+    >
       <div class="flex items-center gap-2">
         <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
         <span aria-hidden="true">::</span>
         <span class="uppercase tracking-wide">Architecture · Stack · State</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-1.5 h-1.5 rounded-full {websocketConnected ? 'bg-success animate-pulse' : 'bg-warning'}"></span>
-        <span class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}">
+        <span
+          class="w-1.5 h-1.5 rounded-full {websocketConnected
+            ? 'bg-success animate-pulse'
+            : 'bg-warning'}"
+        ></span>
+        <span
+          class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}"
+        >
           {websocketConnected ? 'Operational' : 'Disconnected'}
         </span>
       </div>
@@ -158,7 +185,10 @@
 
         <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
           {#each HERO.badges as badge (badge.label)}
-            <span class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide">{badge.label}</span>
+            <span
+              class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide"
+              >{badge.label}</span
+            >
             {#each badge.items as item, i (item)}
               <span>{item}</span>
               {#if i < badge.items.length - 1}<span class="text-muted/40">·</span>{/if}
@@ -178,15 +208,7 @@
         <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-20">
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Vital stats</div>
           <dl class="space-y-1.5 text-sm font-mono">
-            {#each [
-              { k: 'Runtime', v: intro?.platform_label },
-              { k: 'Agents', v: intro?.agent_count },
-              { k: 'Tables', v: intro?.table_count },
-              { k: 'Endpoints', v: intro?.endpoint_count },
-              { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) },
-              { k: 'PID', v: intro?.pid },
-              { k: 'Scope', v: 'Local · Host-Only' }
-            ] as row (row.k)}
+            {#each [{ k: 'Runtime', v: intro?.platform_label }, { k: 'Agents', v: intro?.agent_count }, { k: 'Tables', v: intro?.table_count }, { k: 'Endpoints', v: intro?.endpoint_count }, { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) }, { k: 'PID', v: intro?.pid }, { k: 'Scope', v: 'Local · Host-Only' }] as row (row.k)}
               <div class="flex items-baseline justify-between gap-3">
                 <dt class="text-muted">{row.k}</dt>
                 <dd class="text-body text-right truncate">{row.v ?? '—'}</dd>
@@ -219,13 +241,22 @@
       <div class="space-y-4">
         {#each STACK_SECTIONS as section (section.title)}
           <div class="bg-surface border border-border rounded-lg p-5">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">{section.title}</h3>
+            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
+              {section.title}
+            </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               {#each section.items as item (item.name)}
-                <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
+                <div
+                  class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0"
+                >
                   <div class="font-mono text-body sm:w-44 sm:flex-shrink-0">
                     {#if item.url}
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{item.name}</a>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-accent hover:underline">{item.name}</a
+                      >
                     {:else}
                       {item.name}
                     {/if}
@@ -249,7 +280,8 @@
             <div class="bg-surface border border-border rounded-lg p-3">
               <div class="flex items-baseline justify-between gap-3 mb-2">
                 <span class="font-mono text-sm text-accent">{t.name}</span>
-                <span class="text-xs font-mono text-muted">{t.row_count.toLocaleString()} rows</span>
+                <span class="text-xs font-mono text-muted">{t.row_count.toLocaleString()} rows</span
+                >
               </div>
               <div class="text-sm font-mono text-muted leading-relaxed break-words">
                 {t.columns.join(' · ')}
@@ -265,31 +297,30 @@
       {#if routes.length === 0}
         <div class="text-sm text-muted italic">Loading…</div>
       {:else}
-        <div class="bg-surface border border-border rounded-lg overflow-hidden">
-          <div class="max-h-96 overflow-y-auto">
-            <table class="w-full text-sm">
-              <thead class="bg-canvas sticky top-0 z-10">
-                <tr class="text-xs text-muted uppercase tracking-wide">
-                  <th class="text-left font-semibold px-4 py-2 w-20">Method</th>
-                  <th class="text-left font-semibold px-4 py-2">Path</th>
-                  <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Summary</th>
+        <div class="border-t border-b border-border max-h-96 overflow-y-auto font-mono text-sm">
+          <table class="w-full">
+            <thead class="bg-canvas sticky top-0 z-10">
+              <tr class="text-[11px] text-muted uppercase tracking-wide">
+                <th class="text-left font-semibold px-3 py-1 w-24">Method</th>
+                <th class="text-left font-semibold px-3 py-1">Path</th>
+                <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Summary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each routes as r (r.methods.join(',') + r.path)}
+                <tr class="hover:bg-surface/40">
+                  <td class="px-3 py-0.5 align-top">
+                    {#each r.methods as m, i (m)}
+                      <span class="font-bold {methodTextClass(m)}">{m}</span
+                      >{#if i < r.methods.length - 1}<span class="text-muted">,</span>{/if}
+                    {/each}
+                  </td>
+                  <td class="px-3 py-0.5 text-body break-all">{r.path}</td>
+                  <td class="px-3 py-0.5 text-muted hidden md:table-cell">{r.summary}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {#each routes as r (r.methods.join(',') + r.path)}
-                  <tr class="border-t border-border">
-                    <td class="px-4 py-1.5">
-                      {#each r.methods as m (m)}
-                        <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {methodBadgeClass(m)} mr-1">{m}</span>
-                      {/each}
-                    </td>
-                    <td class="px-4 py-1.5 font-mono text-body break-all">{r.path}</td>
-                    <td class="px-4 py-1.5 text-muted hidden md:table-cell">{r.summary}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
+              {/each}
+            </tbody>
+          </table>
         </div>
       {/if}
     </PageSection>
@@ -299,7 +330,9 @@
       <div class="bg-surface border border-border rounded-lg p-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
           {#each PARAMETERS as p (p.label)}
-            <div class="flex justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
+            <div
+              class="flex justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0"
+            >
               <span class="text-muted">{p.label}</span>
               <span class="font-mono text-body text-right">{p.value}</span>
             </div>
@@ -326,9 +359,13 @@
           </div>
           <div class="bg-surface border border-border rounded-lg p-4">
             <div class="text-xs text-muted uppercase tracking-wide mb-1">GPU</div>
-            <div class="font-mono text-sm text-body break-words leading-tight">{hardware.gpu ?? '—'}</div>
+            <div class="font-mono text-sm text-body break-words leading-tight">
+              {hardware.gpu ?? '—'}
+            </div>
             <div class="text-xs text-muted mt-1">
-              {hardware.vram_total_gib != null ? `${fmtGiB(hardware.vram_total_gib)} total · ${fmtGiB(hardware.vram_free_gib)} free` : 'no nvidia-smi'}
+              {hardware.vram_total_gib != null
+                ? `${fmtGiB(hardware.vram_total_gib)} total · ${fmtGiB(hardware.vram_free_gib)} free`
+                : 'no nvidia-smi'}
             </div>
           </div>
           <div class="bg-surface border border-border rounded-lg p-4">
@@ -338,7 +375,10 @@
           </div>
         </div>
         <div class="mt-3 text-xs font-mono text-muted leading-relaxed">
-          {hardware.os} · kernel {hardware.kernel} · arch {hardware.arch}{hardware.vram_usable_gib != null ? ` · ~${fmtGiB(hardware.vram_usable_gib)} usable VRAM for models` : ''}
+          {hardware.os} · kernel {hardware.kernel} · arch {hardware.arch}{hardware.vram_usable_gib !=
+          null
+            ? ` · ~${fmtGiB(hardware.vram_usable_gib)} usable VRAM for models`
+            : ''}
         </div>
       {/if}
     </PageSection>
@@ -347,29 +387,34 @@
     {#if models.length > 0}
       <PageSection title="07 // Installed Models" meta="live · fit assessment vs. usable VRAM">
         <ProseBlock>
-          <p class="text-sm text-body font-sans mb-3">Each model's GGUF size shown alongside whether it fits in usable VRAM (total minus display headroom). Overflow models spill to CPU and run an order of magnitude slower.</p>
+          <p class="text-sm text-body font-sans mb-3">
+            Each model's GGUF size shown alongside whether it fits in usable VRAM (total minus
+            display headroom). Overflow models spill to CPU and run an order of magnitude slower.
+          </p>
         </ProseBlock>
-        <div class="bg-surface border border-border rounded-lg overflow-hidden">
-          <table class="w-full text-sm">
+        <div class="border-t border-b border-border font-mono text-sm">
+          <table class="w-full">
             <thead class="bg-canvas">
-              <tr class="text-xs text-muted uppercase tracking-wide">
-                <th class="text-left font-semibold px-4 py-2">Fit</th>
-                <th class="text-left font-semibold px-4 py-2">Model</th>
-                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Size</th>
-                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Params</th>
-                <th class="text-left font-semibold px-4 py-2 hidden md:table-cell">Quant</th>
+              <tr class="text-[11px] text-muted uppercase tracking-wide">
+                <th class="text-left font-semibold px-3 py-1 w-20">Fit</th>
+                <th class="text-left font-semibold px-3 py-1">Model</th>
+                <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Size</th>
+                <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Params</th>
+                <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Quant</th>
               </tr>
             </thead>
             <tbody>
               {#each models as m (m.name)}
-                <tr class="border-t border-border">
-                  <td class="px-4 py-1.5">
-                    <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded uppercase {fitBadgeClass(m.fit)}">{m.fit}</span>
-                  </td>
-                  <td class="px-4 py-1.5 font-mono text-body">{m.name}</td>
-                  <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.size_gb != null ? `${m.size_gb.toFixed(2)} GiB` : '—'}</td>
-                  <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.params ?? '—'}</td>
-                  <td class="px-4 py-1.5 font-mono text-muted hidden md:table-cell">{m.quantization ?? '—'}</td>
+                <tr class="hover:bg-surface/40">
+                  <td class="px-3 py-0.5 font-bold uppercase {fitTextClass(m.fit)}">{m.fit}</td>
+                  <td class="px-3 py-0.5 text-body">{m.name}</td>
+                  <td class="px-3 py-0.5 text-muted hidden md:table-cell"
+                    >{m.size_gb != null ? `${m.size_gb.toFixed(2)} GiB` : '—'}</td
+                  >
+                  <td class="px-3 py-0.5 text-muted hidden md:table-cell">{m.params ?? '—'}</td>
+                  <td class="px-3 py-0.5 text-muted hidden md:table-cell"
+                    >{m.quantization ?? '—'}</td
+                  >
                 </tr>
               {/each}
             </tbody>
@@ -377,7 +422,9 @@
         </div>
         {#if modelsMeta.usable_vram_gib != null}
           <div class="mt-2 text-xs font-mono text-muted">
-            Fit assessed against ~{fmtGiB(modelsMeta.usable_vram_gib)} usable VRAM (of {fmtGiB(modelsMeta.vram_total_gib)} total).
+            Fit assessed against ~{fmtGiB(modelsMeta.usable_vram_gib)} usable VRAM (of {fmtGiB(
+              modelsMeta.vram_total_gib
+            )} total).
           </div>
         {/if}
       </PageSection>
@@ -386,11 +433,16 @@
     <!-- 08 // Provisioning -->
     <PageSection title="08 // Provisioning">
       <ProseBlock>
-        <p class="text-sm text-body font-sans mb-4">Capacity vs. orchestration. Raven's <strong>capacity</strong> is provisioned — what's missing is more <strong>orchestration</strong> on top.</p>
+        <p class="text-sm text-body font-sans mb-4">
+          Capacity vs. orchestration. Raven's <strong>capacity</strong> is provisioned — what's
+          missing is more <strong>orchestration</strong> on top.
+        </p>
       </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-surface border border-border rounded-lg p-4">
-          <h3 class="text-xs font-semibold text-success uppercase tracking-wide mb-3">Now — Provisioned</h3>
+          <h3 class="text-xs font-semibold text-success uppercase tracking-wide mb-3">
+            Now — Provisioned
+          </h3>
           <ul class="space-y-1.5 text-sm">
             {#each PROVISIONING.now as item (item.label)}
               <li class="flex gap-2">
@@ -401,7 +453,9 @@
           </ul>
         </div>
         <div class="bg-surface border border-border rounded-lg p-4">
-          <h3 class="text-xs font-semibold text-info uppercase tracking-wide mb-3">Next — To Build</h3>
+          <h3 class="text-xs font-semibold text-info uppercase tracking-wide mb-3">
+            Next — To Build
+          </h3>
           <ol class="space-y-2 text-sm list-decimal list-inside">
             {#each PROVISIONING.next as item (item.label)}
               <li class="text-body">
@@ -419,22 +473,28 @@
     <!-- 09 // Tool Catalog -->
     <PageSection title="09 // Tool Catalog" meta="selected · backup · manual · excluded">
       <ProseBlock>
-        <p class="text-sm text-body font-sans mb-4">The "why these and not those" rationale for Raven's stack. Filter by tier to focus.</p>
+        <p class="text-sm text-body font-sans mb-4">
+          The "why these and not those" rationale for Raven's stack. Filter by tier to focus.
+        </p>
       </ProseBlock>
 
       <!-- Tier filter chips -->
       <div class="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
-          class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === 'all' ? 'bg-accent text-canvas border-accent' : 'bg-surface border-border hover:border-accent'}"
-          onclick={() => (toolTier = 'all')}
-        >All</button>
+          class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === 'all'
+            ? 'bg-accent text-canvas border-accent'
+            : 'bg-surface border-border hover:border-accent'}"
+          onclick={() => (toolTier = 'all')}>All</button
+        >
         {#each TOOL_CATALOG as g (g.tier)}
           <button
             type="button"
-            class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === g.tier ? 'bg-accent text-canvas border-accent' : 'bg-surface border-border hover:border-accent'}"
-            onclick={() => (toolTier = g.tier)}
-          >{g.tier}</button>
+            class="px-3 py-1 text-xs font-mono rounded border transition-colors {toolTier === g.tier
+              ? 'bg-accent text-canvas border-accent'
+              : 'bg-surface border-border hover:border-accent'}"
+            onclick={() => (toolTier = g.tier)}>{g.tier}</button
+          >
         {/each}
       </div>
 
@@ -445,35 +505,35 @@
             {group.tier}
           </h3>
           <p class="text-sm text-muted font-sans mb-3">{group.blurb}</p>
-          <div class="bg-surface border border-border rounded-lg overflow-hidden">
-            <table class="w-full text-sm">
+          <div class="border-t border-b border-border font-mono text-sm">
+            <table class="w-full">
               <thead class="bg-canvas">
-                <tr class="text-xs text-muted uppercase tracking-wide">
-                  <th class="text-left font-semibold px-3 py-2">Status</th>
-                  <th class="text-left font-semibold px-3 py-2">Tool</th>
-                  <th class="text-left font-semibold px-3 py-2 hidden md:table-cell">Provider</th>
-                  <th class="text-left font-semibold px-3 py-2 hidden lg:table-cell">Cost</th>
-                  <th class="text-left font-semibold px-3 py-2 hidden lg:table-cell">License</th>
-                  <th class="text-left font-semibold px-3 py-2">Notes</th>
+                <tr class="text-[11px] text-muted uppercase tracking-wide">
+                  <th class="text-left font-semibold px-3 py-1 w-24">Status</th>
+                  <th class="text-left font-semibold px-3 py-1">Tool</th>
+                  <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Provider</th>
+                  <th class="text-left font-semibold px-3 py-1 hidden lg:table-cell">Cost</th>
+                  <th class="text-left font-semibold px-3 py-1 hidden lg:table-cell">License</th>
+                  <th class="text-left font-semibold px-3 py-1">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {#each group.tools as t (t.name)}
-                  <tr class="border-t border-border align-top">
-                    <td class="px-3 py-2">
-                      <span class="inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded uppercase {statusBadgeClass(t.status)}">{t.status}</span>
-                    </td>
-                    <td class="px-3 py-2 font-mono text-body">
+                  <tr class="hover:bg-surface/40 align-top">
+                    <td class="px-3 py-0.5 font-bold uppercase {statusTextClass(t.status)}"
+                      >{t.status}</td
+                    >
+                    <td class="px-3 py-0.5 text-body">
                       <div class="font-semibold">{t.name}</div>
-                      <div class="text-sm font-sans text-muted mt-0.5">{t.bestFor}</div>
+                      <div class="text-muted">{t.bestFor}</div>
                     </td>
-                    <td class="px-3 py-2 text-muted font-sans hidden md:table-cell">{t.provider}</td>
-                    <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell">{t.cost}</td>
-                    <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell">{t.license}</td>
-                    <td class="px-3 py-2 text-body font-sans">
+                    <td class="px-3 py-0.5 text-muted hidden md:table-cell">{t.provider}</td>
+                    <td class="px-3 py-0.5 text-muted hidden lg:table-cell">{t.cost}</td>
+                    <td class="px-3 py-0.5 text-muted hidden lg:table-cell">{t.license}</td>
+                    <td class="px-3 py-0.5 text-body">
                       {t.notes}
                       {#if t.status === 'excluded' && t.reason}
-                        <div class="text-xs text-muted mt-1">— {t.reason}</div>
+                        <div class="text-muted">— {t.reason}</div>
                       {/if}
                     </td>
                   </tr>
@@ -488,7 +548,10 @@
     <!-- 10 // Key Design Decisions -->
     <PageSection title="10 // Key Design Decisions">
       <ProseBlock>
-        <p class="text-sm text-muted font-sans mb-4">Implementation-level choices behind the running system. Architectural decisions (data model, scope, single-host) live on the About page.</p>
+        <p class="text-sm text-muted font-sans mb-4">
+          Implementation-level choices behind the running system. Architectural decisions (data
+          model, scope, single-host) live on the About page.
+        </p>
       </ProseBlock>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {#each SYSTEM_DECISIONS as d (d.head)}
@@ -501,73 +564,87 @@
     </PageSection>
 
     <!-- 11 // Governance -->
-    <PageSection title="11 // Governance" meta="every gate, linter, validator, CI check — in one place">
+    <PageSection
+      title="11 // Governance"
+      meta="every gate, linter, validator, CI check — in one place"
+    >
       <ProseBlock>
-        <p class="text-sm text-body font-sans mb-6">What's protecting you from breaking things. Each gate runs locally (via the pre-commit hook on git commit, or manually) AND in CI on every push. Bypassing locally with <code class="font-mono text-accent">--no-verify</code> is caught by CI.</p>
+        <p class="text-sm text-body font-sans mb-6">
+          What's protecting you from breaking things. Each gate runs locally (via the pre-commit
+          hook on git commit, or manually) AND in CI on every push. Bypassing locally with <code
+            class="font-mono text-accent">--no-verify</code
+          > is caught by CI.
+        </p>
       </ProseBlock>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Quality gates</h3>
-      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <div class="border-t border-b border-border font-mono text-sm mb-6">
+        <table class="w-full">
           <thead class="bg-canvas">
-            <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-3 py-2">Gate</th>
-              <th class="text-left font-semibold px-3 py-2">What it catches</th>
-              <th class="text-left font-semibold px-3 py-2 hidden md:table-cell">Where it runs</th>
-              <th class="text-left font-semibold px-3 py-2 hidden lg:table-cell">Config</th>
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Gate</th>
+              <th class="text-left font-semibold px-3 py-1">What it catches</th>
+              <th class="text-left font-semibold px-3 py-1 hidden md:table-cell w-32"
+                >Where it runs</th
+              >
+              <th class="text-left font-semibold px-3 py-1 hidden lg:table-cell">Config</th>
             </tr>
           </thead>
           <tbody>
             {#each GOVERNANCE.gates as g (g.name)}
-              <tr class="border-t border-border align-top">
-                <td class="px-3 py-2 font-mono text-body font-semibold">{g.name}</td>
-                <td class="px-3 py-2 text-body font-sans">{g.what}</td>
-                <td class="px-3 py-2 hidden md:table-cell">
-                  <span class="inline-block px-2 py-0.5 text-xs font-mono bg-success/15 text-success rounded">{g.where}</span>
-                </td>
-                <td class="px-3 py-2 font-mono text-muted hidden lg:table-cell"><code>{g.config}</code></td>
+              <tr class="hover:bg-surface/40 align-top">
+                <td class="px-3 py-0.5 text-body font-semibold">{g.name}</td>
+                <td class="px-3 py-0.5 text-body">{g.what}</td>
+                <td class="px-3 py-0.5 text-success hidden md:table-cell">{g.where}</td>
+                <td class="px-3 py-0.5 text-muted hidden lg:table-cell">{g.config}</td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">Design-system linter rules <span class="text-xs font-mono text-muted ml-2">{GOVERNANCE.dsRules.length} active</span></h3>
-      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <h3 class="text-sm font-semibold text-heading mb-3">
+        Design-system linter rules <span class="text-xs font-mono text-muted ml-2"
+          >{GOVERNANCE.dsRules.length} active</span
+        >
+      </h3>
+      <div class="border-t border-b border-border font-mono text-sm mb-6">
+        <table class="w-full">
           <thead class="bg-canvas">
-            <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-3 py-2">Rule</th>
-              <th class="text-left font-semibold px-3 py-2">What it forbids / warns</th>
-              <th class="text-left font-semibold px-3 py-2 hidden md:table-cell">Fix</th>
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Rule</th>
+              <th class="text-left font-semibold px-3 py-1">What it forbids / warns</th>
+              <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Fix</th>
             </tr>
           </thead>
           <tbody>
             {#each GOVERNANCE.dsRules as r (r.name)}
-              <tr class="border-t border-border align-top">
-                <td class="px-3 py-2 font-mono text-accent"><code>{r.name}</code></td>
-                <td class="px-3 py-2 text-body font-sans">{r.kind}</td>
-                <td class="px-3 py-2 text-muted font-sans hidden md:table-cell">{r.fix}</td>
+              <tr class="hover:bg-surface/40 align-top">
+                <td class="px-3 py-0.5 text-accent">{r.name}</td>
+                <td class="px-3 py-0.5 text-body">{r.kind}</td>
+                <td class="px-3 py-0.5 text-muted hidden md:table-cell">{r.fix}</td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
 
-      <h3 class="text-sm font-semibold text-heading mb-3">CI workflow <span class="text-xs font-mono text-muted ml-2">.github/workflows/ci.yml</span></h3>
-      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <h3 class="text-sm font-semibold text-heading mb-3">
+        CI workflow <span class="text-xs font-mono text-muted ml-2">.github/workflows/ci.yml</span>
+      </h3>
+      <div class="border-t border-b border-border font-mono text-sm mb-6">
+        <table class="w-full">
           <thead class="bg-canvas">
-            <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-3 py-2">Job</th>
-              <th class="text-left font-semibold px-3 py-2">What it does</th>
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Job</th>
+              <th class="text-left font-semibold px-3 py-1">What it does</th>
             </tr>
           </thead>
           <tbody>
             {#each GOVERNANCE.ci as c (c.job)}
-              <tr class="border-t border-border align-top">
-                <td class="px-3 py-2 font-mono text-body"><code>{c.job}</code></td>
-                <td class="px-3 py-2 text-body font-sans">{c.what}</td>
+              <tr class="hover:bg-surface/40 align-top">
+                <td class="px-3 py-0.5 text-body">{c.job}</td>
+                <td class="px-3 py-0.5 text-body">{c.what}</td>
               </tr>
             {/each}
           </tbody>
@@ -575,19 +652,19 @@
       </div>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Test suites</h3>
-      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <div class="border-t border-b border-border font-mono text-sm mb-6">
+        <table class="w-full">
           <thead class="bg-canvas">
-            <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-3 py-2">Path</th>
-              <th class="text-left font-semibold px-3 py-2">What's there</th>
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Path</th>
+              <th class="text-left font-semibold px-3 py-1">What's there</th>
             </tr>
           </thead>
           <tbody>
             {#each GOVERNANCE.tests as t (t.path)}
-              <tr class="border-t border-border align-top">
-                <td class="px-3 py-2 font-mono text-body"><code>{t.path}</code></td>
-                <td class="px-3 py-2 text-body font-sans">{t.what}</td>
+              <tr class="hover:bg-surface/40 align-top">
+                <td class="px-3 py-0.5 text-body">{t.path}</td>
+                <td class="px-3 py-0.5 text-body">{t.what}</td>
               </tr>
             {/each}
           </tbody>
@@ -595,19 +672,19 @@
       </div>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Dev tools</h3>
-      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <div class="border-t border-b border-border font-mono text-sm mb-6">
+        <table class="w-full">
           <thead class="bg-canvas">
-            <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-3 py-2">Tool</th>
-              <th class="text-left font-semibold px-3 py-2">What it does</th>
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Tool</th>
+              <th class="text-left font-semibold px-3 py-1">What it does</th>
             </tr>
           </thead>
           <tbody>
             {#each GOVERNANCE.devTools as d (d.name)}
-              <tr class="border-t border-border align-top">
-                <td class="px-3 py-2 font-mono text-body"><code>{d.name}</code></td>
-                <td class="px-3 py-2 text-body font-sans">{d.what}</td>
+              <tr class="hover:bg-surface/40 align-top">
+                <td class="px-3 py-0.5 text-body">{d.name}</td>
+                <td class="px-3 py-0.5 text-body">{d.what}</td>
               </tr>
             {/each}
           </tbody>
@@ -615,19 +692,19 @@
       </div>
 
       <h3 class="text-sm font-semibold text-heading mb-3">Convention docs</h3>
-      <div class="bg-surface border border-border rounded-lg overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <div class="border-t border-b border-border font-mono text-sm mb-6">
+        <table class="w-full">
           <thead class="bg-canvas">
-            <tr class="text-xs text-muted uppercase tracking-wide">
-              <th class="text-left font-semibold px-3 py-2">Path</th>
-              <th class="text-left font-semibold px-3 py-2">What's there</th>
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Path</th>
+              <th class="text-left font-semibold px-3 py-1">What's there</th>
             </tr>
           </thead>
           <tbody>
             {#each GOVERNANCE.docs as d (d.path)}
-              <tr class="border-t border-border align-top">
-                <td class="px-3 py-2 font-mono text-body"><code>{d.path}</code></td>
-                <td class="px-3 py-2 text-body font-sans">{d.what}</td>
+              <tr class="hover:bg-surface/40 align-top">
+                <td class="px-3 py-0.5 text-body">{d.path}</td>
+                <td class="px-3 py-0.5 text-body">{d.what}</td>
               </tr>
             {/each}
           </tbody>
@@ -636,11 +713,12 @@
 
       <ProseBlock width="wide">
         <div class="bg-warning/10 border-l-4 border-warning rounded-r p-4">
-          <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">! {GOVERNANCE.invoke.summary}</div>
+          <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">
+            ! {GOVERNANCE.invoke.summary}
+          </div>
           <div class="text-sm text-body font-sans">{GOVERNANCE.invoke.body}</div>
         </div>
       </ProseBlock>
     </PageSection>
-
   </div>
 </PageLayout>

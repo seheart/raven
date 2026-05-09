@@ -599,39 +599,29 @@
         </p>
       </div>
     {:else}
-      <div class="overflow-x-auto">
+      <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-canvas border-b border-border">
-            <tr class="text-left">
-              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
-                Agent
-              </th>
-              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
-                Status
-              </th>
-              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
-                Confidence
-              </th>
-              <th class="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">
-                Last Seen
-              </th>
+          <thead class="bg-canvas">
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">Agent</th>
+              <th class="text-left font-semibold px-3 py-1 w-24">Status</th>
+              <th class="text-left font-semibold px-3 py-1">Confidence</th>
+              <th class="text-left font-semibold px-3 py-1">Last Seen</th>
             </tr>
           </thead>
           <tbody>
             {#each agentsStatus as agent (agent.agent_name)}
-              <tr class="border-b border-border hover:bg-canvas transition-colors">
-                <td class="px-4 py-3 text-sm font-semibold text-accent font-mono">
-                  {agent.agent_name || 'Unknown'}
-                </td>
-                <td class="px-4 py-3">
-                  <span class="flex items-center gap-2 text-sm font-mono">
+              <tr class="hover:bg-surface/40">
+                <td class="px-3 py-1 font-semibold text-accent">{agent.agent_name || 'Unknown'}</td>
+                <td class="px-3 py-1">
+                  <span class="flex items-center gap-2">
                     <span
                       class="w-2 h-2 rounded-full {agent.is_running ? 'bg-success' : 'bg-muted'}"
                     ></span>
                     <span class="text-body">{agent.is_running ? 'Running' : 'Idle'}</span>
                   </span>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-3 py-1">
                   <div class="flex items-center gap-3">
                     <div class="flex-1 h-2 bg-canvas rounded overflow-hidden">
                       <div
@@ -642,16 +632,13 @@
                       ></div>
                     </div>
                     <span
-                      class="text-sm font-semibold font-mono"
+                      class="font-semibold"
                       style="color: {getConfidenceColor(agent.confidence)}"
+                      >{(agent.confidence * 100).toFixed(0)}%</span
                     >
-                      {(agent.confidence * 100).toFixed(0)}%
-                    </span>
                   </div>
                 </td>
-                <td class="px-4 py-3 text-sm text-body font-mono">
-                  {formatDateTime(agent.last_seen)}
-                </td>
+                <td class="px-3 py-1 text-body">{formatDateTime(agent.last_seen)}</td>
               </tr>
             {/each}
           </tbody>
