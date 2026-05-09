@@ -6,11 +6,21 @@ Raven watches your Claude Code (and other AI coding) sessions live. It tracks fi
 
 ## Why
 
-If you've ever stared at a Claude Code session wondering *what just happened* — which files it touched, how much you spent, whether the diff is safe to ship — Raven is the answer. It's the dashboard your AI coding workflow has been missing.
+If you've ever stared at a Claude Code session wondering _what just happened_ — which files it touched, how much you spent, whether the diff is safe to ship — Raven is the answer. It's the dashboard your AI coding workflow has been missing.
 
 ## Quick start
 
 Requirements: **Node 18+**, Linux or macOS, and (optionally) [Ollama](https://ollama.com) for local-LLM narration.
+
+The fastest way to try it — no clone, no install:
+
+```bash
+npx raven-monitor
+```
+
+Raven launches in single-port mode and watches the directory you invoked it from. Data persists under `~/.raven`. The browser opens automatically at <http://localhost:9000>.
+
+**From source** (for hacking on Raven itself):
 
 ```bash
 git clone https://github.com/seheart/raven.git
@@ -19,9 +29,9 @@ npm install
 ./start.sh
 ```
 
-Open <http://localhost:9000>. The first thing you'll see is the **Today** view: cost so far, recent activity in plain English, files Claude touched, and a one-sentence summary of your day.
+The first thing you'll see is the **Today** view: cost so far, narrative beats about your week, recent activity in plain English, and the files Claude touched today.
 
-To stop or restart:
+To stop or restart from source:
 
 ```bash
 ./stop.sh
@@ -30,13 +40,16 @@ To stop or restart:
 
 ## What you get
 
-- **Live cost ticker** — token spend ticking up in real time, with an hourly sparkline. Cost anxiety, answered before you ask.
-- **Today landing view** — narrative beats ("Back on atf after 4 days — welcome back.", "This week, raven has been your main focus."), recent activity in plain English, files touched today.
+- **Live cost ticker** — token spend ticking up in real time, paired with a token stream showing each inference resolving as it lands.
+- **Today landing view** — narrative beats ("Back on atf after 4 days — welcome back.", "This week, raven has been your main focus."), recent activity in plain English, files touched today, full-width cost hero with hourly sparkline.
+- **Persistent agent heartbeat** — always-visible dot in the header that breathes when thinking, ticks when executing, falls still when idle.
 - **Active models card** — live VRAM-resident Ollama models alongside cloud agents (Claude Code, Codex), with per-state activity rhythms and connection counts.
-- **File-by-file diff viewer** — every change Claude makes, with project + session attribution.
-- **Pattern + safety checks** — hardcoded-credential and eval-usage detection across edited files.
+- **Inline diff scoring** — every change Claude makes gets risk-scored (hardcoded credentials, token prefixes, `eval`, `--no-verify`, `.env` edits, PEM keys) with gutter pills + per-file severity badges.
 - **Local-LLM narrated insights** — daily digests, code reviews, and project-health summaries narrated by a local Ollama model. Zero data leaves your machine.
 - **Token usage analytics** — by model, by project, by session. API billing or Claude Max subscription mode.
+- **Anomaly detection** — 7-day rolling p50/p95 baselines per model; flags any model running ≥2× normal cost or latency.
+- **Reflection loops** — milestone modals (first session, week-1, month-1, anniversaries), Monday weekly digest, year-end Wrapped, "you've come a long way" before/after panel.
+- **Plugin sandbox** — drop `.js` files into `.raven/plugins/` and subscribe to events with a 50ms-budgeted vm context. No `require`, no fs, no network.
 - **Trigger rules** — configurable alerts for large deletions, high CPU, runaway sessions.
 
 ## How it works
@@ -66,15 +79,18 @@ The backend is split into ~30 route files and ~15 repositories under a strict de
 
 ## Pages
 
-| Section          | What's there                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| **Today**        | Lightweight first-run view: cost ticker, narrative beats, recent activity, files touched   |
-| **Dashboard**    | Power-user overview: live metrics, file feed, agent status                                 |
-| **Insights**     | Local-LLM narrated summaries, code reviews, daily digests                                  |
-| **Analysis**     | Token usage, sub-agents, models, performance, trends, conversations, triggers              |
-| **Code Changes** | Live diff viewer for active file modifications                                             |
-| **History**      | Activity log, timeline, file browser, projects comparison, health, search                  |
-| **System**       | Architecture, hardware, installed Ollama models, errors, storage                           |
+| Section          | What's there                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| **Today**        | First-run view: cost hero + sparkline, narrative beats, recent activity, files touched, token stream  |
+| **Dashboard**    | Power-user overview: live metrics, file feed, agent status, anomaly banner                            |
+| **Insights**     | Local-LLM narrated summaries, code reviews, daily digests, before/after panel                         |
+| **Analysis**     | Token usage, sub-agents, models, performance, historical trends, conversations, triggers              |
+| **Code Changes** | Live diff viewer with inline risk annotations + per-file severity                                     |
+| **History**      | Activity log, timeline, file browser, projects comparison, health, search                             |
+| **System**       | Architecture, hardware, installed Ollama models, errors, storage, plugins, projects                   |
+| **Wrapped**      | Year-end Spotify-Wrapped-style scrollable card stack — top model, top project, biggest day, peak hour |
+| **About**        | Hero, principles, decisions audit trail (live from `DECISIONS.md`), telemetry, manifest               |
+| **Roadmap**      | Phased plan toward public launch — what's queued, what's open, what just shipped                      |
 
 ## Configuration
 
@@ -133,7 +149,7 @@ WebSocket events: `system-metrics`, `file-changed`, `agent-event`, `trigger-fire
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, test commands, and the commit-message convention.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, test commands, and the commit-message convention. By participating, you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
