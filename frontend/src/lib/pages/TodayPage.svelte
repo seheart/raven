@@ -584,90 +584,103 @@
 </script>
 
 <PageLayout>
-  <div class="space-y-10">
-    <!-- Status bar -->
-    <div
-      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-accent font-semibold">RAVEN.TODAY</span>
-        <span aria-hidden="true">::</span>
-        <span class="uppercase tracking-wide">{todayLabel}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span
-          class="w-1.5 h-1.5 rounded-full {websocketConnected
-            ? 'bg-success animate-pulse'
-            : 'bg-warning'}"
-        ></span>
-        <span
-          class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}"
-        >
-          {websocketConnected ? 'Live' : 'Disconnected'}
-        </span>
-      </div>
-    </div>
-
-    <!-- Hero — narrated summary -->
+  <!-- Negative top margin pulls the hero up against the sub-nav. The
+       canonical PageLayout p-6 (24px) plus the sub-nav's bottom border
+       was leaving an awkward dead band before any content; this is a
+       narrative landing page, not a dashboard, so a tight top reads
+       more "magazine cover" than "settings panel". -->
+  <div class="-mt-4 space-y-10">
+    <!-- Hero — narrated summary. The trust pill, h1, and subtitle sit
+         on a single tight stack so the eye lands on "Today" within the
+         first viewport-height even on shorter laptop screens. -->
     <section class="flex flex-col lg:flex-row gap-8">
       <div class="flex-1 min-w-0 max-w-[48rem]">
-        <!-- Presence pill — first thing a new user sees on the landing
-             page. Frames Raven as a companion to local AI agents rather
-             than a privacy/security tool. -->
+        <!-- Presence pill + live-connection indicator. The pulsing dot
+             doubles as WS-status (success when connected, warning when
+             not), absorbing what used to be a separate status strip. -->
         <div
           class="mb-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
+          title={websocketConnected
+            ? 'Connected — live updates flowing'
+            : 'Disconnected from live updates'}
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse" aria-hidden="true"></span>
+          <span
+            class="w-1.5 h-1.5 rounded-full {websocketConnected
+              ? 'bg-success animate-pulse'
+              : 'bg-warning'}"
+            aria-hidden="true"
+          ></span>
           <span>Always perched · your AI's steady companion</span>
         </div>
-        <PageHeader
-          title="Today"
-          description="A quick read of what's happened so far. Cost, files Claude touched, and the moments worth noticing."
-        />
+        <h1 class="text-3xl font-bold text-heading tracking-[-0.015em] leading-tight">Today</h1>
+        <p class="mt-0.5 text-sm text-muted font-sans">
+          {todayLabel} — a quick read of what's happened so far.
+        </p>
 
-        <!-- Narrated sentence -->
-        <div class="mt-5">
-          {#if summaryLoading && !summary}
-            <div class="space-y-2 animate-pulse" aria-label="Generating summary">
+        <!-- Narrative beats — deterministic 'you' copy from real data,
+             always rendered first. The LLM-generated paragraph below is
+             a nice-to-have, not the page's load-bearing content. Before
+             this rewrite, when the LLM was disabled (the common case
+             during dev) the entire hero collapsed into a config-error
+             message — making the landing read as broken. -->
+        <div class="mt-6 space-y-3">
+          {#if beats.length > 0}
+            {#each beats as beat (beat.text)}
+              <p class="flex items-baseline gap-3 text-base text-body font-sans leading-relaxed">
+                <span
+                  class="font-mono text-lg flex-shrink-0 {beatToneClass(beat.tone)}"
+                  aria-hidden="true">{beat.glyph}</span
+                >
+                <span>{beat.text}</span>
+              </p>
+            {/each}
+          {:else if !narrative}
+            <!-- Pre-load skeleton; only shows for the first ~second of page life. -->
+            <div class="space-y-2 animate-pulse" aria-label="Loading today's beats">
               <div class="h-4 bg-surface-2 rounded w-3/4"></div>
               <div class="h-4 bg-surface-2 rounded w-1/2"></div>
             </div>
-          {:else if summary}
-            <p class="text-lg text-body font-sans leading-relaxed">
-              <span aria-hidden="true" class="text-accent mr-2">“</span>{summary}<span
-                aria-hidden="true"
-                class="text-accent ml-1">”</span
-              >
-            </p>
-            <button
-              type="button"
-              onclick={loadSummary}
-              disabled={summaryLoading}
-              class="mt-2 text-xs font-mono uppercase tracking-wide text-muted hover:text-accent transition-colors disabled:opacity-50"
-            >
-              {summaryLoading ? 'Refreshing…' : '↻ Re-narrate'}
-            </button>
-          {:else if summaryDisabled}
-            <p class="text-sm text-muted font-sans leading-relaxed italic">
-              Local-LLM summaries are off. Restart Raven without
-              <code class="font-mono text-body">RAVEN_INSIGHTS_DISABLED=1</code>
-              to see a one-sentence narrative of today.
-            </p>
-          {:else if summaryError}
-            <p class="text-sm text-warning font-sans leading-relaxed">
-              Couldn't generate a summary: {summaryError}
+          {/if}
+        </div>
+
+        <!-- LLM-narrated paragraph — appears underneath the beats when
+             available, framed as one-line color rather than the page's
+             primary content. Quietly hidden when insights are disabled
+             so the disabled state doesn't dominate the landing. -->
+        {#if summary || summaryLoading || summaryError}
+          <div class="mt-6 pt-5 border-t border-border">
+            {#if summaryLoading && !summary}
+              <div class="space-y-2 animate-pulse" aria-label="Generating narrated summary">
+                <div class="h-4 bg-surface-2 rounded w-3/4"></div>
+                <div class="h-4 bg-surface-2 rounded w-1/2"></div>
+              </div>
+            {:else if summary}
+              <p class="text-base text-muted font-sans italic leading-relaxed">
+                <span aria-hidden="true" class="text-accent mr-1">“</span>{summary}<span
+                  aria-hidden="true"
+                  class="text-accent ml-1">”</span
+                >
+              </p>
               <button
                 type="button"
                 onclick={loadSummary}
-                class="ml-2 underline hover:text-accent transition-colors">try again</button
+                disabled={summaryLoading}
+                class="mt-2 text-[11px] font-mono uppercase tracking-wide text-muted hover:text-accent transition-colors disabled:opacity-50"
               >
-            </p>
-          {:else}
-            <p class="text-sm text-muted font-sans italic">
-              No summary yet — check back when there's been more activity.
-            </p>
-          {/if}
-        </div>
+                {summaryLoading ? 'Refreshing…' : '↻ Re-narrate'}
+              </button>
+            {:else if summaryError}
+              <p class="text-xs text-muted font-sans">
+                Narration unavailable: {summaryError}
+                <button
+                  type="button"
+                  onclick={loadSummary}
+                  class="ml-2 underline hover:text-accent transition-colors">try again</button
+                >
+              </p>
+            {/if}
+          </div>
+        {/if}
 
         {#if loadError}
           <div class="mt-4 bg-error/10 border border-error/30 text-error rounded-lg p-3 text-sm">
@@ -720,45 +733,27 @@
               >
             </li>
           </ul>
-          <div
-            class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
-          >
-            <span class="text-success">●</span> Always perched · your AI's steady companion
-          </div>
         </div>
       </aside>
     </section>
 
-    <!-- Anomaly banner — only renders when an agent is drifting. -->
+    <!-- Anomaly banner — only renders when an agent is drifting. Sits
+         right under the hero so a real problem can interrupt before the
+         user reads anything else. -->
     <AnomalyBanner />
 
-    <!-- Milestone card — once-in-a-lifetime moments (first session, week-1,
-         month-1, 100/1000th edit, anniversaries). Inline, not modal.
-         Self-renders only when there's an unviewed milestone. -->
+    <!-- Milestone card — moved up from the bottom so a celebration ("you
+         crossed 1,000 events!") lands as a "today's moment" inline with
+         the narrative, not as an orphaned strip far below. Self-renders
+         only when there's an unviewed milestone. -->
     <MilestonesPanel />
 
     <!-- Week recap — Mon-anchored ISO-week digest with lead + supporting
          beats. Inline, replaces the auto-popup modal. -->
     <WeekRecap />
 
-    <!-- Narrative beats — second-person, data-driven sentences. -->
-    {#if beats.length > 0}
-      <section aria-label="Narrative beats">
-        <ul class="space-y-2">
-          {#each beats as beat (beat.text)}
-            <li
-              class="flex items-start gap-3 bg-surface/60 border border-border rounded-lg px-4 py-3"
-            >
-              <span
-                class="text-lg leading-none {beatToneClass(beat.tone)} flex-shrink-0 select-none"
-                aria-hidden="true">{beat.glyph}</span
-              >
-              <span class="text-sm text-body font-sans leading-relaxed">{beat.text}</span>
-            </li>
-          {/each}
-        </ul>
-      </section>
-    {/if}
+    <!-- Beats now render in the hero (above), so the previous duplicate
+         "Narrative beats" section that lived here was removed. -->
 
     <!-- Cost ticker — the hero. The single most educational visualization
          for someone new to AI. Big number, ticking up in real time as
