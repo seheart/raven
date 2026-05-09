@@ -8,6 +8,7 @@
     onAboutClick = () => {},
     onDesignSystemClick = () => {},
     onRoadmapClick = () => {},
+    onDiagnosticClick = () => {},
     onSettingsClick = () => {}
   } = $props();
 
@@ -68,6 +69,14 @@
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
       >
         Roadmap
+      </button>
+      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <button
+        onclick={onDiagnosticClick}
+        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+        title="Run all tests, scans, and health checks in one place"
+      >
+        Diagnostic
       </button>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <a

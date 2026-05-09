@@ -106,6 +106,10 @@
     navigate('/roadmap');
   }
 
+  function handleDiagnosticClick() {
+    navigate('/diagnostic');
+  }
+
   function handleSettingsClick() {
     navigate('/settings');
   }
@@ -497,6 +501,14 @@
         {:catch}
           <PlaceholderPage title="Roadmap" description="Failed to load" />
         {/await}
+      {:else if activeTab === 'diagnostic'}
+        {#await import('./lib/pages/DiagnosticPage.svelte')}
+          <PlaceholderPage title="Diagnostic" description="Loading..." />
+        {:then { default: Component }}
+          <Component />
+        {:catch}
+          <PlaceholderPage title="Diagnostic" description="Failed to load" />
+        {/await}
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
           <div class="text-center max-w-[28rem]">
@@ -523,6 +535,7 @@
     onAboutClick={handleAboutClick}
     onDesignSystemClick={handleDesignSystemClick}
     onRoadmapClick={handleRoadmapClick}
+    onDiagnosticClick={handleDiagnosticClick}
     onSettingsClick={handleSettingsClick}
   />
 
