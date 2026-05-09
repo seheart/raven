@@ -68,6 +68,125 @@ export function createInsightsRouter(
     })
   );
 
+  // GET /api/insights/preview — real-data previews so each story card on
+  // /insights can show what's actually in your activity ("47 events from
+  // Claude in the last hour · 3 projects touched") instead of just the
+  // category description. The previous cards were abstract menu items;
+  // these numbers turn them into invitations.
+  router.get(
+    '/preview',
+    asyncHandler(async (_req: Request, res: Response) => {
+      const sql = db.db;
+      // 60-minute window for the "Recent activity" preview.
+      const oneHourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
+      // Today = since local midnight. SQLite's `date('now', 'localtime')`
+      // collapses to the start of today in the server's local TZ — same
+      // convention the dashboard already uses.
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayStartIso = todayStart.toISOString();
+
+      const recentEvents =
+        (
+          sql.prepare('SELECT COUNT(*) as n FROM events WHERE timestamp > ?').get(oneHourAgo) as
+            | { n: number }
+            | undefined
+        )?.n ?? 0;
+      const recentAgentEvents =
+        (
+          sql
+            .prepare('SELECT COUNT(*) as n FROM agent_events WHERE timestamp > ?')
+            .get(oneHourAgo) as { n: number } | undefined
+        )?.n ?? 0;
+      const recentProjects =
+        (
+          sql
+            .prepare(
+              `SELECT COUNT(DISTINCT project_name) as n FROM events
+              WHERE timestamp > ? AND project_name IS NOT NULL AND project_name != ''`
+            )
+            .get(oneHourAgo) as { n: number } | undefined
+        )?.n ?? 0;
+
+      const todayEvents =
+        (
+          sql.prepare('SELECT COUNT(*) as n FROM events WHERE timestamp > ?').get(todayStartIso) as
+            | { n: number }
+            | undefined
+        )?.n ?? 0;
+      const todayAgentEvents =
+        (
+          sql
+            .prepare('SELECT COUNT(*) as n FROM agent_events WHERE timestamp > ?')
+            .get(todayStartIso) as { n: number } | undefined
+        )?.n ?? 0;
+      const todayFiles =
+        (
+          sql
+            .prepare(
+              'SELECT COUNT(DISTINCT filepath) as n FROM events WHERE timestamp > ? AND filepath IS NOT NULL'
+            )
+            .get(todayStartIso) as { n: number } | undefined
+        )?.n ?? 0;
+      const todayProjects =
+        (
+          sql
+            .prepare(
+              `SELECT COUNT(DISTINCT project_name) as n FROM events
+              WHERE timestamp > ? AND project_name IS NOT NULL AND project_name != ''`
+            )
+            .get(todayStartIso) as { n: number } | undefined
+        )?.n ?? 0;
+
+      // Code review preview: count of agent_events with a `file` field in
+      // the last 24h. That's roughly "shipped code" — there's no diff
+      // size in the stored event so the count is the honest preview.
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+      const reviewableChanges =
+        (
+          sql
+            .prepare(
+              `SELECT COUNT(*) as n FROM agent_events
+              WHERE timestamp > ? AND file IS NOT NULL AND file != ''`
+            )
+            .get(oneDayAgo) as { n: number } | undefined
+        )?.n ?? 0;
+
+      // Agent comparison preview: distinct agents in the last 24h, top by event count.
+      const agentRows = sql
+        .prepare(
+          `SELECT agent, COUNT(*) as events FROM agent_events
+            WHERE timestamp > ? AND agent IS NOT NULL AND agent != ''
+            GROUP BY agent ORDER BY events DESC LIMIT 4`
+        )
+        .all(oneDayAgo) as Array<{ agent: string; events: number }>;
+
+      res.json({
+        generated_at: new Date().toISOString(),
+        recent_activity: {
+          window_minutes: 60,
+          events: recentEvents,
+          agent_events: recentAgentEvents,
+          projects: recentProjects
+        },
+        today_digest: {
+          events: todayEvents,
+          agent_events: todayAgentEvents,
+          files: todayFiles,
+          projects: todayProjects
+        },
+        code_review: {
+          window_hours: 24,
+          changes: reviewableChanges
+        },
+        agent_comparison: {
+          window_hours: 24,
+          agents: agentRows
+        }
+      });
+    })
+  );
+
   // POST /api/insights/generate/summary
   router.post(
     '/generate/summary',

@@ -22,6 +22,7 @@
 
   let insights = $state([]);
   let status = $state({ available: false, generating: false, models: [] });
+  let preview = $state(null); // Real-data previews for the story cards.
   let loading = $state(false);
   let generating = $state(null); // null | 'summary' | 'review' | 'digest' | 'agent-comparison'
   let generatingLabel = $state(''); // Friendly story label, used in the banner.
@@ -34,6 +35,25 @@
   let advancedOpen = $state(false);
   let loadError = $state(null);
 
+  // The most recent story across all kinds — featured at the top when
+  // it's fresh enough to be relevant. Cuts the page from "press a button
+  // to get content" to "here's what Raven last wrote, want another?"
+  const featuredInsight = $derived.by(() => {
+    if (!insights.length) return null;
+    const latest = insights[0]; // API returns newest-first
+    const ageMs = Date.now() - new Date(latest.timestamp).getTime();
+    // 24h freshness window. Older than that and it's not really telling
+    // you about NOW, so we let it ride in the past-stories list instead.
+    if (ageMs > 24 * 60 * 60_000) return null;
+    return latest;
+  });
+
+  // The list below the featured story = everything OTHER than the featured.
+  const pastInsights = $derived.by(() => {
+    if (!featuredInsight) return filteredInsights;
+    return filteredInsights.filter(i => i.id !== featuredInsight.id);
+  });
+
   const elapsed = $derived.by(() => {
     void elapsedTick; // depend on the ticker
     if (!generatingStartedAt) return 0;
@@ -44,9 +64,10 @@
     filterType === 'all' ? insights : insights.filter(i => i.type === filterType)
   );
 
-  // Story cards. Each one is a kind of report Raven can write.
-  // `kind` matches the backend's insight type so the card knows which
-  // generator to call AND which existing-insight type to filter for.
+  // Story cards. Each one is a kind of report Raven can write. The
+  // `previewLine` function turns the live /insights/preview response
+  // into a one-line "here's what's in your data right now" hook so the
+  // card stops being an abstract menu item.
   const stories = [
     {
       kind: 'session_summary',
@@ -55,7 +76,18 @@
         'A quick recap of what just happened on your machine — file changes, AI tool turns, what got worked on.',
       bestFor: 'Catching up after a break.',
       time: '~30s–1 min',
-      generate: 'summary'
+      generate: 'summary',
+      previewLine: p => {
+        const r = p?.recent_activity;
+        if (!r || (r.events === 0 && r.agent_events === 0)) {
+          return 'Quiet in the last hour — no events to recap yet.';
+        }
+        const bits = [];
+        if (r.events > 0) bits.push(`${r.events.toLocaleString()} file events`);
+        if (r.agent_events > 0) bits.push(`${r.agent_events.toLocaleString()} agent turns`);
+        if (r.projects > 0) bits.push(`${r.projects} project${r.projects === 1 ? '' : 's'}`);
+        return `In the last hour: ${bits.join(' · ')}.`;
+      }
     },
     {
       kind: 'code_review',
@@ -64,7 +96,12 @@
         'Raven looks at the changes your AI helpers shipped recently and tells you, in plain language, what changed and whether it looks right.',
       bestFor: "Trusting what an agent did while you weren't watching.",
       time: '~1 min',
-      generate: 'review'
+      generate: 'review',
+      previewLine: p => {
+        const r = p?.code_review;
+        if (!r || r.changes === 0) return 'No agent file changes in the last 24 hours yet.';
+        return `${r.changes.toLocaleString()} agent file changes in the last 24 hours waiting for a read-through.`;
+      }
     },
     {
       kind: 'daily_digest',
@@ -73,7 +110,18 @@
         'Everything you and your AI tools did today, summed up in a few paragraphs. The TL;DR of your workday.',
       bestFor: 'End-of-day reflection or a status update.',
       time: '~1–2 min',
-      generate: 'digest'
+      generate: 'digest',
+      previewLine: p => {
+        const r = p?.today_digest;
+        if (!r || (r.events === 0 && r.agent_events === 0)) {
+          return 'Today is still wide open — nothing to digest yet.';
+        }
+        const bits = [];
+        if (r.events > 0) bits.push(`${r.events.toLocaleString()} events`);
+        if (r.files > 0) bits.push(`${r.files.toLocaleString()} files`);
+        if (r.projects > 0) bits.push(`${r.projects} project${r.projects === 1 ? '' : 's'}`);
+        return `Today so far: ${bits.join(' · ')}.`;
+      }
     },
     {
       kind: 'agent_comparison',
@@ -82,7 +130,17 @@
         'Compare how Claude, Cursor, Codex, and other AI tools have been working for you — who shipped what, who took longest, where each shines.',
       bestFor: 'Figuring out which tool to reach for next time.',
       time: '~1–2 min',
-      generate: 'agent-comparison'
+      generate: 'agent-comparison',
+      previewLine: p => {
+        const r = p?.agent_comparison?.agents;
+        if (!r?.length) return 'No AI tool activity in the last 24 hours yet.';
+        const top = r
+          .slice(0, 3)
+          .map(a => `${a.agent} (${a.events.toLocaleString()})`)
+          .join(' · ');
+        const more = r.length > 3 ? ` · +${r.length - 3} more` : '';
+        return `Last 24h: ${top}${more}.`;
+      }
     }
   ];
 
@@ -90,12 +148,14 @@
     loading = true;
     loadError = null;
     try {
-      const [insightsData, statusData] = await Promise.all([
+      const [insightsData, statusData, previewData] = await Promise.all([
         api.get('/insights?limit=50'),
-        api.get('/insights/status')
+        api.get('/insights/status'),
+        api.get('/insights/preview').catch(() => null)
       ]);
       insights = insightsData || [];
       status = statusData || { available: false, generating: false, models: [] };
+      preview = previewData;
       if (!selectedModel && status.models.length > 0) {
         selectedModel = status.models[0];
       }
@@ -287,6 +347,46 @@
     <JourneyPanel />
   </div>
 
+  {#if featuredInsight}
+    <!-- Featured: the most recent story, prominent. The page used to bury
+         this at the bottom under the cards, so on a return visit you had
+         to scroll to see what Raven last wrote. Now it leads. -->
+    <article
+      class="bg-surface border border-border rounded-lg p-5 mb-6"
+      id="insight-{featuredInsight.id}"
+    >
+      <header class="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <span
+            class="px-1.5 py-0.5 text-[10px] font-bold rounded text-white uppercase tracking-wide"
+            style="background: {typeColor(featuredInsight.type)}"
+            >{typeLabel(featuredInsight.type)}</span
+          >
+          <span class="text-xs font-mono text-muted"
+            >Latest · {timeAgo(featuredInsight.timestamp)}</span
+          >
+        </div>
+        <button
+          type="button"
+          onclick={() =>
+            generateStory(
+              stories.find(s => s.kind === featuredInsight.type)?.generate || 'summary'
+            )}
+          disabled={!status.available || generating !== null}
+          class="text-[11px] font-mono text-muted hover:text-accent transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Ask Raven to write a fresh version"
+        >
+          ↻ rewrite
+        </button>
+      </header>
+      <h2 class="text-lg font-semibold text-heading mb-3">{featuredInsight.title}</h2>
+      <div class="text-base text-body font-sans leading-relaxed">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
+        {@html renderMarkdown(featuredInsight.content)}
+      </div>
+    </article>
+  {/if}
+
   <!-- Story cards. Each is a kind of report Raven can write. Big enough to
        read, small enough to scan four at a time. -->
   <div class="bg-surface border border-border rounded-lg p-5 mb-6">
@@ -352,6 +452,7 @@
       {#each stories as story (story.kind)}
         {@const isGenerating = generating === story.generate}
         {@const otherGenerating = generating !== null && !isGenerating}
+        {@const previewLine = preview ? story.previewLine(preview) : null}
         <button
           type="button"
           onclick={() => generateStory(story.generate)}
@@ -362,8 +463,15 @@
             <span class="text-sm font-semibold text-body">{story.label}</span>
             <span class="text-[10px] font-mono text-muted">{story.time}</span>
           </div>
-          <p class="text-xs text-body/80 font-sans leading-snug mb-2">{story.blurb}</p>
-          <p class="text-[11px] text-muted font-sans italic mb-3">Best for: {story.bestFor}</p>
+          {#if previewLine}
+            <!-- Real-data preview, leads. The previous "blurb + best for"
+                 was abstract — this tells you what's actually in your data
+                 right now, before you click. -->
+            <div class="text-sm text-accent font-sans font-medium mb-2">{previewLine}</div>
+          {/if}
+          <div class="text-xs text-muted font-sans leading-snug mb-3">
+            {story.blurb}
+          </div>
           {#if isGenerating}
             <span class="inline-flex items-center gap-2 text-xs text-accent font-mono">
               <span class="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"></span>
@@ -374,98 +482,101 @@
           {:else if !status.available}
             <span class="text-xs text-error font-mono">— AI is offline</span>
           {:else}
-            <span class="text-xs text-accent font-mono group-hover:underline">Write this →</span>
+            <span class="text-xs text-accent font-mono">Write this →</span>
           {/if}
         </button>
       {/each}
     </div>
   </div>
 
-  <!-- Stories Raven has told you. -->
-  <div class="bg-surface border border-border rounded-lg overflow-hidden">
-    <div
-      class="px-5 py-3 border-b border-border flex items-baseline justify-between gap-3 flex-wrap"
-    >
-      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
-        Stories Raven has told you
-      </h3>
-      {#if insights.length > 0}
-        <span class="text-[10px] font-mono text-muted">{insights.length} total · newest first</span>
+  <!-- Past stories. Only render when there's something here BEYOND the
+       featured one above — no point in showing an "Older stories" header
+       with nothing under it on a fresh install. -->
+  {#if pastInsights.length > 0 || (loading && insights.length === 0)}
+    <div class="bg-surface border border-border rounded-lg overflow-hidden">
+      <div
+        class="px-5 py-3 border-b border-border flex items-baseline justify-between gap-3 flex-wrap"
+      >
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
+          {featuredInsight ? 'Older stories' : 'Stories Raven has told you'}
+        </h3>
+        {#if insights.length > 0}
+          <span class="text-[10px] font-mono text-muted"
+            >{pastInsights.length}
+            {pastInsights.length === 1 ? 'story' : 'stories'}</span
+          >
+        {/if}
+      </div>
+
+      {#if filterOptions.length > 1}
+        <!-- Show the chips only when there's something to filter through. -->
+        <div class="flex items-center gap-1 px-5 py-3 border-b border-border flex-wrap">
+          {#each filterOptions as opt (opt.value)}
+            <button
+              type="button"
+              onclick={() => (filterType = opt.value)}
+              class="px-2.5 py-1 text-xs font-sans rounded transition-colors cursor-pointer {filterType ===
+              opt.value
+                ? 'bg-accent text-canvas'
+                : 'text-muted hover:text-body hover:bg-canvas'}"
+            >
+              {opt.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
+
+      {#if loading && insights.length === 0}
+        <div class="p-5 space-y-3">
+          {#each Array(2) as _, i (i)}
+            <div class="h-24 bg-canvas border border-border rounded animate-pulse"></div>
+          {/each}
+        </div>
+      {:else if pastInsights.length === 0}
+        <EmptyState
+          size="compact"
+          title="Nothing here matches that filter"
+          description="Try 'All stories' to see everything Raven has written."
+        />
+      {:else}
+        <div class="divide-y divide-[var(--border)]">
+          {#each pastInsights as insight (insight.id)}
+            <article
+              id="insight-{insight.id}"
+              class="p-5 transition-colors {highlightInsightId === insight.id
+                ? 'bg-accent-subtle'
+                : ''}"
+            >
+              <header class="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span
+                    class="px-1.5 py-0.5 text-[10px] font-bold rounded text-white uppercase tracking-wide"
+                    style="background: {typeColor(insight.type)}">{typeLabel(insight.type)}</span
+                  >
+                  <span class="text-sm font-semibold text-body font-sans truncate">
+                    {insight.title}
+                  </span>
+                </div>
+                <div
+                  class="flex items-center gap-3 text-[10px] text-muted font-mono"
+                  title="Written by {insight.model} · took {(insight.duration_ms / 1000).toFixed(
+                    1
+                  )}s · read {insight.context_events} events"
+                >
+                  <span>{timeAgo(insight.timestamp)}</span>
+                  <span class="hidden sm:inline"
+                    >· {formatDate(insight.timestamp)} {formatTime(insight.timestamp)}</span
+                  >
+                </div>
+              </header>
+              <div class="text-base text-body font-sans leading-relaxed">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
+                {@html renderMarkdown(insight.content)}
+              </div>
+            </article>
+          {/each}
+        </div>
       {/if}
     </div>
-
-    {#if filterOptions.length > 1}
-      <!-- Show the chips only when there's something to filter through. -->
-      <div class="flex items-center gap-1 px-5 py-3 border-b border-border flex-wrap">
-        {#each filterOptions as opt (opt.value)}
-          <button
-            type="button"
-            onclick={() => (filterType = opt.value)}
-            class="px-2.5 py-1 text-xs font-sans rounded transition-colors cursor-pointer {filterType ===
-            opt.value
-              ? 'bg-accent text-canvas'
-              : 'text-muted hover:text-body hover:bg-canvas'}"
-          >
-            {opt.label}
-          </button>
-        {/each}
-      </div>
-    {/if}
-
-    {#if loading && insights.length === 0}
-      <div class="p-5 space-y-3">
-        {#each Array(2) as _, i (i)}
-          <div class="h-24 bg-canvas border border-border rounded animate-pulse"></div>
-        {/each}
-      </div>
-    {:else if filteredInsights.length === 0}
-      <EmptyState
-        size="compact"
-        title={insights.length === 0
-          ? 'Raven hasn’t written you a story yet'
-          : 'Nothing here matches that filter'}
-        description={insights.length === 0
-          ? 'Pick a card above and Raven will write the first one. It takes a minute or two — your local AI is reading through your recent activity.'
-          : 'Try “All stories” to see everything Raven has written.'}
-      />
-    {:else}
-      <div class="divide-y divide-[var(--border)]">
-        {#each filteredInsights as insight (insight.id)}
-          <article
-            id="insight-{insight.id}"
-            class="p-5 transition-colors {highlightInsightId === insight.id
-              ? 'bg-accent-subtle'
-              : ''}"
-          >
-            <header class="flex items-baseline justify-between gap-3 flex-wrap mb-3">
-              <div class="flex items-center gap-2 min-w-0">
-                <span
-                  class="px-1.5 py-0.5 text-[10px] font-bold rounded text-white uppercase tracking-wide"
-                  style="background: {typeColor(insight.type)}">{typeLabel(insight.type)}</span
-                >
-                <span class="text-sm font-semibold text-body font-sans truncate">
-                  {insight.title}
-                </span>
-              </div>
-              <div
-                class="flex items-center gap-3 text-[10px] text-muted font-mono"
-                title="Written by {insight.model} · took {(insight.duration_ms / 1000).toFixed(
-                  1
-                )}s · read {insight.context_events} events"
-              >
-                <span>{timeAgo(insight.timestamp)}</span>
-                <span class="hidden sm:inline"
-                  >· {formatDate(insight.timestamp)} {formatTime(insight.timestamp)}</span
-                >
-              </div>
-            </header>
-            <div class="text-base text-body font-sans leading-relaxed">
-              <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
-              {@html renderMarkdown(insight.content)}
-            </div>
-          </article>
-        {/each}
-      </div>
-    {/if}
-  </div>
+  {/if}
 </PageLayout>
