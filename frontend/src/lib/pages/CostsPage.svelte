@@ -12,7 +12,7 @@
     createThemeObserver,
     getChartColors,
     getChartPalette,
-    chartGradient
+    chartFill
   } from '../utils/chartUtils.js';
   import { settings } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
@@ -128,12 +128,12 @@
               label: isApi ? 'Cost ($)' : 'Tokens',
               data: timeline.map(t => (isApi ? t.cost_usd : t.input_tokens + t.output_tokens)),
               // Brand gradient fill — warm rust top fading to transparent
-              // bottom. Bars feel like atmosphere, not paint.
-              backgroundColor: ctx => chartGradient(ctx.chart.ctx),
+              // bottom. Anchored to chartArea so it paints cleanly.
+              backgroundColor: chartFill,
               borderColor: colors.primary,
               borderWidth: 0,
               borderRadius: 3,
-              hoverBackgroundColor: ctx => chartGradient(ctx.chart.ctx)
+              hoverBackgroundColor: chartFill
             }
           ]
         },

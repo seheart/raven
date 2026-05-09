@@ -70,31 +70,45 @@ export function getChartPalette(count = 6) {
  * theme's chart-grad-top / chart-grad-bottom CSS variables so the
  * gradient flips correctly between light and dark modes.
  *
- * Pass an explicit hex if you want a non-brand series to get the same
- * depth treatment — the function builds a gradient from `hexAA` (top)
- * to `hex0A` (bottom).
+ * The pattern callers should use is:
+ *
+ *   backgroundColor: ctx => {
+ *     const area = ctx.chart.chartArea;
+ *     if (!area) return colors.primary; // first paint, before layout
+ *     return chartGradient(ctx.chart.ctx, { y0: area.top, y1: area.bottom });
+ *   }
+ *
+ * Anchoring to chartArea (not the canvas) is what makes the gradient
+ * paint cleanly from the top of the plot region to the bottom. The
+ * earlier version anchored to ctx.canvas.height which mixed visible
+ * plot space with title/axis padding AND the device-pixel buffer
+ * height, producing diagonal streaks across the fill on retina screens.
+ *
+ * Pass `{color: '#hex'}` if you want a non-brand series with the same
+ * depth treatment.
  *
  * @param {CanvasRenderingContext2D} ctx
- * @param {{ height?: number, color?: string }} [opts]
+ * @param {{ y0?: number, y1?: number, color?: string }} [opts]
  * @returns {CanvasGradient | string}
  */
 export function chartGradient(ctx, opts = {}) {
   if (!ctx?.createLinearGradient) {
     return getChartColors().primary;
   }
-  // Use the canvas's actual height when available so the gradient is
-  // sharp on tall charts and not crushed on short ones. Chart.js passes
-  // ctx.canvas; bare contexts may not have a height — fall back to 200.
-  const height = opts.height ?? ctx.canvas?.height ?? 200;
-  const grad = ctx.createLinearGradient(0, 0, 0, height);
+  const y0 = opts.y0 ?? 0;
+  const y1 = opts.y1 ?? ctx.canvas?.height ?? 200;
+  // Guard: a degenerate gradient (y0 === y1) draws as a solid color and
+  // can flicker during the chart's first paint. Skip the gradient until
+  // chartArea has actual dimensions.
+  if (y1 - y0 < 4) {
+    return opts.color || getChartColors().primary;
+  }
+  const grad = ctx.createLinearGradient(0, y0, 0, y1);
   if (opts.color) {
-    // Custom hex → gradient (alpha at top: ~70%, near-zero at bottom).
     const hex = opts.color.replace('#', '');
     if (hex.length === 6) {
-      const top = `#${hex}b3`; // 70% alpha
-      const bot = `#${hex}0d`; // 5% alpha
-      grad.addColorStop(0, top);
-      grad.addColorStop(1, bot);
+      grad.addColorStop(0, `#${hex}b3`); // 70% alpha at top
+      grad.addColorStop(1, `#${hex}0d`); // 5% alpha at bottom
       return grad;
     }
   }
@@ -102,6 +116,24 @@ export function chartGradient(ctx, opts = {}) {
   grad.addColorStop(0, colors.gradTop);
   grad.addColorStop(1, colors.gradBottom);
   return grad;
+}
+
+/**
+ * Chart.js scriptable-callback wrapper. Drop this in directly as
+ *
+ *   backgroundColor: chartFill,
+ *
+ * and it'll do the right thing — read chartArea from the Chart.js
+ * context and build a gradient anchored to the visible plot region. On
+ * the first paint (before chartArea is laid out) it returns the solid
+ * primary color so the chart doesn't flicker. Pass `{color: '#hex'}` to
+ * gradient a non-brand series.
+ */
+export function chartFill(scriptCtx, opts = {}) {
+  const ctx = scriptCtx?.chart?.ctx;
+  const area = scriptCtx?.chart?.chartArea;
+  if (!ctx) return opts.color || getChartColors().primary;
+  return chartGradient(ctx, { y0: area?.top, y1: area?.bottom, ...opts });
 }
 
 /**

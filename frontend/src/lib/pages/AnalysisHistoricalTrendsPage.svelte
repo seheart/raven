@@ -16,7 +16,7 @@
     destroyChart,
     createThemeObserver,
     getChartColors,
-    chartGradient
+    chartFill
   } from '../utils/chartUtils.js';
 
   // State
@@ -166,10 +166,10 @@
             label: 'Total Events',
             data: eventCounts,
             borderColor: colors.primary,
-            // Brand gradient fill: warm rust at the top fading to nearly
-            // transparent at the bottom. Replaces the flat 10% tint that
-            // made the area read as a smudge instead of a filled curve.
-            backgroundColor: ctx => chartGradient(ctx.chart.ctx),
+            // Brand gradient fill anchored to chartArea (not the canvas)
+            // so the gradient paints exactly the plot region — no diagonal
+            // streaks from per-point gradient recreation.
+            backgroundColor: chartFill,
             fill: true,
             tension: 0.4,
             pointRadius: 4,

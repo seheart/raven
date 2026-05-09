@@ -6,7 +6,7 @@
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
-  import { getChartColors, chartGradient } from '../utils/chartUtils.js';
+  import { getChartColors, chartFill } from '../utils/chartUtils.js';
   import { Chart, registerables } from 'chart.js';
   import FileHistory from '../FileHistory.svelte';
 
@@ -326,7 +326,7 @@
             {
               label: 'Changes',
               data: topFiles.map(f => f.count),
-              backgroundColor: ctx => chartGradient(ctx.chart.ctx),
+              backgroundColor: chartFill,
               borderRadius: 3
             }
           ]

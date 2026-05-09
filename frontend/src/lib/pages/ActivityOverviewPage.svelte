@@ -7,7 +7,7 @@
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
-  import { getChartColors, chartGradient } from '../utils/chartUtils.js';
+  import { getChartColors, chartFill } from '../utils/chartUtils.js';
   import { Chart, registerables } from 'chart.js';
 
   Chart.register(...registerables);
@@ -528,7 +528,7 @@
             {
               label: 'Events',
               data: sessionData,
-              backgroundColor: ctx => chartGradient(ctx.chart.ctx),
+              backgroundColor: chartFill,
               borderRadius: 3
             }
           ]
