@@ -36,6 +36,10 @@
 /frontend/dist
 /frontend/.svelte-kit
 /frontend/build
+# Bun's HTML asset metadata — regenerated on every frontend build, no
+# stable diff value. Kept tracked at one point but turned the diagnostic
+# Health Monitor's "uncommitted changes" into a perpetual phantom warning.
+/frontend/html/html.meta.json.gz
 
 # Old frontend (Svelte 4) - retired after migration to Svelte 5
 /frontend-svelte4/
