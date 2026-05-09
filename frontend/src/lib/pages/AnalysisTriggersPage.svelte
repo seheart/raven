@@ -1,622 +1,434 @@
 <script>
+  /**
+   * Triggers page — alert rules from .raven/config.toml + plugin-fired
+   * triggers, plus the recent-fires feed.
+   *
+   * Rules are defined in TOML, not via this UI; the page surfaces what's
+   * loaded, when each fired, and how many times. The previous version had
+   * a fake client-side enable/disable toggle and "Test Fire" button that
+   * looked authoritative but did nothing real — both removed.
+   */
+
   import { logger } from '../logger.js';
   import { onMount, onDestroy } from 'svelte';
   import { formatShortDateTime } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, EmptyState } from '../components/ui/index.js';
-  const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import ProjectBadge from '../ProjectBadge.svelte';
 
-  /**
-   * Triggers Configuration Page
-   * Automated monitoring rules, events, and statistics
-   */
+  const { api, abort: abortRequests } = createPageApi();
 
-  // State
-  let activeTab = $state('rules'); // 'rules', 'events', 'stats'
   let triggers = $state([]);
   let triggeredEvents = $state([]);
-  let stats = $state({
-    total_triggers: 0,
-    active_triggers: 0,
-    trigger_counts: {}
-  });
+  let stats = $state({ total_triggers: 0, active_triggers: 0, trigger_counts: {} });
   let loading = $state(false);
   let error = $state(null);
   let successMessage = $state(null);
-  let lastUpdated = $state(null);
-  let _isManualRefresh = $state(false);
-
-  // Filters
-  let searchQuery = $state('');
-  let debouncedSearchQuery = $state('');
-  let selectedActionFilter = $state('all'); // 'all', 'notify', 'log', 'command'
-  let selectedProjectFilter = $state('all');
-  let enabledTriggers = $state(new Set());
-
-  // Debounce timeout
-  let searchDebounceTimeout;
-
-  // Event ID counter for unique keys
+  let copiedField = $state(null);
   let eventIdCounter = 0;
+  let successTimers = [];
 
-  // Success message timeouts
-  let successMessageTimeouts = [];
-
-  // Debounce search query — read searchQuery synchronously to track it
-  $effect(() => {
-    const query = searchQuery;
-    clearTimeout(searchDebounceTimeout);
-    searchDebounceTimeout = setTimeout(() => {
-      debouncedSearchQuery = query;
-    }, 300);
+  const lastFireTs = $derived.by(() => {
+    if (triggeredEvents.length === 0) return null;
+    return Math.max(...triggeredEvents.map(e => e.timestamp || 0)) * 1000;
   });
 
-  // Filter triggers based on search and action type
-  const filteredTriggers = $derived.by(() => {
-    return triggers.filter(trigger => {
-      // Search filter (debounced)
-      if (debouncedSearchQuery) {
-        const query = debouncedSearchQuery.toLowerCase();
-        const matchesName = trigger.name?.toLowerCase().includes(query);
-        const matchesMessage = trigger.message?.toLowerCase().includes(query);
-        const matchesFile = trigger.file?.toLowerCase().includes(query);
-        if (!matchesName && !matchesMessage && !matchesFile) {
-          return false;
-        }
-      }
-
-      // Action type filter
-      if (selectedActionFilter !== 'all' && trigger.action !== selectedActionFilter) {
-        return false;
-      }
-
-      return true;
-    });
+  const fires24h = $derived.by(() => {
+    const cutoff = Date.now() / 1000 - 86_400;
+    return triggeredEvents.filter(e => (e.timestamp || 0) > cutoff).length;
   });
 
-  // Filter events by project
-  const filteredEvents = $derived.by(() => {
-    return triggeredEvents.filter(event => {
-      if (selectedProjectFilter === 'all') return true;
-      return event.project === selectedProjectFilter;
-    });
+  // Per-rule firing roll-up so each card shows its real activity instead of
+  // the misleading client-side "Enabled" pill.
+  const fireSummary = $derived.by(() => {
+    const out = {};
+    for (const t of triggers) out[t.name] = { count: 0, last: null };
+    for (const e of triggeredEvents) {
+      const slot = (out[e.trigger_name] = out[e.trigger_name] || { count: 0, last: null });
+      slot.count += 1;
+      if (!slot.last || e.timestamp > slot.last) slot.last = e.timestamp;
+    }
+    // Pull authoritative totals from /trigger-stats when we have them — the
+    // recent-events list is capped, so its count is a lower bound.
+    for (const [name, c] of Object.entries(stats.trigger_counts || {})) {
+      out[name] = { count: c, last: out[name]?.last ?? null };
+    }
+    return out;
   });
 
-  // Get unique projects from events
-  const availableProjects = $derived.by(() => {
-    const projects = new Set();
-    triggeredEvents.forEach(event => {
-      if (event.project) {
-        projects.add(event.project);
-      }
-    });
-    return Array.from(projects).sort();
-  });
-
-  // Time ago calculation
-  const timeAgo = $derived.by(() => {
-    if (!lastUpdated) return 'Just now';
-    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 10) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    return `${Math.floor(seconds / 3600)}h ago`;
-  });
-
-  // WebSocket event handlers
   const handleTriggerFired = event => {
-    // Add unique ID to prevent duplicate key errors
     event.id = `event-${eventIdCounter++}`;
-    // Add new event to the beginning of the list
-    triggeredEvents = [event, ...triggeredEvents].slice(0, 100);
+    triggeredEvents = [event, ...triggeredEvents].slice(0, 200);
   };
 
   const handleTriggerStats = newStats => {
     stats = newStats;
   };
 
-  async function loadAllData(manual = false) {
+  async function loadAllData() {
     loading = true;
-    _isManualRefresh = manual;
     error = null;
-
     try {
-      // CRITICAL: api.get() returns parsed JSON directly (NO .json() call)
       const [triggersData, events, statsData] = await Promise.all([
         api.get('/triggers-config'),
         api.get('/triggered-events?limit=100'),
         api.get('/trigger-stats')
       ]);
-
       triggers = triggersData.rules || triggersData || [];
-
-      // Initialize all triggers as enabled by default
-      const newEnabledSet = new Set();
-      triggers.forEach(trigger => newEnabledSet.add(trigger.name));
-      enabledTriggers = newEnabledSet;
-
-      // Load events and add unique IDs to prevent duplicate key errors
-      triggeredEvents = events.map(event => ({
+      triggeredEvents = (Array.isArray(events) ? events : []).map(event => ({
         ...event,
         id: `event-${eventIdCounter++}`
       }));
-
       stats = statsData;
-
-      lastUpdated = new Date();
     } catch (err) {
       error = `Failed to load triggers data: ${err.message}`;
       logger.error(error);
     } finally {
       loading = false;
-      _isManualRefresh = false;
     }
   }
 
   async function reloadConfig() {
     try {
       const data = await api.post('/triggers-reload', {});
-      successMessage = data.message;
-      const timeout = setTimeout(() => (successMessage = null), 3000);
-      successMessageTimeouts.push(timeout);
+      flashSuccess(data.message || 'Reloaded config');
       await loadAllData();
     } catch (err) {
       error = `Failed to reload config: ${err.message}`;
-      logger.error(error);
     }
   }
 
   async function clearCooldowns() {
     try {
       const data = await api.post('/triggers-clear-cooldowns', {});
-      successMessage = data.message;
-      const timeout = setTimeout(() => (successMessage = null), 3000);
-      successMessageTimeouts.push(timeout);
+      flashSuccess(data.message || 'Cleared cooldowns');
     } catch (err) {
       error = `Failed to clear cooldowns: ${err.message}`;
-      logger.error(error);
     }
   }
 
-  function toggleTrigger(triggerName) {
-    const newSet = new Set(enabledTriggers);
-    if (newSet.has(triggerName)) {
-      newSet.delete(triggerName);
-      successMessage = `Disabled trigger: ${triggerName}`;
-    } else {
-      newSet.add(triggerName);
-      successMessage = `Enabled trigger: ${triggerName}`;
-    }
-    enabledTriggers = newSet;
-    const timeout = setTimeout(() => (successMessage = null), 2000);
-    successMessageTimeouts.push(timeout);
+  function flashSuccess(msg) {
+    successMessage = msg;
+    successTimers.push(setTimeout(() => (successMessage = null), 2500));
   }
 
-  function testTrigger(trigger) {
-    successMessage = `Test fired: ${trigger.name}`;
-    const testEvent = {
-      id: `event-${eventIdCounter++}`,
-      trigger_name: trigger.name,
-      action: trigger.action,
-      message: `[TEST] ${trigger.message}`,
-      timestamp: Math.floor(Date.now() / 1000),
-      project: null
-    };
-    triggeredEvents = [testEvent, ...triggeredEvents].slice(0, 100);
-    const timeout = setTimeout(() => (successMessage = null), 3000);
-    successMessageTimeouts.push(timeout);
+  async function copyText(label, value) {
+    try {
+      await navigator.clipboard.writeText(value);
+      copiedField = label;
+      setTimeout(() => {
+        if (copiedField === label) copiedField = null;
+      }, 1500);
+    } catch {
+      /* ignore */
+    }
   }
 
   function formatTimestamp(timestamp) {
     return formatShortDateTime(new Date(timestamp * 1000));
   }
 
-  function getActionIcon(action) {
-    switch (action?.toLowerCase()) {
-    case 'notify':
-      return '';
-    case 'log':
-      return '';
-    case 'command':
-      return '';
-    default:
-      return '';
-    }
+  function timeAgo(ts) {
+    if (!ts) return null;
+    const ms = Date.now() - (typeof ts === 'number' ? ts : new Date(ts).getTime());
+    if (ms < 5_000) return 'just now';
+    if (ms < 60_000) return `${Math.floor(ms / 1000)}s ago`;
+    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
+    return `${Math.floor(ms / 86_400_000)}d ago`;
+  }
+
+  function formatNumber(n) {
+    return (n ?? 0).toLocaleString();
   }
 
   function getConditionsList(trigger) {
-    const conditions = [];
-    if (trigger.file) conditions.push(`File: ${trigger.file}`);
-    if (trigger.agent) conditions.push(`Agent: ${trigger.agent}`);
-    if (trigger.event_type) conditions.push(`Type: ${trigger.event_type}`);
-    if (trigger.lines_changed) conditions.push(`Lines changed: ${trigger.lines_changed}`);
-    if (trigger.lines_deleted) conditions.push(`Lines deleted: ${trigger.lines_deleted}`);
-    if (trigger.duration_ms) conditions.push(`Duration: ${trigger.duration_ms}ms`);
-    if (trigger.cpu_percent) conditions.push(`CPU: ${trigger.cpu_percent}`);
-    if (trigger.memory_percent) conditions.push(`Memory: ${trigger.memory_percent}`);
-    return conditions;
+    const c = [];
+    if (trigger.file) c.push({ k: 'file', v: trigger.file });
+    if (trigger.agent) c.push({ k: 'agent', v: trigger.agent });
+    if (trigger.event_type) c.push({ k: 'event_type', v: trigger.event_type });
+    if (trigger.lines_changed) c.push({ k: 'lines_changed', v: trigger.lines_changed });
+    if (trigger.lines_deleted) c.push({ k: 'lines_deleted', v: trigger.lines_deleted });
+    if (trigger.duration_ms) c.push({ k: 'duration_ms', v: trigger.duration_ms });
+    if (trigger.cpu_percent) c.push({ k: 'cpu_percent', v: trigger.cpu_percent });
+    if (trigger.memory_percent) c.push({ k: 'memory_percent', v: trigger.memory_percent });
+    return c;
+  }
+
+  function actionToneClass(action) {
+    switch (action) {
+      case 'notify':
+        return 'bg-accent-subtle text-accent border-accent';
+      case 'command':
+        return 'bg-warning-subtle text-warning border-warning';
+      default:
+        return 'bg-surface text-muted border-border';
+    }
   }
 
   onMount(async () => {
     await loadAllData();
-
-    // Connect to WebSocket for real-time updates
     websocketService.connect();
-
-    // Listen for real-time trigger events
     websocketService.on('trigger-fired', handleTriggerFired);
-
-    // Listen for real-time stats updates
     websocketService.on('trigger-stats', handleTriggerStats);
   });
 
   onDestroy(() => {
     abortRequests();
-    // Clean up WebSocket listeners
     websocketService.off('trigger-fired', handleTriggerFired);
     websocketService.off('trigger-stats', handleTriggerStats);
-
-    // Clean up timeouts
-    successMessageTimeouts.forEach(timeout => clearTimeout(timeout));
-    clearTimeout(searchDebounceTimeout);
+    successTimers.forEach(clearTimeout);
   });
 </script>
 
 <PageLayout>
-  <PageHeader title="Trigger Configuration" description="Automated monitoring rules and real-time alerts">
+  <PageHeader
+    title="Triggers"
+    description="Alert rules over the live event stream. Defined in .raven/config.toml or fired by plugins via raven.trigger(). This page is read-only — edit the TOML to change rules."
+  >
     {#snippet actions()}
-      <div class="flex items-center gap-3">
-        <span class="text-xs text-muted font-mono">{timeAgo}</span>
-        <RefreshButton onClick={() => loadAllData(true)} loading={loading} />
+      <div class="flex items-center gap-2">
+        <button
+          onclick={reloadConfig}
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-body hover:border-accent hover:text-accent transition-colors"
+          title="Re-read .raven/config.toml"
+        >
+          Reload config
+        </button>
+        <button
+          onclick={clearCooldowns}
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-body hover:border-accent hover:text-accent transition-colors"
+          title="Reset per-rule cooldown timers so suppressed rules can fire immediately"
+        >
+          Clear cooldowns
+        </button>
+        <RefreshButton onClick={loadAllData} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    <!-- Success/Error Messages -->
-    {#if successMessage}
-      <div
-        class="bg-success-subtle border border-success rounded-lg p-3 mb-4 text-sm text-success font-sans"
-      >
-        {successMessage}
-      </div>
-    {/if}
+  {#if successMessage}
+    <div class="bg-success-subtle border border-success rounded p-3 mb-4 text-sm text-success">
+      {successMessage}
+    </div>
+  {/if}
+  {#if error}
+    <div class="bg-error-subtle border border-error rounded p-3 mb-4 text-sm text-error">
+      {error}
+    </div>
+  {/if}
 
-    {#if error}
-      <div
-        class="bg-error-subtle border border-error rounded-lg p-3 mb-4 text-sm text-error font-sans"
-      >
-        {error}
+  <!-- Stats strip -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Rules</div>
+      <div class="text-sm font-mono text-body">{triggers.length}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total fires</div>
+      <div class="text-sm font-mono text-body">{formatNumber(stats.total_triggers)}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Last 24h</div>
+      <div class="text-sm font-mono text-body">{formatNumber(fires24h)}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Last fire</div>
+      <div class="text-sm font-mono text-body">
+        {lastFireTs ? timeAgo(lastFireTs) : '—'}
       </div>
-    {/if}
+    </div>
+  </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-2 mb-6 border-b border-border">
+  <!-- Rules section -->
+  <div class="bg-surface border border-border rounded-lg mb-6">
+    <div class="px-5 py-3 border-b border-border flex items-baseline justify-between">
+      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Configured rules</h3>
       <button
-        onclick={() => (activeTab = 'rules')}
-        class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'rules'
-          ? 'text-accent border-accent'
-          : 'text-muted border-transparent hover:text-body hover:bg-surface'}"
+        type="button"
+        onclick={() => copyText('config-path', '.raven/config.toml')}
+        class="text-[10px] font-mono text-muted hover:text-accent transition-colors flex items-center gap-1 cursor-pointer"
+        title="Copy config file path"
       >
-        Rules ({triggers.length})
-      </button>
-      <button
-        onclick={() => (activeTab = 'events')}
-        class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'events'
-          ? 'text-accent border-accent'
-          : 'text-muted border-transparent hover:text-body hover:bg-surface'}"
-      >
-        Events ({filteredEvents.length})
-      </button>
-      <button
-        onclick={() => (activeTab = 'stats')}
-        class="px-4 py-2 text-sm font-sans transition-all border-b-2 {activeTab === 'stats'
-          ? 'text-accent border-accent'
-          : 'text-muted border-transparent hover:text-body hover:bg-surface'}"
-      >
-        Stats
+        <span>.raven/config.toml</span>
+        <span class="opacity-50">{copiedField === 'config-path' ? '✓' : '⎘'}</span>
       </button>
     </div>
-
-    <!-- Tab Content -->
-    <div>
-      {#if loading}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {#each Array(2) as _, i (i)}
-            <div
-              class="h-24 bg-surface border border-border rounded-lg animate-pulse"
-            ></div>
-          {/each}
-        </div>
-      {:else if activeTab === 'rules'}
-        <!-- RULES TAB -->
-
-        <!-- Filters -->
-        {#if triggers.length > 0}
-          <div
-            class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-4 flex-wrap items-center"
-          >
-            <input
-              type="text"
-              bind:value={searchQuery}
-              placeholder="Search triggers by name, message, or file..."
-              class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-            <select
-              bind:value={selectedActionFilter}
-              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
-            >
-              <option value="all">All Actions</option>
-              <option value="notify">Notify</option>
-              <option value="log">Log</option>
-              <option value="command">Command</option>
-            </select>
-            <div
-              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-muted font-semibold"
-            >
-              {filteredTriggers.length} / {triggers.length} triggers
-            </div>
-            <button
-              onclick={reloadConfig}
-              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-muted hover:border-accent hover:text-body transition-colors"
-            >
-              Reload Config
-            </button>
-            <button
-              onclick={clearCooldowns}
-              class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-muted hover:border-accent hover:text-body transition-colors"
-            >
-              Clear Cooldowns
-            </button>
-          </div>
-        {/if}
-
-        <!-- Trigger Rules Grid -->
-        {#if filteredTriggers.length === 0 && triggers.length > 0}
-          <EmptyState
-            size="compact"
-            title="No triggers match those filters"
-            description="Loosen the search box or category filter above. Every trigger you've defined in .raven/config.toml is still loaded — they're just hidden by the current view."
-            icon="⚙"
-          />
-        {:else if triggers.length === 0}
-          <EmptyState
-            size="compact"
-            title="No Triggers Configured"
-            description="Create triggers in .raven/config.toml to get started. Example triggers are created automatically when Raven first runs."
-          />
-        {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {#each filteredTriggers as trigger (trigger.name)}
-              <div
-                class="bg-surface border border-border rounded-lg p-4 transition-all {enabledTriggers.has(
-                  trigger.name
-                )
-                  ? 'hover:border-accent hover:shadow-lg'
-                  : 'opacity-50 grayscale'}"
-              >
-                <!-- Header -->
-                <div
-                  class="flex justify-between items-start mb-3 pb-3 border-b border-border"
+    {#if loading && triggers.length === 0}
+      <div class="p-5 space-y-3">
+        {#each Array(2) as _, i (i)}
+          <div class="h-20 bg-canvas border border-border rounded animate-pulse"></div>
+        {/each}
+      </div>
+    {:else if triggers.length === 0}
+      <EmptyState
+        size="compact"
+        title="No rules configured"
+        description="Add a [triggers.<name>] table to .raven/config.toml and click Reload config above."
+      />
+    {:else}
+      <div class="divide-y divide-[var(--border)]">
+        {#each triggers as trigger (trigger.name)}
+          {@const fire = fireSummary[trigger.name] || { count: 0, last: null }}
+          <div class="px-5 py-4">
+            <div class="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span
+                  class="w-2 h-2 rounded-full {fire.count > 0 ? 'bg-success' : 'bg-muted'}"
+                  aria-label={fire.count > 0 ? 'fired' : 'never fired'}
+                ></span>
+                <span class="font-mono text-sm font-semibold text-body">{trigger.name}</span>
+                <span
+                  class="text-[10px] font-mono uppercase tracking-wide rounded px-1.5 py-0.5 border {actionToneClass(
+                    trigger.action
+                  )}"
+                  title="action: {trigger.action}"
                 >
-                  <div class="flex-1">
-                    <div class="font-semibold text-sm text-heading font-mono mb-2">
-                      {trigger.name}
-                    </div>
-                    <span
-                      class="inline-block bg-canvas px-2 py-1 rounded text-xs text-accent font-sans capitalize"
-                    >
-                      {getActionIcon(trigger.action)}
-                      {trigger.action}
-                    </span>
-                  </div>
-                  <!-- Toggle Switch -->
-                  <label class="relative inline-block w-11 h-6 cursor-pointer flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={enabledTriggers.has(trigger.name)}
-                      onchange={() => toggleTrigger(trigger.name)}
-                      class="opacity-0 w-0 h-0 peer"
-                    />
-                    <span
-                      class="absolute inset-0 bg-surface-2 border border-border rounded-full transition-all peer-checked:bg-accent peer-checked:border-accent"
-                    ></span>
-                    <span
-                      class="absolute left-1 top-1 w-4 h-4 bg-muted rounded-full transition-all peer-checked:translate-x-5 peer-checked:bg-white"
-                    ></span>
-                  </label>
-                </div>
-
-                <!-- Details -->
-                <div class="text-xs space-y-2 mb-3">
-                  {#if getConditionsList(trigger).length > 0}
-                    <div>
-                      <span class="text-muted font-sans font-medium">Conditions:</span>
-                      <ul class="mt-1 ml-4 list-disc space-y-0.5">
-                        {#each getConditionsList(trigger) as condition (condition)}
-                          <li class="text-body font-mono">{condition}</li>
-                        {/each}
-                      </ul>
-                    </div>
-                  {/if}
-
-                  {#if trigger.message}
-                    <div>
-                      <span class="text-muted font-sans font-medium">Message:</span>
-                      <div class="text-body font-mono mt-1">{trigger.message}</div>
-                    </div>
-                  {/if}
-
-                  {#if trigger.command}
-                    <div>
-                      <span class="text-muted font-sans font-medium">Command:</span>
-                      <code
-                        class="block bg-canvas px-2 py-1 rounded text-success font-mono mt-1 overflow-x-auto"
-                        >{trigger.command}</code
-                      >
-                    </div>
-                  {/if}
-
-                  <div>
-                    <span class="text-muted font-sans font-medium">Cooldown:</span>
-                    <span class="text-body font-mono ml-2">
-                      {trigger.cooldown_seconds === 0 ? 'None' : `${trigger.cooldown_seconds}s`}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="flex justify-between items-center pt-3 border-t border-border">
-                  <button
-                    onclick={() => testTrigger(trigger)}
-                    disabled={!enabledTriggers.has(trigger.name)}
-                    class="px-3 py-1.5 bg-canvas border border-border rounded text-xs font-sans text-body hover:bg-accent hover:text-white hover:border-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Test Fire
-                  </button>
-                  <span
-                    class="flex items-center gap-1.5 text-xs font-semibold font-sans px-2 py-1 bg-canvas rounded {enabledTriggers.has(
-                      trigger.name
-                    )
-                      ? 'text-success'
-                      : 'text-muted'}"
-                  >
-                    <span
-                      class="w-1.5 h-1.5 rounded-full {enabledTriggers.has(trigger.name)
-                        ? 'bg-success'
-                        : 'bg-muted'}"
-                    ></span>
-                    {enabledTriggers.has(trigger.name) ? 'Enabled' : 'Disabled'}
+                  {trigger.action}
+                </span>
+                {#if trigger.cooldown_seconds > 0}
+                  <span class="text-[10px] font-mono text-muted">
+                    cooldown {trigger.cooldown_seconds}s
                   </span>
-                </div>
+                {/if}
               </div>
-            {/each}
-          </div>
-        {/if}
-      {:else if activeTab === 'events'}
-        <!-- EVENTS TAB -->
+              <div class="flex items-center gap-4 text-xs font-mono text-muted">
+                <span>
+                  <span class="text-body tabular-nums">{formatNumber(fire.count)}</span>
+                  fires
+                </span>
+                {#if fire.last}
+                  <span>
+                    last
+                    <span class="text-body">{timeAgo(fire.last * 1000)}</span>
+                  </span>
+                {/if}
+              </div>
+            </div>
 
-        <!-- Project Filter -->
-        {#if availableProjects.length > 0}
-          <div
-            class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-4 items-center"
-          >
-            <span class="text-sm text-muted font-sans font-medium">Filter by project:</span
-            >
-            <select
-              bind:value={selectedProjectFilter}
-              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
-            >
-              <option value="all">All Projects</option>
-              {#each availableProjects as project (project)}
-                <option value={project}>{project}</option>
+            <!-- Conditions: a single line per condition keeps the card compact
+                 and matches terminal-density elsewhere on the site. -->
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mb-2">
+              {#each getConditionsList(trigger) as cond (cond.k)}
+                <span>
+                  <span class="text-muted">{cond.k}</span>
+                  <span class="text-body ml-1">{cond.v}</span>
+                </span>
               {/each}
-            </select>
-            <div
-              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-muted font-semibold"
-            >
-              {filteredEvents.length} / {triggeredEvents.length} events
             </div>
-          </div>
-        {/if}
 
-        <!-- Triggered Events -->
-        {#if filteredEvents.length === 0 && triggeredEvents.length > 0}
-          <EmptyState size="compact" title="No Events for Selected Project" description="Try selecting a different project." />
-        {:else if triggeredEvents.length === 0}
-          <EmptyState
-            size="compact"
-            title="No Triggered Events"
-            description="No triggers have fired yet. Events will appear here when conditions are met. Real-time updates via WebSocket."
-          />
-        {:else}
-          <div class="space-y-2">
-            {#each filteredEvents as event (event.id)}
-              <div
-                class="bg-surface border border-border rounded-lg p-3 flex items-center gap-3 hover:bg-canvas transition-colors"
-              >
-                <span class="text-xl flex-shrink-0">{getActionIcon(event.action)}</span>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <span class="font-semibold text-sm text-accent font-mono"
-                      >{event.trigger_name}</span
-                    >
-                    {#if event.project}
-                      <ProjectBadge project={event.project} size="small" />
-                    {/if}
-                  </div>
-                  <div class="text-sm text-body font-mono">{event.message}</div>
-                  {#if event.file}
-                    <div class="text-xs text-muted font-mono mt-1">File: {event.file}</div>
-                  {/if}
-                </div>
-                <div class="text-right flex-shrink-0">
-                  <div
-                    class="text-xs text-muted font-sans capitalize bg-canvas px-2 py-1 rounded mb-1"
-                  >
-                    {event.action}
-                  </div>
-                  <div class="text-xs text-muted font-mono">
-                    {formatTimestamp(event.timestamp)}
-                  </div>
-                </div>
+            {#if trigger.message}
+              <div class="text-xs font-mono text-muted leading-snug">
+                <span class="opacity-60">message:</span>
+                <span class="text-body">{trigger.message}</span>
               </div>
-            {/each}
+            {/if}
+            {#if trigger.command}
+              <div class="text-xs font-mono mt-1">
+                <span class="text-muted opacity-60">command:</span>
+                <code class="ml-1 px-2 py-0.5 bg-canvas border border-border rounded text-warning"
+                  >{trigger.command}</code
+                >
+              </div>
+            {/if}
           </div>
-        {/if}
-      {:else if activeTab === 'stats'}
-        <!-- STATS TAB -->
-        <div class="space-y-6">
-          <!-- Summary Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-surface border border-border rounded p-4">
-              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                Total Triggers Fired
-              </div>
-              <div class="text-sm font-mono text-body">
-                {stats.total_triggers}
-              </div>
-            </div>
-            <div class="bg-surface border border-border rounded p-4">
-              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                Active Trigger Rules
-              </div>
-              <div class="text-sm font-mono text-body">
-                {stats.active_triggers}
-              </div>
-            </div>
-          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
 
-          <!-- Trigger Fire Counts -->
-          {#if Object.keys(stats?.trigger_counts || {}).length > 0}
-            <div class="bg-surface border border-border rounded-lg p-5">
-              <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-                Trigger Fire Counts
-              </h3>
-              <div class="space-y-2">
-                {#each Object.entries(stats.trigger_counts).sort((a, b) => b[1] - a[1]) as [name, count] (name)}
-                  <div
-                    class="flex justify-between items-center bg-canvas border border-border rounded p-3 hover:border-accent transition-colors"
-                  >
-                    <span class="text-sm text-body font-mono font-medium">{name}</span>
-                    <span
-                      class="text-sm font-mono text-body bg-surface px-3 py-1 rounded"
-                      >{count}</span
-                    >
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {:else}
-            <EmptyState
-              size="compact"
-              title="No Statistics Available"
-              description="Statistics will appear here once triggers start firing."
-            />
-          {/if}
-        </div>
-      {/if}
+  <!-- Recent fires -->
+  <div class="bg-surface border border-border rounded-lg mb-6">
+    <div class="px-5 py-3 border-b border-border flex items-baseline justify-between">
+      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Recent fires</h3>
+      <span class="text-[10px] font-mono text-muted">live · last {triggeredEvents.length}</span>
     </div>
+    {#if triggeredEvents.length === 0}
+      <EmptyState
+        size="compact"
+        title="Nothing has fired yet"
+        description="Triggered events stream in here in real time as conditions in your rules are met."
+      />
+    {:else}
+      <ul class="divide-y divide-[var(--border)]">
+        {#each triggeredEvents.slice(0, 50) as event (event.id)}
+          <li class="px-5 py-2.5 flex items-baseline gap-3 text-xs font-mono">
+            <span class="text-muted/70 w-20 flex-shrink-0">{formatTimestamp(event.timestamp)}</span>
+            <span
+              class="text-[10px] uppercase tracking-wide rounded px-1.5 py-0.5 border flex-shrink-0 {actionToneClass(
+                event.action
+              )}"
+            >
+              {event.action || 'log'}
+            </span>
+            <span class="font-semibold text-accent flex-shrink-0">{event.trigger_name}</span>
+            {#if event.project}
+              <ProjectBadge project={event.project} size="small" />
+            {/if}
+            <span class="text-body break-all flex-1">{event.message}</span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
+
+  <!-- How to add a rule. Inline so the user doesn't have to leave the page. -->
+  <div class="bg-surface border border-border rounded-lg p-5">
+    <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">Add a rule</h3>
+    <div class="grid md:grid-cols-2 gap-5 text-sm font-sans text-body leading-relaxed">
+      <div class="space-y-3">
+        <p>
+          Edit <code class="font-mono text-accent">.raven/config.toml</code> and add a
+          <code class="font-mono">[triggers.&lt;name&gt;]</code>
+          block. Click <span class="font-semibold">Reload config</span> above when you're done.
+        </p>
+        <ul class="text-xs space-y-1.5">
+          <li>
+            <span class="font-mono text-muted">match fields:</span>
+            <code class="font-mono text-body"
+              >file, agent, event_type, lines_changed, lines_deleted, duration_ms, cpu_percent,
+              memory_percent</code
+            >
+          </li>
+          <li>
+            <span class="font-mono text-muted">numeric ops:</span>
+            <code class="font-mono text-body">&gt;N, &lt;N, &gt;=N, &lt;=N, ==N</code>
+          </li>
+          <li>
+            <span class="font-mono text-muted">actions:</span>
+            <code class="font-mono text-body">log</code>,
+            <code class="font-mono text-body">notify</code>,
+            <code class="font-mono text-body">command</code>
+          </li>
+          <li>
+            <span class="font-mono text-muted">cooldown_seconds</span>
+            suppresses re-fires of the same rule for that many seconds.
+          </li>
+        </ul>
+        <p class="text-xs text-muted">
+          For richer conditions (counts over time windows, project-aware logic), write a
+          <a href="/system/plugins" class="text-accent hover:underline">plugin</a> and call
+          <code class="font-mono text-body">raven.trigger(name, payload)</code>.
+        </p>
+      </div>
+      <pre
+        class="text-xs font-mono p-3 bg-canvas border border-border rounded overflow-auto m-0 leading-relaxed">{`# .raven/config.toml
+
+[triggers.large_edit]
+file = "*.ts"
+lines_changed = ">200"
+action = "notify"
+message = "Big edit: {file} ({lines_changed} lines)"
+cooldown_seconds = 60
+
+[triggers.slow_claude]
+agent = "claude"
+duration_ms = ">5000"
+action = "log"
+message = "Slow {agent}: {file} {duration_ms}ms"
+cooldown_seconds = 120`}</pre>
+    </div>
+  </div>
 </PageLayout>

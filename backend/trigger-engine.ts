@@ -277,34 +277,50 @@ cooldown_seconds = 300
       }
     }
 
-    // Check numeric conditions
-    if (trigger.lines_changed && event.lines_changed !== undefined) {
-      if (!this.checkNumericCondition(event.lines_changed, trigger.lines_changed)) {
+    // Numeric conditions: when a trigger declares one, the event MUST carry
+    // the matching field, otherwise no match. The previous code treated
+    // missing fields as auto-pass, so cpu_percent=">80" and lines_deleted=
+    // ">100" rules fired on every plain file event (event had no cpu/duration
+    // attached) — the recent-events feed showed "0%" / "0 lines deleted"
+    // because the absent field was coerced to 0 in the message template.
+    if (trigger.lines_changed) {
+      if (
+        event.lines_changed === undefined ||
+        !this.checkNumericCondition(event.lines_changed, trigger.lines_changed)
+      ) {
         return false;
       }
     }
-
-    // lines_deleted uses the same lines_changed event value
-    if (trigger.lines_deleted && event.lines_changed !== undefined) {
-      if (!this.checkNumericCondition(event.lines_changed, trigger.lines_deleted)) {
+    if (trigger.lines_deleted) {
+      // lines_deleted reuses the lines_changed field on the event payload.
+      if (
+        event.lines_changed === undefined ||
+        !this.checkNumericCondition(event.lines_changed, trigger.lines_deleted)
+      ) {
         return false;
       }
     }
-
-    if (trigger.duration_ms && event.duration_ms !== undefined) {
-      if (!this.checkNumericCondition(event.duration_ms, trigger.duration_ms)) {
+    if (trigger.duration_ms) {
+      if (
+        event.duration_ms === undefined ||
+        !this.checkNumericCondition(event.duration_ms, trigger.duration_ms)
+      ) {
         return false;
       }
     }
-
-    if (trigger.cpu_percent && event.cpu_percent !== undefined) {
-      if (!this.checkNumericCondition(event.cpu_percent, trigger.cpu_percent)) {
+    if (trigger.cpu_percent) {
+      if (
+        event.cpu_percent === undefined ||
+        !this.checkNumericCondition(event.cpu_percent, trigger.cpu_percent)
+      ) {
         return false;
       }
     }
-
-    if (trigger.memory_percent && event.memory_percent !== undefined) {
-      if (!this.checkNumericCondition(event.memory_percent, trigger.memory_percent)) {
+    if (trigger.memory_percent) {
+      if (
+        event.memory_percent === undefined ||
+        !this.checkNumericCondition(event.memory_percent, trigger.memory_percent)
+      ) {
         return false;
       }
     }
