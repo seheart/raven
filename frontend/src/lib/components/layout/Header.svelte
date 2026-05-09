@@ -108,7 +108,7 @@
       { id: '', label: 'Overview' },
       { id: 'costs', label: 'Costs' },
       { id: 'trends', label: 'Trends' },
-      { id: 'wrapped', label: 'Wrapped' }
+      { id: 'wrapped', label: 'Looking Back' }
     ],
     system: [
       { id: '', label: 'Overview' },

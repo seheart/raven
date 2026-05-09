@@ -72,11 +72,11 @@ describe('Header', () => {
     expect(screen.getByText('Models')).toBeTruthy();
   });
 
-  it('renders Insights sub-tabs including Wrapped', () => {
+  it('renders Insights sub-tabs including Looking Back', () => {
     render(Header, { props: { activeTab: 'insights', activeSubTab: '' } });
     expect(screen.getByText('Costs')).toBeTruthy();
     expect(screen.getByText('Trends')).toBeTruthy();
-    expect(screen.getByText('Wrapped')).toBeTruthy();
+    expect(screen.getByText('Looking Back')).toBeTruthy();
   });
 
   it('renders System sub-tabs including the relocated Triggers', () => {

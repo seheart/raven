@@ -28,6 +28,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { DataFetchError } from '../components/ui/index.js';
+  import { settings } from '../stores/settingsStore.js';
+  import { get } from 'svelte/store';
 
   const { api, abort } = createPageApi();
 
@@ -41,6 +43,16 @@
   /** @type {string|null} */
   let loadError = $state(null);
   let activeIdx = $state(0);
+  // Subscription-aware framing for the spend card. Backend returns
+  // neutral copy ("That much thinking, valued at $X at API rates");
+  // here we relabel it on top of that for Claude Max users so the
+  // giant dollar figure doesn't read as "money you spent."
+  let billingMode = $state(get(settings)?.billing?.mode || 'subscription');
+  let planName = $state(get(settings)?.billing?.planName || 'Claude Max');
+  const unsubBilling = settings.subscribe(s => {
+    billingMode = s?.billing?.mode || 'subscription';
+    planName = s?.billing?.planName || 'Claude Max';
+  });
   /** Cards that have ever been intersected — drives the fade-in class.
    *  Tracked in state (instead of imperatively setting a class on the
    *  DOM node) so Svelte's scoped CSS sees the selector and keeps it. */
@@ -127,7 +139,21 @@
     abort();
     observer?.disconnect();
     window.removeEventListener('keydown', onKey);
+    unsubBilling();
   });
+
+  // Subscription-aware overrides on top of the backend's neutral copy.
+  // Backend says "valued at $X at API rates" already; on subscription
+  // we add the explicit "you didn't pay this" reassurance.
+  function massageCard(card) {
+    if (card.id !== 'spend' || billingMode === 'api') return card;
+    return {
+      ...card,
+      label: 'Compute used',
+      headline: card.headline,
+      support: `Your ${planName} subscription covered all of this — that dollar figure is the API-rate equivalent. ${card.support}`
+    };
+  }
 
   // Tone → CSS variable. Pulls from the new --chart-N palette so cards
   // use the same warm rust / peach / amber / coral / teal sequence as the
@@ -170,20 +196,20 @@
 </script>
 
 <svelte:head>
-  <title>Wrapped · Raven</title>
+  <title>Looking Back · Raven</title>
 </svelte:head>
 
 <div class="wrapped-root" bind:this={stackEl}>
   {#if loading}
     <div class="loading-state">
       <div class="pulse-dot"></div>
-      <span>Building your Wrapped…</span>
+      <span>Looking back through the year…</span>
     </div>
   {:else if loadError}
     <div class="error-wrap">
       <DataFetchError
         endpoint="/api/wrapped"
-        message="Failed to load Wrapped"
+        message="Failed to load Looking Back"
         hint={loadError}
         onRetry={load}
       />
@@ -192,7 +218,7 @@
     <!-- Side rail: window label + dot indicators. Fixed so it floats on
          every card. Each dot is a focusable button so keyboard users can
          tab to it; click smooth-scrolls to that card. -->
-    <aside class="rail" aria-label="Wrapped navigation">
+    <aside class="rail" aria-label="Looking Back navigation">
       <div class="rail-window">
         <span class="rail-window-label">{spanLabel(payload)}</span>
         <span class="rail-window-range"
@@ -219,7 +245,8 @@
       </div>
     </aside>
 
-    {#each payload.cards as card, i (card.id)}
+    {#each payload.cards as rawCard, i (rawCard.id)}
+      {@const card = massageCard(rawCard)}
       <section
         data-card={i}
         class="card"

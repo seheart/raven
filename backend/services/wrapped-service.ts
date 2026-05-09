@@ -1,14 +1,31 @@
 /**
- * Wrapped Service — Spotify-Wrapped-style year-in-review.
+ * Looking Back service — narrative year-in-review.
  *
  * Aggregates a configurable trailing window (default 365 days) into
  * a sequence of headline cards: top model, top project, total spend,
  * longest streak, biggest day, most-edited file, time-of-day pattern,
- * AI/human ratio, top milestone.
+ * longest session, closing.
  *
  * Returns the full payload in one round-trip. Each card carries:
  *   { id, label, headline, stat, support, tone }
  * — designed to be rendered as a vertical card stack on the frontend.
+ *
+ * Audit notes (corrections from the first pass):
+ *   • All `date()` and `strftime()` calls use 'localtime' so day-bucketed
+ *     stats line up with how the user actually experiences a "day". The
+ *     prior version grouped in UTC and an EDT user's 11pm session split
+ *     across two UTC days — broke streaks, mislabeled biggest-day, and
+ *     reported peak hour off by 4–5 hours.
+ *   • Top-file filters out database/lock/log noise so the result is a
+ *     human-typeable file, not the SQLite write target of the moment.
+ *   • Top model ranks by output tokens (the actual "thinking" volume),
+ *     not raw request count.
+ *   • Longest session splits on >15-min gaps so a laptop closed mid-
+ *     session doesn't inflate the "heads-down focus" stat.
+ *   • Spend copy is neutral about billing mode — the page wraps it in
+ *     subscription-aware framing rather than claiming "you burned $X".
+ *   • Closing copy scopes "local-first" to the Wrapped/Raven analytics
+ *     themselves, not the LLM calls (which obviously go to Anthropic).
  */
 
 import type { RavenDB } from '../db.js';
@@ -111,10 +128,24 @@ export function createWrappedService(db: RavenDB): WrappedService {
           )
         : 0;
 
-    // ── Top project ──
+    // ── Agent events (the "AI activity" signal — distinct from raw file
+    //    events which include any watcher noise). Used in the opener so
+    //    the headline doesn't oversell file-watcher hits as "agent
+    //    activity". ──
+    const agentTotals = db.db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM agent_events
+          WHERE timestamp >= ? AND timestamp <= ?`
+      )
+      .get(startIso, endIso) as { c: number } | undefined;
+    const agentEvents = agentTotals?.c ?? 0;
+
+    // ── Top project. Local-day count for "active days" so a 11pm-EDT
+    //    session doesn't get split across two UTC days. ──
     const topProj = db.db
       .prepare(
-        `SELECT project_name AS p, COUNT(*) AS c, COUNT(DISTINCT date(timestamp)) AS days
+        `SELECT project_name AS p, COUNT(*) AS c,
+                COUNT(DISTINCT date(timestamp, 'localtime')) AS days
            FROM events
           WHERE timestamp >= ? AND timestamp <= ?
             AND project_name IS NOT NULL AND project_name != ''
@@ -122,7 +153,7 @@ export function createWrappedService(db: RavenDB): WrappedService {
       )
       .get(startIso, endIso) as { p: string; c: number; days: number } | undefined;
 
-    // ── Top model + cost rollup ──
+    // ── Total spend rollup (used for the spend card). ──
     const cost = db.db
       .prepare(
         `SELECT COALESCE(SUM(estimated_cost_usd), 0) AS cost,
@@ -135,19 +166,27 @@ export function createWrappedService(db: RavenDB): WrappedService {
       .get(startIso, endIso) as
       | { cost: number; in_tok: number; out_tok: number; reqs: number }
       | undefined;
+
+    // ── Top model — ranked by output tokens (= actual "thinking" volume),
+    //    not raw request count. A handful of huge-output Opus runs is
+    //    more meaningful than thousands of tiny Haiku probes. ──
     const topModel = db.db
       .prepare(
-        `SELECT model AS m, COUNT(*) AS c, COALESCE(SUM(estimated_cost_usd), 0) AS cost
+        `SELECT model AS m,
+                COUNT(*) AS c,
+                COALESCE(SUM(output_tokens), 0) AS out_tok,
+                COALESCE(SUM(estimated_cost_usd), 0) AS cost
            FROM token_usage
           WHERE timestamp >= ? AND timestamp <= ? AND model IS NOT NULL AND model != ''
-          GROUP BY model ORDER BY c DESC LIMIT 1`
+          GROUP BY model ORDER BY out_tok DESC LIMIT 1`
       )
-      .get(startIso, endIso) as { m: string; c: number; cost: number } | undefined;
+      .get(startIso, endIso) as { m: string; c: number; out_tok: number; cost: number } | undefined;
 
-    // ── Longest active-day streak ──
+    // ── Longest active-day streak. localtime grouping so timezone
+    //    midnight rollover doesn't fake-break a streak. ──
     const dayRows = db.db
       .prepare(
-        `SELECT DISTINCT date(timestamp) AS d FROM events
+        `SELECT DISTINCT date(timestamp, 'localtime') AS d FROM events
           WHERE timestamp >= ? AND timestamp <= ? ORDER BY d ASC`
       )
       .all(startIso, endIso) as Array<{ d: string }>;
@@ -155,55 +194,112 @@ export function createWrappedService(db: RavenDB): WrappedService {
     let currentStreak = 0;
     let prevDay: number | null = null;
     for (const r of dayRows) {
-      const day = new Date(r.d).getTime() / 86_400_000;
+      // Date.parse('YYYY-MM-DD') treats the string as UTC midnight; that's
+      // fine for difference math because every entry has the same offset.
+      const day = new Date(r.d + 'T00:00:00Z').getTime() / 86_400_000;
       if (prevDay !== null && day - prevDay === 1) currentStreak++;
       else currentStreak = 1;
       if (currentStreak > longestStreak) longestStreak = currentStreak;
       prevDay = day;
     }
 
-    // ── Biggest day (max events on a single calendar day) ──
+    // ── Biggest day. Localtime grouping so the displayed weekday matches
+    //    the user's lived day. ──
     const biggestDay = db.db
       .prepare(
-        `SELECT date(timestamp) AS d, COUNT(*) AS c
+        `SELECT date(timestamp, 'localtime') AS d, COUNT(*) AS c
            FROM events
           WHERE timestamp >= ? AND timestamp <= ?
-          GROUP BY date(timestamp) ORDER BY c DESC LIMIT 1`
+          GROUP BY date(timestamp, 'localtime') ORDER BY c DESC LIMIT 1`
       )
       .get(startIso, endIso) as { d: string; c: number } | undefined;
 
-    // ── Most-edited file ──
+    // ── Most-edited file. Excludes:
+    //    - SQLite/db files: written on every transaction → huge useless count
+    //    - Lock files (package-lock.json, yarn.lock, *.lock)
+    //    - Log files
+    //    - Snapshots / cache / build artifacts
+    //   Goal: surface a file the user actually typed in, not a write-target. ──
     const topFile = db.db
       .prepare(
         `SELECT filepath AS f, COUNT(*) AS c
            FROM events
           WHERE timestamp >= ? AND timestamp <= ? AND filepath IS NOT NULL
+            AND filepath NOT LIKE '%.db'
+            AND filepath NOT LIKE '%.db-journal'
+            AND filepath NOT LIKE '%.db-wal'
+            AND filepath NOT LIKE '%.db-shm'
+            AND filepath NOT LIKE '%.sqlite'
+            AND filepath NOT LIKE '%.sqlite3'
+            AND filepath NOT LIKE '%.lock'
+            AND filepath NOT LIKE '%-lock.json'
+            AND filepath NOT LIKE '%lock.yaml'
+            AND filepath NOT LIKE '%.log'
+            AND filepath NOT LIKE '%/snapshots/%'
+            AND filepath NOT LIKE '%/.cache/%'
+            AND filepath NOT LIKE '%/dist/%'
+            AND filepath NOT LIKE '%/build/%'
+            AND filepath NOT LIKE '%/coverage/%'
+            AND filepath NOT LIKE '%/.git/%'
+            AND filepath NOT LIKE '%/node_modules/%'
           GROUP BY filepath ORDER BY c DESC LIMIT 1`
       )
       .get(startIso, endIso) as { f: string; c: number } | undefined;
 
-    // ── Time-of-day pattern: most-active hour bucket ──
+    // ── Time-of-day pattern. Localtime hour, so "06:00" means 6am for the
+    //    user, not 6am UTC (which is 2am EDT — opposite story). ──
     const hourRows = db.db
       .prepare(
-        `SELECT strftime('%H', timestamp) AS h, COUNT(*) AS c
+        `SELECT strftime('%H', timestamp, 'localtime') AS h, COUNT(*) AS c
            FROM events
           WHERE timestamp >= ? AND timestamp <= ?
           GROUP BY h ORDER BY c DESC LIMIT 1`
       )
       .get(startIso, endIso) as { h: string; c: number } | undefined;
 
-    // ── Longest single session ──
-    const longestSession = db.db
+    // ── Longest single session, gap-aware. The previous version did
+    //    MAX(ts) - MIN(ts) per session_id, which counts wall-clock from
+    //    first to last event — a laptop closed for hours mid-session would
+    //    inflate the "heads-down focus" stat. This walks the events of
+    //    each session in order and breaks the run on any gap > 15 minutes,
+    //    so the reported stretch is real focused activity. ──
+    const sessionEvents = db.db
       .prepare(
-        `SELECT MAX(span) AS s FROM (
-           SELECT (julianday(MAX(timestamp)) - julianday(MIN(timestamp))) * 86400 AS span
-             FROM events
-            WHERE timestamp >= ? AND timestamp <= ? AND session_id IS NOT NULL
-            GROUP BY session_id HAVING COUNT(*) > 1
-         )`
+        `SELECT session_id, timestamp FROM events
+          WHERE timestamp >= ? AND timestamp <= ? AND session_id IS NOT NULL
+          ORDER BY session_id, timestamp ASC`
       )
-      .get(startIso, endIso) as { s: number | null } | undefined;
-    const longestSessionSeconds = Math.floor(longestSession?.s ?? 0);
+      .all(startIso, endIso) as Array<{ session_id: string; timestamp: string }>;
+    const GAP_MS = 15 * 60_000;
+    let longestSessionSeconds = 0;
+    let curSession: string | null = null;
+    let runStart = 0;
+    let runLast = 0;
+    for (const ev of sessionEvents) {
+      const t = new Date(ev.timestamp).getTime();
+      if (ev.session_id !== curSession) {
+        // Wrap up the previous run before starting a new session.
+        if (runStart && runLast > runStart) {
+          longestSessionSeconds = Math.max(longestSessionSeconds, (runLast - runStart) / 1000);
+        }
+        curSession = ev.session_id;
+        runStart = t;
+        runLast = t;
+        continue;
+      }
+      if (t - runLast > GAP_MS) {
+        // Gap — close out the run and start a new one in the same session.
+        if (runLast > runStart) {
+          longestSessionSeconds = Math.max(longestSessionSeconds, (runLast - runStart) / 1000);
+        }
+        runStart = t;
+      }
+      runLast = t;
+    }
+    if (runLast > runStart) {
+      longestSessionSeconds = Math.max(longestSessionSeconds, (runLast - runStart) / 1000);
+    }
+    longestSessionSeconds = Math.floor(longestSessionSeconds);
 
     // ── Cards ──
     const cards: WrappedCard[] = [];
@@ -213,12 +309,15 @@ export function createWrappedService(db: RavenDB): WrappedService {
       label: 'Your year with Raven',
       headline:
         spanDays > 0
-          ? `${spanDays} ${plural(spanDays, 'day', 'days')} of agent activity, captured.`
+          ? `${spanDays} ${plural(spanDays, 'day', 'days')} of activity, captured.`
           : 'Welcome to your year-in-review.',
       stat: events.toLocaleString(),
+      // Honest split: events = file watcher hits, agent_events = AI turns.
+      // Earlier copy called all events "agent activity" which oversold a
+      // count that includes any file-system noise across watched projects.
       support:
         events > 0
-          ? `${plural(events, 'event', 'events')} logged across ${projects} ${plural(projects, 'project', 'projects')}.`
+          ? `${events.toLocaleString()} file ${plural(events, 'event', 'events')} · ${agentEvents.toLocaleString()} AI ${plural(agentEvents, 'turn', 'turns')} · ${projects} ${plural(projects, 'project', 'projects')}.`
           : 'Once you have a few weeks of events, this card will fill in.',
       tone: 'accent'
     });
@@ -240,16 +339,19 @@ export function createWrappedService(db: RavenDB): WrappedService {
         label: 'Your top model',
         headline: `${topModel.m} did most of the thinking.`,
         stat: topModel.m,
-        support: `${topModel.c.toLocaleString()} ${plural(topModel.c, 'inference', 'inferences')} · ${fmtUsd(topModel.cost)} spent through this model.`,
+        support: `${topModel.c.toLocaleString()} ${plural(topModel.c, 'turn', 'turns')} · ${fmtTokens(topModel.out_tok)} output tokens generated.`,
         tone: 'info'
       });
     }
 
     if (cost && cost.reqs > 0) {
+      // Neutral framing — "this much compute, valued at $X" — instead
+      // of "you burned $X". The frontend layers subscription-aware copy
+      // on top so a Claude Max user doesn't read this as actual spend.
       cards.push({
         id: 'spend',
-        label: 'Total spend',
-        headline: `You burned ${fmtUsd(cost.cost)} on AI this year.`,
+        label: 'Compute used',
+        headline: `That much thinking, valued at ${fmtUsd(cost.cost)} at API rates.`,
         stat: fmtUsd(cost.cost),
         support: `${cost.reqs.toLocaleString()} requests · ${fmtTokens(cost.in_tok)}↑ in, ${fmtTokens(cost.out_tok)}↓ out.`,
         tone: 'accent'
@@ -272,10 +374,16 @@ export function createWrappedService(db: RavenDB): WrappedService {
     }
 
     if (biggestDay && biggestDay.c >= 50) {
+      // biggestDay.d is a "YYYY-MM-DD" string from `date(.., 'localtime')`.
+      // new Date('YYYY-MM-DD') parses as UTC midnight, so toLocaleDateString
+      // in any non-UTC zone displays the previous day. Anchor at noon
+      // local-zone via the 3-arg Date constructor to dodge that.
+      const [yyyy, mm, dd] = biggestDay.d.split('-').map(n => parseInt(n, 10));
+      const dayDate = new Date(yyyy, (mm || 1) - 1, dd || 1, 12, 0, 0);
       cards.push({
         id: 'biggest-day',
         label: 'Biggest day',
-        headline: `${new Date(biggestDay.d).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} was your busiest day.`,
+        headline: `${dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} was your busiest day.`,
         stat: `${biggestDay.c.toLocaleString()} events`,
         support: 'In a single day. Hope you got a good lunch.',
         tone: 'warning'
@@ -321,9 +429,11 @@ export function createWrappedService(db: RavenDB): WrappedService {
       cards.push({
         id: 'longest-session',
         label: 'Longest stretch',
-        headline: `${fmtDuration(longestSessionSeconds)} in a single session.`,
+        headline: `${fmtDuration(longestSessionSeconds)} of focused activity, unbroken.`,
         stat: fmtDuration(longestSessionSeconds),
-        support: 'Heads-down focus. Hope it shipped.',
+        // Gap-aware (15-min idle splits the run), so this is real focus
+        // time — not wall-clock with a closed laptop in the middle.
+        support: 'Activity within 15 minutes of itself counts. Real heads-down stretch.',
         tone: 'success'
       });
     }
@@ -331,9 +441,11 @@ export function createWrappedService(db: RavenDB): WrappedService {
     cards.push({
       id: 'closing',
       label: 'Local-first',
-      headline: 'Every byte of this stayed on your machine.',
-      stat: '0 cloud',
-      support: 'No telemetry, no account, no third party. The trail is yours.',
+      // Scoped to Raven specifically — the LLM calls obviously go to
+      // Anthropic, but Raven itself never phoned home with any of this.
+      headline: 'This whole story stayed on your machine.',
+      stat: '0 telemetry',
+      support: 'Raven never phoned home. The trail is yours.',
       tone: 'muted'
     });
 
@@ -344,6 +456,7 @@ export function createWrappedService(db: RavenDB): WrappedService {
       cards,
       stats: {
         events,
+        agent_events: agentEvents,
         files,
         projects,
         cost_usd: cost?.cost ?? 0,
