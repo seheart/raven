@@ -125,7 +125,17 @@ export function createOllamaDetailRouter(
       return res.json({ models, count: models.length, ollama_status: 'online' });
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      return res.json({ models: [], count: 0, ollama_status: 'offline', detail });
+      // Surface the failure in the standard `error` shape so the
+      // no-silent-failures middleware promotes the response to 502 — earlier
+      // we only set `detail` and consumers reading `models.length` rendered
+      // an empty section silently. Frontend handlers should check for
+      // ollama_status === 'offline' to render the "Ollama not running" UI.
+      return res.json({
+        models: [],
+        count: 0,
+        ollama_status: 'offline',
+        error: `Ollama unreachable: ${detail}`
+      });
     }
   });
 
@@ -148,7 +158,17 @@ export function createOllamaDetailRouter(
       return res.json({ models, count: models.length, ollama_status: 'online' });
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      return res.json({ models: [], count: 0, ollama_status: 'offline', detail });
+      // Surface the failure in the standard `error` shape so the
+      // no-silent-failures middleware promotes the response to 502 — earlier
+      // we only set `detail` and consumers reading `models.length` rendered
+      // an empty section silently. Frontend handlers should check for
+      // ollama_status === 'offline' to render the "Ollama not running" UI.
+      return res.json({
+        models: [],
+        count: 0,
+        ollama_status: 'offline',
+        error: `Ollama unreachable: ${detail}`
+      });
     }
   });
 

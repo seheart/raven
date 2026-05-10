@@ -5,6 +5,7 @@
   import { websocketService } from '../services/websocket.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
+  import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
 
   let data = $state({ latest: null, history: [], is_running: false });
@@ -13,6 +14,9 @@
   let expandedCheck = $state(null);
   let selectedRun = $state(null);
   let copyStatus = $state('');
+  let loadError = $state(null);
+  let runError = $state(null);
+  let triggerError = $state(null);
 
   // Live progress tracking
   let progress = $state(null); // { checkIndex, totalChecks, currentCheck }
@@ -72,6 +76,7 @@
   async function loadData() {
     try {
       loading = true;
+      loadError = null;
       const result = await api.get('/analysis/code-health');
       data = result;
       // Sync triggering state with server — if server says not running, stop showing progress
@@ -82,8 +87,8 @@
         analysisStartTime = null;
         clearInterval(elapsedInterval);
       }
-    } catch (_err) {
-      // Silent — page shows empty state
+    } catch (err) {
+      loadError = err?.message || 'Failed to load code health data';
     } finally {
       loading = false;
     }
@@ -91,10 +96,11 @@
 
   async function loadRun(id) {
     try {
+      runError = null;
       const run = await api.get(`/analysis/code-health/${id}`);
       selectedRun = run;
-    } catch {
-      // Silent
+    } catch (err) {
+      runError = err?.message || 'Failed to load run';
     }
   }
 
@@ -102,12 +108,15 @@
 
   function startElapsedTimer() {
     clearInterval(elapsedInterval);
-    elapsedInterval = setInterval(() => { elapsedTick++; }, 1000);
+    elapsedInterval = setInterval(() => {
+      elapsedTick++;
+    }, 1000);
   }
 
   async function triggerAnalysis() {
     try {
       triggering = true;
+      triggerError = null;
       progress = null;
       completedChecks = [];
       analysisStartTime = Date.now();
@@ -115,8 +124,9 @@
       await api.post('/analysis/code-health/run');
       // Poll for completion
       pollForCompletion();
-    } catch {
+    } catch (err) {
       triggering = false;
+      triggerError = err?.message || 'Failed to start analysis';
     }
   }
 
@@ -193,13 +203,11 @@
     expandedCheck = expandedCheck === checkId ? null : checkId;
   }
 
-  const issueCount = $derived(
-    (displayRun?.failed_checks || 0) + (displayRun?.warned_checks || 0)
-  );
+  const issueCount = $derived((displayRun?.failed_checks || 0) + (displayRun?.warned_checks || 0));
 
   function buildIssuesText() {
     if (!displayRun?.checks) return '';
-    const issues = displayRun.checks.filter((c) => c.status !== 'pass');
+    const issues = displayRun.checks.filter(c => c.status !== 'pass');
     if (!issues.length) return '';
     const header = [
       `Raven Code Health — ${formatTimestamp(displayRun.timestamp)}`,
@@ -207,7 +215,7 @@
       ''
     ].join('\n');
     const body = issues
-      .map((c) => {
+      .map(c => {
         const tag = c.status === 'fail' ? 'FAIL' : 'WARN';
         const out = (c.output || '').trim();
         return `[${tag}] ${c.name}: ${c.summary || ''}\n${out}`;
@@ -244,7 +252,7 @@
     }
 
     // Listen for live progress updates
-    const handleProgress = (data) => {
+    const handleProgress = data => {
       progress = data;
       if (data.completedCheck) {
         completedChecks = [...completedChecks, data.completedCheck];
@@ -269,239 +277,300 @@
             {copyStatus || `Copy Issues (${issueCount})`}
           </ToolbarButton>
         {/if}
-        <RefreshButton onClick={loadData} loading={loading} />
-        <ToolbarButton variant="primary" onClick={triggerAnalysis} disabled={triggering || data.is_running}>
+        <RefreshButton onClick={loadData} {loading} />
+        <ToolbarButton
+          variant="primary"
+          onClick={triggerAnalysis}
+          disabled={triggering || data.is_running}
+        >
           {triggering || data.is_running ? 'Analyzing...' : 'Run Now'}
         </ToolbarButton>
       </div>
     {/snippet}
   </PageHeader>
 
-    <!-- Last Run Info Bar -->
-    {#if displayRun}
-      <div class="bg-surface border border-border rounded-lg px-4 py-2.5 mb-4 flex items-center gap-4 flex-wrap">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full" style="background: {overallColor}"></span>
-          <span class="text-xs font-semibold text-muted uppercase tracking-wide">Last Run</span>
-        </div>
-        <span class="text-xs font-mono text-body">{formatTimestamp(displayRun.timestamp)}</span>
-        <span class="text-xs text-muted">({relativeTime(displayRun.timestamp)})</span>
-        {#if displayRun.duration_ms}
-          <span class="text-border">|</span>
-          <span class="text-xs font-mono text-muted">Duration: <span class="text-body">{formatDuration(displayRun.duration_ms)}</span></span>
-        {/if}
+  {#if loadError}
+    <DataFetchError message={loadError} onRetry={loadData} />
+  {/if}
+  {#if triggerError}
+    <DataFetchError message={triggerError} onRetry={triggerAnalysis} />
+  {/if}
+  {#if runError}
+    <DataFetchError message={runError} onRetry={() => selectedRun?.id && loadRun(selectedRun.id)} />
+  {/if}
+
+  <!-- Last Run Info Bar -->
+  {#if displayRun}
+    <div
+      class="bg-surface border border-border rounded-lg px-4 py-2.5 mb-4 flex items-center gap-4 flex-wrap"
+    >
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full" style="background: {overallColor}"></span>
+        <span class="text-xs font-semibold text-muted uppercase tracking-wide">Last Run</span>
+      </div>
+      <span class="text-xs font-mono text-body">{formatTimestamp(displayRun.timestamp)}</span>
+      <span class="text-xs text-muted">({relativeTime(displayRun.timestamp)})</span>
+      {#if displayRun.duration_ms}
         <span class="text-border">|</span>
-        <span class="text-xs font-mono text-muted">
-          <span style="color: var(--success)">{displayRun.passed_checks} passed</span>
-          {#if displayRun.warned_checks > 0}
-            <span class="mx-1" style="color: var(--warning)">{displayRun.warned_checks} warned</span>
+        <span class="text-xs font-mono text-muted"
+          >Duration: <span class="text-body">{formatDuration(displayRun.duration_ms)}</span></span
+        >
+      {/if}
+      <span class="text-border">|</span>
+      <span class="text-xs font-mono text-muted">
+        <span style="color: var(--success)">{displayRun.passed_checks} passed</span>
+        {#if displayRun.warned_checks > 0}
+          <span class="mx-1" style="color: var(--warning)">{displayRun.warned_checks} warned</span>
+        {/if}
+        {#if displayRun.failed_checks > 0}
+          <span class="mx-1" style="color: var(--error)">{displayRun.failed_checks} failed</span>
+        {/if}
+      </span>
+      {#if selectedRun}
+        <div class="flex-1"></div>
+        <button
+          onclick={() => {
+            selectedRun = null;
+          }}
+          class="text-xs text-accent font-sans hover:underline bg-transparent border-0 cursor-pointer p-0"
+          >Back to latest</button
+        >
+      {/if}
+    </div>
+  {/if}
+
+  {#if loading && !displayRun}
+    <!-- Loading skeleton -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      {#each Array(4) as _, i (i)}
+        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
+      {/each}
+    </div>
+  {:else if !displayRun}
+    <!-- No data state -->
+    <EmptyState
+      icon="🔍"
+      title="No Analysis Yet"
+      description="The first automated analysis will run shortly, or you can trigger one now."
+    >
+      {#snippet actions()}
+        <ToolbarButton variant="primary" onClick={triggerAnalysis} disabled={triggering}>
+          {triggering ? 'Starting...' : 'Run Analysis'}
+        </ToolbarButton>
+      {/snippet}
+    </EmptyState>
+  {:else}
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Overall</div>
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full" style="background: {overallColor}"></span>
+          <span class="text-sm font-mono text-body">{overallLabel}</span>
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Passed</div>
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-mono font-bold" style="color: var(--success)"
+            >{displayRun.passed_checks}</span
+          >
+          <span class="text-xs text-muted">/ {displayRun.total_checks}</span>
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Warnings</div>
+        <div class="flex items-center gap-2">
+          <span
+            class="text-lg font-mono font-bold"
+            style="color: {displayRun.warned_checks > 0 ? 'var(--warning)' : 'var(--muted)'}"
+            >{displayRun.warned_checks}</span
+          >
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border rounded p-4">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Failed</div>
+        <div class="flex items-center gap-2">
+          <span
+            class="text-lg font-mono font-bold"
+            style="color: {displayRun.failed_checks > 0 ? 'var(--error)' : 'var(--muted)'}"
+            >{displayRun.failed_checks}</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Running indicator with progress bar and live terminal -->
+    {#if displayRun.status === 'running' || triggering}
+      <div class="bg-surface border border-accent rounded-lg mb-6 overflow-hidden">
+        <!-- Progress header -->
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-border">
+          <div
+            class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0"
+          ></div>
+          <span class="text-sm text-body font-sans flex-1">
+            {#if progress}
+              Running: <span class="font-mono text-accent">{progress.currentCheck}</span>
+              <span class="text-muted">({progress.checkIndex}/{progress.totalChecks})</span>
+            {:else}
+              Starting analysis...
+            {/if}
+          </span>
+          {#if timeEstimate && elapsedTick >= 0}
+            <span class="text-xs font-mono text-muted flex-shrink-0">
+              {formatDuration(Date.now() - analysisStartTime)}
+              {#if timeEstimate.remaining !== null}
+                <span class="text-border mx-1">/</span>
+                <span class="text-body">~{formatDuration(timeEstimate.total)}</span>
+                <span class="ml-1 text-muted">({formatDuration(timeEstimate.remaining)} left)</span>
+              {/if}
+            </span>
           {/if}
-          {#if displayRun.failed_checks > 0}
-            <span class="mx-1" style="color: var(--error)">{displayRun.failed_checks} failed</span>
-          {/if}
-        </span>
-        {#if selectedRun}
-          <div class="flex-1"></div>
-          <button
-            onclick={() => { selectedRun = null; }}
-            class="text-xs text-accent font-sans hover:underline bg-transparent border-0 cursor-pointer p-0"
-          >Back to latest</button>
+        </div>
+
+        <!-- Progress bar -->
+        {#if progress}
+          <div class="h-1.5 bg-canvas">
+            <div
+              class="h-full bg-accent transition-all duration-500"
+              style="width: {(progress.checkIndex / progress.totalChecks) * 100}%"
+            ></div>
+          </div>
+        {/if}
+
+        <!-- Live terminal output -->
+        {#if completedChecks.length > 0}
+          <div
+            class="px-4 py-3 max-h-64 overflow-y-auto font-mono text-xs"
+            style="background: var(--bg)"
+          >
+            {#each completedChecks as check, i (i)}
+              <div
+                class="flex items-start gap-2 py-1 {i < completedChecks.length - 1
+                  ? 'border-b border-border'
+                  : ''}"
+              >
+                <span
+                  class="flex-shrink-0 w-4 text-center font-bold"
+                  style="color: {statusColor(check.status)}">{statusIcon(check.status)}</span
+                >
+                <span class="text-body">{check.name}</span>
+                <span class="text-muted">{formatDuration(check.duration_ms)}</span>
+                <span class="flex-1"></span>
+                <span class="text-muted truncate max-w-[50%]">{check.summary}</span>
+              </div>
+            {/each}
+          </div>
         {/if}
       </div>
     {/if}
 
-    {#if loading && !displayRun}
-      <!-- Loading skeleton -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        {#each Array(4) as _, i (i)}
-          <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
-        {/each}
-      </div>
-    {:else if !displayRun}
-      <!-- No data state -->
-      <EmptyState
-        icon="🔍"
-        title="No Analysis Yet"
-        description="The first automated analysis will run shortly, or you can trigger one now."
-      >
-        {#snippet actions()}
-          <ToolbarButton variant="primary" onClick={triggerAnalysis} disabled={triggering}>
-            {triggering ? 'Starting...' : 'Run Analysis'}
-          </ToolbarButton>
-        {/snippet}
-      </EmptyState>
-    {:else}
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Overall</div>
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full" style="background: {overallColor}"></span>
-            <span class="text-sm font-mono text-body">{overallLabel}</span>
-          </div>
-        </div>
-
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Passed</div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-mono font-bold" style="color: var(--success)">{displayRun.passed_checks}</span>
-            <span class="text-xs text-muted">/ {displayRun.total_checks}</span>
-          </div>
-        </div>
-
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Warnings</div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-mono font-bold" style="color: {displayRun.warned_checks > 0 ? 'var(--warning)' : 'var(--muted)'}">{displayRun.warned_checks}</span>
-          </div>
-        </div>
-
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Failed</div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-mono font-bold" style="color: {displayRun.failed_checks > 0 ? 'var(--error)' : 'var(--muted)'}">{displayRun.failed_checks}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Running indicator with progress bar and live terminal -->
-      {#if displayRun.status === 'running' || triggering}
-        <div class="bg-surface border border-accent rounded-lg mb-6 overflow-hidden">
-          <!-- Progress header -->
-          <div class="px-4 py-3 flex items-center gap-3 border-b border-border">
-            <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-            <span class="text-sm text-body font-sans flex-1">
-              {#if progress}
-                Running: <span class="font-mono text-accent">{progress.currentCheck}</span>
-                <span class="text-muted">({progress.checkIndex}/{progress.totalChecks})</span>
-              {:else}
-                Starting analysis...
-              {/if}
-            </span>
-            {#if timeEstimate && elapsedTick >= 0}
-              <span class="text-xs font-mono text-muted flex-shrink-0">
-                {formatDuration(Date.now() - analysisStartTime)}
-                {#if timeEstimate.remaining !== null}
-                  <span class="text-border mx-1">/</span>
-                  <span class="text-body">~{formatDuration(timeEstimate.total)}</span>
-                  <span class="ml-1 text-muted">({formatDuration(timeEstimate.remaining)} left)</span>
-                {/if}
-              </span>
-            {/if}
-          </div>
-
-          <!-- Progress bar -->
-          {#if progress}
-            <div class="h-1.5 bg-canvas">
-              <div
-                class="h-full bg-accent transition-all duration-500"
-                style="width: {(progress.checkIndex / progress.totalChecks) * 100}%"
-              ></div>
-            </div>
-          {/if}
-
-          <!-- Live terminal output -->
-          {#if completedChecks.length > 0}
-            <div class="px-4 py-3 max-h-64 overflow-y-auto font-mono text-xs" style="background: var(--bg)">
-              {#each completedChecks as check, i (i)}
-                <div class="flex items-start gap-2 py-1 {i < completedChecks.length - 1 ? 'border-b border-border' : ''}">
-                  <span class="flex-shrink-0 w-4 text-center font-bold" style="color: {statusColor(check.status)}">{statusIcon(check.status)}</span>
-                  <span class="text-body">{check.name}</span>
-                  <span class="text-muted">{formatDuration(check.duration_ms)}</span>
-                  <span class="flex-1"></span>
-                  <span class="text-muted truncate max-w-[50%]">{check.summary}</span>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/if}
-
-      <!-- Check Results by Category -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {#each categories as [category, checks] (category)}
-          <div class="bg-surface border border-border rounded-lg p-5">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-              {categoryLabel(category)}
-            </h3>
-            <div class="space-y-2">
-              {#each checks as check (check.id || check.name)}
-                <button
-                  onclick={() => toggleCheck(check.id || check.name)}
-                  class="w-full text-left"
-                >
-                  <div class="flex items-center gap-3 px-3 py-2 bg-canvas rounded border border-border hover:border-accent transition-colors">
-                    <span
-                      class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style="background: {statusColor(check.status)}20; color: {statusColor(check.status)}"
-                    >
-                      {statusIcon(check.status)}
-                    </span>
-                    <span class="text-sm font-mono text-body flex-1">{check.name}</span>
-                    <span class="text-xs text-muted font-mono">{formatDuration(check.duration_ms)}</span>
-                    <span class="text-xs px-2 py-0.5 rounded font-mono"
-                      style="background: {statusColor(check.status)}15; color: {statusColor(check.status)}"
-                    >
-                      {check.summary}
-                    </span>
-                  </div>
-                </button>
-
-                {#if expandedCheck === (check.id || check.name)}
-                  <div class="ml-8 bg-canvas border border-border rounded p-3 overflow-hidden">
-                    <pre class="text-xs font-mono text-muted whitespace-pre-wrap max-h-80 overflow-y-auto leading-relaxed">{check.output || 'No output captured'}</pre>
-                  </div>
-                {/if}
-              {/each}
-            </div>
-          </div>
-        {/each}
-      </div>
-
-      <!-- Run info bar -->
-      <div class="bg-surface border border-border rounded-lg p-4 mb-6">
-        <div class="flex flex-wrap gap-6 text-sm">
-          <div>
-            <span class="text-muted">Run ID</span>
-            <span class="font-mono text-body ml-2">#{displayRun.id}</span>
-          </div>
-          <div>
-            <span class="text-muted">Timestamp</span>
-            <span class="font-mono text-body ml-2">{formatTimestamp(displayRun.timestamp)}</span>
-          </div>
-          <div>
-            <span class="text-muted">Duration</span>
-            <span class="font-mono text-body ml-2">{formatDuration(displayRun.duration_ms)}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- History -->
-      {#if data.history.length > 1}
+    <!-- Check Results by Category -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {#each categories as [category, checks] (category)}
         <div class="bg-surface border border-border rounded-lg p-5">
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-            Run History
+            {categoryLabel(category)}
           </h3>
-          <div class="space-y-2 max-h-80 overflow-y-auto">
-            {#each data.history as run (run.id)}
-              <button
-                onclick={() => { selectedRun = null; loadRun(run.id); }}
-                class="w-full flex items-center gap-3 px-3 py-2 bg-canvas rounded border transition-colors text-left {displayRun?.id === run.id ? 'border-accent' : 'border-border hover:border-accent'}"
-              >
-                <span
-                  class="w-2 h-2 rounded-full flex-shrink-0"
-                  style="background: {run.overall_score === 'healthy' ? 'var(--success)' : run.overall_score === 'warning' ? 'var(--warning)' : 'var(--error)'}"
-                ></span>
-                <span class="text-xs font-mono text-muted">#{run.id}</span>
-                <span class="text-xs font-mono text-body flex-1">{formatTimestamp(run.timestamp)}</span>
-                <span class="text-xs text-muted">
-                  {run.passed_checks}/{run.total_checks} passed
-                </span>
-                <span class="text-xs font-mono text-muted">{formatDuration(run.duration_ms)}</span>
+          <div class="space-y-2">
+            {#each checks as check (check.id || check.name)}
+              <button onclick={() => toggleCheck(check.id || check.name)} class="w-full text-left">
+                <div
+                  class="flex items-center gap-3 px-3 py-2 bg-canvas rounded border border-border hover:border-accent transition-colors"
+                >
+                  <span
+                    class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style="background: {statusColor(check.status)}20; color: {statusColor(
+                      check.status
+                    )}"
+                  >
+                    {statusIcon(check.status)}
+                  </span>
+                  <span class="text-sm font-mono text-body flex-1">{check.name}</span>
+                  <span class="text-xs text-muted font-mono"
+                    >{formatDuration(check.duration_ms)}</span
+                  >
+                  <span
+                    class="text-xs px-2 py-0.5 rounded font-mono"
+                    style="background: {statusColor(check.status)}15; color: {statusColor(
+                      check.status
+                    )}"
+                  >
+                    {check.summary}
+                  </span>
+                </div>
               </button>
+
+              {#if expandedCheck === (check.id || check.name)}
+                <div class="ml-8 bg-canvas border border-border rounded p-3 overflow-hidden">
+                  <pre
+                    class="text-xs font-mono text-muted whitespace-pre-wrap max-h-80 overflow-y-auto leading-relaxed">{check.output ||
+                      'No output captured'}</pre>
+                </div>
+              {/if}
             {/each}
           </div>
         </div>
-      {/if}
+      {/each}
+    </div>
+
+    <!-- Run info bar -->
+    <div class="bg-surface border border-border rounded-lg p-4 mb-6">
+      <div class="flex flex-wrap gap-6 text-sm">
+        <div>
+          <span class="text-muted">Run ID</span>
+          <span class="font-mono text-body ml-2">#{displayRun.id}</span>
+        </div>
+        <div>
+          <span class="text-muted">Timestamp</span>
+          <span class="font-mono text-body ml-2">{formatTimestamp(displayRun.timestamp)}</span>
+        </div>
+        <div>
+          <span class="text-muted">Duration</span>
+          <span class="font-mono text-body ml-2">{formatDuration(displayRun.duration_ms)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    {#if data.history.length > 1}
+      <div class="bg-surface border border-border rounded-lg p-5">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">Run History</h3>
+        <div class="space-y-2 max-h-80 overflow-y-auto">
+          {#each data.history as run (run.id)}
+            <button
+              onclick={() => {
+                selectedRun = null;
+                loadRun(run.id);
+              }}
+              class="w-full flex items-center gap-3 px-3 py-2 bg-canvas rounded border transition-colors text-left {displayRun?.id ===
+              run.id
+                ? 'border-accent'
+                : 'border-border hover:border-accent'}"
+            >
+              <span
+                class="w-2 h-2 rounded-full flex-shrink-0"
+                style="background: {run.overall_score === 'healthy'
+                  ? 'var(--success)'
+                  : run.overall_score === 'warning'
+                    ? 'var(--warning)'
+                    : 'var(--error)'}"
+              ></span>
+              <span class="text-xs font-mono text-muted">#{run.id}</span>
+              <span class="text-xs font-mono text-body flex-1"
+                >{formatTimestamp(run.timestamp)}</span
+              >
+              <span class="text-xs text-muted">
+                {run.passed_checks}/{run.total_checks} passed
+              </span>
+              <span class="text-xs font-mono text-muted">{formatDuration(run.duration_ms)}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
     {/if}
+  {/if}
 </PageLayout>

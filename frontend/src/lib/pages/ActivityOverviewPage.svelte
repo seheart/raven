@@ -26,7 +26,6 @@
   let selectedType = $state('all');
   let expandedActivity = $state(null);
   let lastUpdated = $state(null);
-  let _isManualRefresh = $state(false);
 
   // Pagination
   let limit = $state(100);
@@ -79,10 +78,9 @@
         : 0
   });
 
-  async function loadActivities(manual = false) {
+  async function loadActivities(_manual = false) {
     try {
       loading = true;
-      _isManualRefresh = manual;
 
       // Load both file events and agent events from all projects
       const [fileEvents, agentEvents] = await Promise.all([
@@ -163,11 +161,9 @@
 
       lastUpdated = new Date();
       loading = false;
-      _isManualRefresh = false;
     } catch (error) {
       logger.error('Failed to load activity log:', error);
       loading = false;
-      _isManualRefresh = false;
     }
   }
 

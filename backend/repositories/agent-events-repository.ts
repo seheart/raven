@@ -94,6 +94,9 @@ export interface AgentEventsRepository {
   /** Per-agent totals. Memoized at the repo level for ~2s. */
   totals(): AgentTotals[];
 
+  /** Total events recorded since the given ISO timestamp. */
+  countSince(sinceIso: string): number;
+
   /** Rows for a session, shaped like file-event rows for the session timeline. */
   bySession(sessionId: string): unknown[];
 
@@ -229,6 +232,10 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
   `);
 
   let totalsCache: { value: AgentTotals[]; expiresAt: number } | null = null;
+
+  const countSinceStmt = db.db.prepare(
+    `SELECT COUNT(*) as count FROM agent_events WHERE timestamp >= ?`
+  );
 
   const lastProjectStmt = db.db.prepare(`
     SELECT COALESCE(project_name, json_extract(metadata, '$.project')) AS project
@@ -442,6 +449,11 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
       const value = totalsStmt.all() as AgentTotals[];
       totalsCache = { value, expiresAt: now + AGENT_TOTALS_TTL_MS };
       return value;
+    },
+
+    countSince(sinceIso) {
+      const row = countSinceStmt.get(sinceIso) as { count: number } | undefined;
+      return row?.count ?? 0;
     },
 
     bySession(sessionId) {

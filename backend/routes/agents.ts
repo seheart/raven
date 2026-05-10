@@ -218,19 +218,39 @@ export function createAgentsRouter(
 
   /**
    * GET /api/agents/summary
-   * Get summary statistics for agents
+   * Get summary statistics for agents.
+   *
+   * Earlier this returned `events_24h: 0, top_agents: []` always — confessed
+   * stub. Now derived from the real agent_events totals so any UI that
+   * surfaces "active agents this day" gets actual numbers.
    */
   router.get(
     '/agents/summary',
+    cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
-      // Stub implementation - can be enhanced with real data
+      const now = Date.now();
+      const cutoff24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+
+      const events24h = agentEventsRepo.countSince(cutoff24h);
+
+      const totals = agentEventsRepo.totals();
+      const topAgents = totals
+        .filter(t => t.last_active && t.last_active >= cutoff24h)
+        .sort((a, b) => b.event_count - a.event_count)
+        .slice(0, 5)
+        .map(t => ({
+          agent: t.agent,
+          event_count: t.event_count,
+          last_active: t.last_active
+        }));
+
       res.json({
         total_agents: agentRegistry.size,
         active_agents: Array.from(agentRegistry.values()).filter(
-          a => Date.now() - new Date(a.last_seen).getTime() < 30000
+          a => now - new Date(a.last_seen).getTime() < 30000
         ).length,
-        events_24h: 0,
-        top_agents: []
+        events_24h: events24h,
+        top_agents: topAgents
       });
     })
   );

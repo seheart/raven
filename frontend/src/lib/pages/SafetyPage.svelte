@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import DataFetchError from '../components/ui/DataFetchError.svelte';
   import { RefreshButton, EmptyState, FilterToggle } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -30,19 +31,24 @@
     return filtered;
   });
 
-  const status = $derived(warnings.length === 0 ? 'healthy' : 'warning');
+  const status = $derived(loadError ? 'unknown' : warnings.length === 0 ? 'healthy' : 'warning');
+
+  let loadError = $state(null);
 
   async function loadWarnings() {
     try {
       loading = true;
+      loadError = null;
+      // Earlier these had per-call `.catch(() => ({ warnings: [] }))` AND an
+      // outer empty `catch {}` — a 500 returned a green "healthy" banner.
       const [data, ig] = await Promise.all([
-        api.get('/pattern-warnings?limit=500').catch(() => ({ warnings: [] })),
-        api.get('/pattern-warnings/ignores').catch(() => ({ ignores: [] }))
+        api.get('/pattern-warnings?limit=500'),
+        api.get('/pattern-warnings/ignores')
       ]);
       warnings = data.warnings || [];
       ignores = ig.ignores || [];
-    } catch {
-      // Silent fail
+    } catch (err) {
+      loadError = err?.message || 'Failed to load safety warnings';
     } finally {
       loading = false;
     }
@@ -162,6 +168,10 @@
       </div>
     {/snippet}
   </PageHeader>
+
+  {#if loadError}
+    <DataFetchError message={loadError} onRetry={loadWarnings} />
+  {/if}
 
   {#if loading}
     <div class="space-y-3">

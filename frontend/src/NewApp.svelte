@@ -113,18 +113,11 @@
   function handleSettingsClick() {
     navigate('/settings');
   }
-
-  function handleLogoutClick() {
-    logger.debug('Logout clicked');
-    // Since Raven is a local tool, clear all local data and reload
-    localStorage.clear();
-    location.reload();
-  }
 </script>
 
 <div class="min-h-screen bg-[var(--bg)]">
   <!-- Header -->
-  <Header {activeTab} {activeSubTab} onLogoutClick={handleLogoutClick} />
+  <Header {activeTab} {activeSubTab} />
   <!-- Dashboard already renders its own vitals; the global strip is for
        the deeper pages where you want at-a-glance numbers in the header. -->
   {#if activeTab !== 'today'}

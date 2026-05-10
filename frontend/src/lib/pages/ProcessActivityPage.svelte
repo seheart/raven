@@ -7,9 +7,11 @@
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { FreshnessBadge } from '../components/ui/index.js';
+  import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatRelativeTime } from '../timeFormat.js';
+  import { logger } from '../logger.js';
   import {
     createChart,
     destroyChart,
@@ -21,6 +23,7 @@
   let latencyData = $state([]);
   let latencyStats = $state({ avg_ms: 0, p50_ms: 0, p95_ms: 0, count: 0, requests_per_min: 0 });
   let loading = $state(true);
+  let loadError = $state(null);
   let lastUpdated = $state(new Date());
 
   // Chart
@@ -55,6 +58,7 @@
 
   async function loadData() {
     try {
+      loadError = null;
       const minutes =
         chartTimeRange === '24h'
           ? 1440
@@ -73,7 +77,10 @@
       lastUpdated = new Date();
       buildLatencyChart();
     } catch (err) {
-      if (err?.name !== 'AbortError') console.error('ProcessActivityPage loadData failed:', err);
+      if (err?.name !== 'AbortError') {
+        logger.error('ProcessActivityPage loadData failed:', err);
+        loadError = err?.message || 'Failed to load process activity';
+      }
     } finally {
       loading = false;
     }
@@ -186,7 +193,7 @@
     >
       {#snippet actions()}
         <div class="flex items-center gap-3">
-          <FreshnessBadge mode="live" />
+          <FreshnessBadge mode="live" since={lastUpdated} />
           <button
             onclick={() => loadData()}
             class="px-2 py-1 text-[9px] bg-surface border border-border rounded text-muted hover:text-body transition-colors"
@@ -196,6 +203,10 @@
         </div>
       {/snippet}
     </PageHeader>
+
+    {#if loadError}
+      <DataFetchError message={loadError} onRetry={() => loadData()} />
+    {/if}
 
     <!-- Agent Activity Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
@@ -314,7 +325,15 @@
         </div>
         <div>
           <span class="text-muted">Rate</span>
-          <span class="text-body ml-1 font-semibold">{latencyStats.requests_per_min}/min</span>
+          <span class="text-body ml-1 font-semibold">
+            {#if latencyStats.requests_per_min > 0}
+              {latencyStats.requests_per_min}/min
+            {:else if latencyStats.count > 0}
+              &lt;1/min
+            {:else}
+              —
+            {/if}
+          </span>
         </div>
       </div>
 

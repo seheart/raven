@@ -316,9 +316,13 @@
     try {
       error = null;
 
+      // Earlier these had `.catch(() => [])` which silently turned a backend
+      // outage into "0 agents / 0 events" — exactly the same shape that the
+      // user got angry about on /agents/stats. Let the outer catch surface
+      // the error instead.
       const [statusData, eventsData] = await Promise.all([
-        api.get('/agents-status').catch(() => []),
-        api.get(`/agent-events?limit=${eventsLimit}`).catch(() => [])
+        api.get('/agents-status'),
+        api.get(`/agent-events?limit=${eventsLimit}`)
       ]);
 
       // Normalize agent status - add confidence from requests_handled

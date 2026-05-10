@@ -91,16 +91,24 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
     } catch {
       dbHealthy = false;
     }
-    res.json({
-      status: 'healthy',
+    const watcher = deps.projectManager.isWatching() || deps.fileWatcher.isRunning();
+    const metrics = deps.metricsCollector.isCollectorRunning();
+    // DB and watcher are load-bearing; without them the rest of the app is
+    // serving stale or zero data. Git monitor is informational. Earlier this
+    // endpoint returned `status: 'healthy'` unconditionally — the canonical
+    // liveness probe was lying.
+    const status = dbHealthy && watcher && metrics ? 'healthy' : 'degraded';
+    const httpCode = dbHealthy ? 200 : 503;
+    res.status(httpCode).json({
+      status,
       version: '2.2.0',
       session_id: deps.sessionId,
       uptime: process.uptime(),
       active_agents: deps.agentRegistry.size,
       modules: {
-        watcher: deps.projectManager.isWatching() || deps.fileWatcher.isRunning(),
+        watcher,
         git: deps.gitMonitor.isRunning(),
-        metrics: deps.metricsCollector.isCollectorRunning()
+        metrics
       },
       project_watchers: {
         active: deps.projectManager.activeWatcherCount(),
@@ -123,8 +131,12 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
     });
   });
 
+  // /health-checks was a legacy stub that always returned `{status:'healthy',
+  // checks:[], summary:{total:0,passed:0,failed:0}}`. The real implementation
+  // lives at /api/health/comprehensive (HealthChecker.runAll()). Redirect
+  // legacy callers there rather than serving a fake-success.
   router.get('/health-checks', (_req: Request, res: Response) => {
-    res.json({ status: 'healthy', checks: [], summary: { total: 0, passed: 0, failed: 0 } });
+    res.redirect(308, '/api/health/comprehensive');
   });
 
   router.get('/session-id', (_req: Request, res: Response) => {

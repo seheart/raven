@@ -458,18 +458,18 @@
             >Latest · {timeAgo(featuredInsight.timestamp)}</span
           >
         </div>
-        <button
-          type="button"
-          onclick={() =>
-            generateStory(
-              stories.find(s => s.kind === featuredInsight.type)?.generate || 'summary'
-            )}
-          disabled={!status.available || generating !== null}
-          class="text-[11px] font-mono text-muted hover:text-accent transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Ask Raven to write a fresh version"
-        >
-          ↻ rewrite
-        </button>
+        {#if stories.find(s => s.kind === featuredInsight.type)}
+          <button
+            type="button"
+            onclick={() =>
+              generateStory(stories.find(s => s.kind === featuredInsight.type).generate)}
+            disabled={!status.available || generating !== null}
+            class="text-[11px] font-mono text-muted hover:text-accent transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Ask Raven to write a fresh version of this story"
+          >
+            ↻ rewrite
+          </button>
+        {/if}
       </header>
       <h2 class="text-lg font-semibold text-heading mb-3">{featuredInsight.title}</h2>
       <div class="text-base text-body font-sans leading-relaxed">

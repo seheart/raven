@@ -80,11 +80,14 @@ export function createAlertsRouter({ templatesPath }: AlertsRouterDeps): Router 
       if (!template) {
         return res.status(404).json({ error: 'Template not found' });
       }
-      // Real wiring to trigger engine pending — return success-with-count for now.
-      return res.json({
-        success: true,
+      // Trigger-engine wiring isn't built yet. Return 501 with the planned
+      // shape so any future caller (and any human poking at the API) sees a
+      // truthful "not implemented" instead of a fake success.
+      return res.status(501).json({
+        error: 'not_implemented',
+        message: 'Applying alert templates is not wired up yet.',
         template: templateId,
-        triggersApplied: template.triggers.length
+        triggersInTemplate: template.triggers.length
       });
     } catch (error) {
       logger.error('[POST /api/alerts/templates/:templateId/apply] Error:', error as Error);
@@ -93,18 +96,17 @@ export function createAlertsRouter({ templatesPath }: AlertsRouterDeps): Router 
   });
 
   router.get('/status', async (_req: Request, res: Response) => {
-    try {
-      // Stub — full implementation will query trigger engine.
-      return res.json({
-        enabled: true,
-        activeTemplate: 'ai-safety-basic',
-        triggersActive: 5,
-        recentAlerts: []
-      });
-    } catch (error) {
-      logger.error('[GET /api/alerts/status] Error:', error as Error);
-      return res.status(500).json({ error: 'Failed to get alert status' });
-    }
+    // Earlier this returned hardcoded `enabled:true, triggersActive:5` —
+    // actively misleading. The real trigger-engine status lives at
+    // /api/triggers; until alerts gets its own engine, be honest about it.
+    return res.json({
+      enabled: false,
+      not_implemented: true,
+      message: 'Alert status tracking is not wired up yet. See /api/triggers.',
+      activeTemplate: null,
+      triggersActive: 0,
+      recentAlerts: []
+    });
   });
 
   // expose path for tests / introspection

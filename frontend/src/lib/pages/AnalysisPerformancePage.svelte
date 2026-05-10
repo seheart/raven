@@ -21,15 +21,20 @@
 
   // Svelte 5 reactive state
   let activeTab = $state('metrics'); // 'metrics', 'charts', 'correlations'
+  // Cap on the in-memory chart series. Initial fetch pulls 500 samples so the
+  // 6h/24h ranges have something to draw; the WebSocket stream prepends new
+  // samples and trims to this cap. Earlier this trimmed to 20 — first WS tick
+  // silently truncated the series to 4% of its loaded size.
+  const SYSTEM_METRICS_CAP = 1000;
   let systemMetrics = $state([]);
   let processMetrics = $state([]);
   let stats = $state(null);
   let correlations = $state([]);
   let selectedAgent = $state('claude-code');
+  let availableAgents = $state(['claude-code']);
   let loading = $state(true);
   let error = $state(null);
   let lastUpdated = $state(null);
-  let _isManualRefresh = $state(false);
   let chartTimeRange = $state('1h'); // '15m', '1h', '6h', '24h'
 
   // Chart data filtered by time range
@@ -130,14 +135,28 @@
   });
 
   // Load all data
-  async function fetchAllData(manual = false) {
+  async function fetchAllData() {
     try {
       loading = true;
-      _isManualRefresh = manual;
       error = null;
 
       const systemData = await api.get('/system-metrics?limit=500');
       systemMetrics = Array.isArray(systemData) ? systemData : systemData.metrics || [];
+
+      // Discover the agent list from /agents-status so the picker shows real
+      // running agents instead of being hardcoded to claude-code.
+      try {
+        const agentsList = await api.get('/agents-status');
+        const names = Array.isArray(agentsList)
+          ? agentsList.map(a => a.agent_name).filter(Boolean)
+          : [];
+        if (names.length) {
+          availableAgents = names;
+          if (!names.includes(selectedAgent)) selectedAgent = names[0];
+        }
+      } catch {
+        /* keep the previous selection if discovery fails */
+      }
 
       // Fetch process metrics for selected agent
       if (selectedAgent) {
@@ -161,18 +180,16 @@
 
       lastUpdated = new Date();
       loading = false;
-      _isManualRefresh = false;
     } catch (err) {
       logger.error('Failed to load performance data:', err);
       error = err.message || 'Failed to load performance data';
       loading = false;
-      _isManualRefresh = false;
     }
   }
 
   // WebSocket handlers
   function handleSystemMetrics(metrics) {
-    systemMetrics = [metrics, ...systemMetrics].slice(0, 20);
+    systemMetrics = [metrics, ...systemMetrics].slice(0, SYSTEM_METRICS_CAP);
   }
 
   // Export functions
@@ -357,13 +374,13 @@
             <div class="flex justify-between items-center">
               <span class="text-sm text-muted">CPU Usage</span>
               <span class="text-sm font-mono text-body">
-                {latestMetrics.cpu_percent.toFixed(1)}%
+                {(latestMetrics.cpu_percent ?? 0).toFixed(1)}%
               </span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sm text-muted">Memory</span>
               <span class="text-sm font-mono text-body">
-                {latestMetrics.memory_percent.toFixed(1)}%
+                {(latestMetrics.memory_percent ?? 0).toFixed(1)}%
               </span>
             </div>
             <div class="flex justify-between items-center">
@@ -412,7 +429,7 @@
               <div class="flex justify-between items-center">
                 <span class="text-sm text-muted">CPU</span>
                 <span class="text-sm font-mono text-body">
-                  {latestProcessMetrics.cpu_usage.toFixed(1)}%
+                  {(latestProcessMetrics.cpu_usage ?? 0).toFixed(1)}%
                 </span>
               </div>
               <div class="flex justify-between items-center">
@@ -498,7 +515,7 @@
         <div
           class="bg-surface border border-border rounded-lg p-4 mb-6 flex justify-between items-center"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <span class="text-sm text-muted">Time Range</span>
             <select
               bind:value={chartTimeRange}
@@ -509,6 +526,18 @@
               <option value="6h">Last 6 hours</option>
               <option value="24h">Last 24 hours</option>
             </select>
+            {#if availableAgents.length > 1}
+              <span class="text-sm text-muted">Agent</span>
+              <select
+                bind:value={selectedAgent}
+                onchange={() => fetchAllData()}
+                class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent transition-colors"
+              >
+                {#each availableAgents as agent (agent)}
+                  <option value={agent}>{agent}</option>
+                {/each}
+              </select>
+            {/if}
           </div>
           <div class="flex gap-4 text-xs font-mono">
             <span class="flex items-center gap-2">

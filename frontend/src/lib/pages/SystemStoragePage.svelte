@@ -208,9 +208,14 @@
           {projectDisk?.totals?.project_count ?? projectStats.length}
         </div>
       </div>
-      <div class="bg-surface border border-border rounded p-4">
+      <div
+        class="bg-surface border border-border rounded p-4"
+        title={projectDisk
+          ? 'Files Raven sees on disk across all tracked projects.'
+          : 'Lifetime file events recorded in the database.'}
+      >
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Tracked files
+          {projectDisk ? 'Files on disk' : 'Tracked file events'}
         </div>
         <div class="text-sm font-mono text-body">
           {projectDisk

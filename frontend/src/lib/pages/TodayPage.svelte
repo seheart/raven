@@ -191,19 +191,23 @@
   }
 
   // ── Files-touched derivation ───────────────────────────────────
-  // Dedupe events by filepath (keep the most-recent one), filter to
-  // today, return top 10.
-  const filesToday = $derived.by(() => {
+  // Dedupe events by filepath (keep the most-recent one), filter to today.
+  // The list is rendered top-10 for screen real estate, but the count and
+  // any totals derive from the full deduped set — earlier this page sliced
+  // first and then counted, silently capping the "X unique" label at 10
+  // even on busy days with thousands of distinct files.
+  const filesTodayAll = $derived.by(() => {
     /** @type {Map<string, typeof events[number]>} */
     const seen = new Map();
     for (const e of events) {
       if (!isToday(e.timestamp)) continue;
       if (!seen.has(e.filepath)) seen.set(e.filepath, e);
     }
-    return Array.from(seen.values()).slice(0, 10);
+    return Array.from(seen.values());
   });
 
-  const filesTodayCount = $derived(filesToday.length);
+  const filesToday = $derived(filesTodayAll.slice(0, 10));
+  const filesTodayCount = $derived(filesTodayAll.length);
 
   const eventsTodayCount = $derived(events.filter(e => isToday(e.timestamp)).length);
 

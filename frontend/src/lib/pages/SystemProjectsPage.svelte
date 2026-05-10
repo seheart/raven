@@ -34,11 +34,17 @@
       const data = await api.get('/insights/status', { silent: true });
       insightsAvailable = data?.available === true;
     } catch {
-      insightsAvailable = false;
+      // Distinguish "fetch failed" from "available: false" — leave the flag
+      // null so the AI Summary buttons render as "Unknown" with a retry,
+      // not permanently disabled.
+      insightsAvailable = null;
     }
   }
 
-  onDestroy(() => abortRequests());
+  onDestroy(() => {
+    abortRequests();
+    if (elapsedTimer) clearInterval(elapsedTimer);
+  });
 
   async function loadConfig() {
     try {
@@ -253,14 +259,6 @@
     // https://github.com/foo/bar.git → foo/bar
     const m = url.match(/[:/]([^:/]+\/[^/]+?)(?:\.git)?$/);
     return m ? m[1] : url;
-  }
-
-  function _formatBytes(bytes) {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 </script>
 

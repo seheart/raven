@@ -175,6 +175,28 @@ describe('TodayPage', () => {
     );
   });
 
+  it('renders the full deduped count of files touched today, not just the displayed top-10', async () => {
+    // Regression: filesToday used to slice(0, 10) BEFORE counting, so the
+    // "X unique" label and the hero tile both silently capped at 10 even
+    // when the user had touched 1,300+ unique files. Pin the contract:
+    // count must reflect the whole deduped set; only the rendered list is
+    // capped for screen real estate.
+    const today = new Date().toISOString();
+    const manyEvents = Array.from({ length: 50 }, (_, i) => ({
+      id: i + 1,
+      timestamp: today,
+      filepath: `raven/path/file-${i}.ts`,
+      change_type: 'change',
+      project_name: 'raven'
+    }));
+    setupApi({ events: manyEvents });
+    render(TodayPage);
+    // PageSection renders meta inside a span as "· <count> unique"; the
+    // findByText regex matches the count + label.
+    expect(await screen.findByText(/·\s*50 unique/)).toBeTruthy();
+    expect(screen.queryByText(/·\s*10 unique/)).toBeNull();
+  });
+
   it('renders narrative beats even when LLM summaries are disabled', async () => {
     // The previous version of this page showed a "Local-LLM summaries
     // are off" hint as the primary content when insights were disabled,

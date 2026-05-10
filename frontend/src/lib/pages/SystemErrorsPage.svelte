@@ -187,7 +187,7 @@
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-mono text-body truncate">{err.message}</div>
                 <div class="text-xs text-muted mt-0.5 flex gap-2">
-                  <span>{err.file || err.component || 'unknown'}</span>
+                  <span>{err.component || err.url || 'unknown'}</span>
                   <span>·</span>
                   <span>{err.severity || 'error'}</span>
                 </div>
@@ -209,12 +209,12 @@
                     <span class="font-mono text-body">{err.severity}</span>
                   </div>
                   <div class="flex justify-between border-b border-border pb-2">
-                    <span class="text-muted">File</span>
-                    <span class="font-mono text-body text-xs">{err.file || 'N/A'}</span>
+                    <span class="text-muted">Component</span>
+                    <span class="font-mono text-body text-xs">{err.component || 'N/A'}</span>
                   </div>
                   <div class="flex justify-between border-b border-border pb-2">
-                    <span class="text-muted">Line</span>
-                    <span class="font-mono text-body">{err.line || 'N/A'}</span>
+                    <span class="text-muted">URL</span>
+                    <span class="font-mono text-body text-xs">{err.url || 'N/A'}</span>
                   </div>
                   <div class="col-span-2 flex justify-between border-b border-border pb-2">
                     <span class="text-muted">Timestamp</span>

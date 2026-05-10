@@ -51,8 +51,15 @@
       loadError = null;
       const params = session ? `?session=${session}&limit=500` : '?limit=500';
       const result = await api.get(`/session-activity${params}`);
-      data = result;
-      selectedSession = result.currentSession;
+      // Defensive shape: a malformed 200 ({}, null, or {entries: null}) used
+      // to throw on `data.entries.length` and brick the page. Coerce to the
+      // expected shape so empty/odd responses render an empty state instead.
+      data = {
+        entries: Array.isArray(result?.entries) ? result.entries : [],
+        sessions: Array.isArray(result?.sessions) ? result.sessions : [],
+        currentSession: result?.currentSession ?? null
+      };
+      selectedSession = data.currentSession;
       lastUpdated = new Date();
     } catch (err) {
       // Was a silent catch — page would just show the loading skeleton

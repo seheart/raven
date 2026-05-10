@@ -50,9 +50,10 @@ describe('Header', () => {
 
   it('renders the canonical top-level tabs', () => {
     render(Header, { props: { activeTab: 'today', activeSubTab: '' } });
-    // "Today" appears in the stats strip too, so prefer button-role lookups
-    // for tabs. Activity / Agents / Insights / System are unique strings.
-    expect(screen.getByRole('button', { name: 'Today' })).toBeTruthy();
+    // The home tab now reads "Dashboard"; route id stays 'today' so existing
+    // /today links and tests resolve. Activity / Agents / Insights / System
+    // are unique strings.
+    expect(screen.getByRole('button', { name: 'Dashboard' })).toBeTruthy();
     for (const label of ['Activity', 'Agents', 'Insights', 'System']) {
       expect(screen.getByText(label)).toBeTruthy();
     }

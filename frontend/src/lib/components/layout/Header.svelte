@@ -11,7 +11,7 @@
   import { get } from 'svelte/store';
   import { formatUsd } from '../../utils/formatUsd.js';
 
-  let { activeTab = 'overview', activeSubTab = '', _onLogoutClick = () => {} } = $props();
+  let { activeTab = 'overview', activeSubTab = '' } = $props();
 
   // Header strip frames today's file activity against a 14-day baseline
   // so the number means something. Raw counts ("121 files") have no
