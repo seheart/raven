@@ -700,7 +700,7 @@
             <li>
               <button
                 type="button"
-                onclick={() => navigate('/today/power')}
+                onclick={() => navigate('/today')}
                 class="text-accent hover:underline">→ Full dashboard</button
               >
             </li>

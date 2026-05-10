@@ -68,11 +68,13 @@
   }
 
   // Five top-level tabs after the May 2026 IA refactor.
-  // Today = narrative landing; Activity = "what happened" (live + history of
-  // file/code events); Agents = "what are my agents doing"; Insights = the
-  // narrated reflection layer (costs, trends, Wrapped); System = ops + config.
+  // Dashboard = the home view (vitals + activity at a glance) plus Narrative
+  // as a sub-tab; Activity = "what happened" (live + history of file/code
+  // events); Agents = "what are my agents doing"; Insights = the narrated
+  // reflection layer (costs, trends, Wrapped); System = ops + config.
+  // The route id stays 'today' so existing /today links and tests still work.
   const tabs = [
-    { id: 'today', label: 'Today', path: '/today' },
+    { id: 'today', label: 'Dashboard', path: '/today' },
     { id: 'activity', label: 'Activity', path: '/activity' },
     { id: 'agents', label: 'Agents', path: '/agents' },
     { id: 'insights', label: 'Insights', path: '/insights' },
@@ -81,8 +83,8 @@
 
   const subTabs = {
     today: [
-      { id: '', label: 'Narrative' },
-      { id: 'power', label: 'Power' }
+      { id: 'narrative', label: 'Narrative' },
+      { id: '', label: 'Overview' }
     ],
     activity: [
       { id: '', label: 'Overview' },

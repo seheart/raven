@@ -125,8 +125,8 @@
 <div class="min-h-screen bg-[var(--bg)]">
   <!-- Header -->
   <Header {activeTab} {activeSubTab} onLogoutClick={handleLogoutClick} />
-  <!-- Today is the lightweight first-run view; the dense vitals strip
-       belongs to the power-user dashboards, not the landing page. -->
+  <!-- Dashboard already renders its own vitals; the global strip is for
+       the deeper pages where you want at-a-glance numbers in the header. -->
   {#if activeTab !== 'today'}
     <VitalsStrip />
   {/if}
@@ -159,28 +159,28 @@
                 onclick={() => navigate('/today')}
                 class="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm font-sans hover:border-[var(--accent)] transition-colors"
               >
-                Back to Today
+                Back to Dashboard
               </button>
             </div>
           </div>
         </div>
       {/snippet}
       {#if activeTab === 'today'}
-        {#if activeSubTab === 'power'}
-          {#await import('./lib/pages/OverviewPage.svelte')}
-            <PlaceholderPage title="Power view" description="Loading..." />
+        {#if activeSubTab === 'narrative'}
+          {#await import('./lib/pages/TodayPage.svelte')}
+            <PlaceholderPage title="Narrative" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Power view" description="Failed to load" />
+            <PlaceholderPage title="Narrative" description="Failed to load" />
           {/await}
         {:else}
-          {#await import('./lib/pages/TodayPage.svelte')}
-            <PlaceholderPage title="Today" description="Loading..." />
+          {#await import('./lib/pages/OverviewPage.svelte')}
+            <PlaceholderPage title="Dashboard" description="Loading..." />
           {:then { default: Component }}
             <Component />
           {:catch}
-            <PlaceholderPage title="Today" description="Failed to load" />
+            <PlaceholderPage title="Dashboard" description="Failed to load" />
           {/await}
         {/if}
       {:else if activeTab === 'activity'}
