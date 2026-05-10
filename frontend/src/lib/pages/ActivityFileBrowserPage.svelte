@@ -3,11 +3,14 @@
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, EmptyState, ToolbarButton } from '../components/ui/index.js';
+  import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
   import { getChartColors, chartFill } from '../utils/chartUtils.js';
   import { Chart, registerables } from 'chart.js';
+  import { websocketService } from '../services/websocket.js';
+  import { debounce } from '../utils/debounce.js';
   import FileHistory from '../FileHistory.svelte';
 
   Chart.register(...registerables);
@@ -30,6 +33,16 @@
   let charts = {};
   let themeObserver;
   let showCharts = $state(true);
+  let lastUpdated = $state(null);
+  let unsubscribeFileChanged = null;
+
+  // Reload on incoming WS events but coalesce so a flurry of edits doesn't
+  // hammer the API. Earlier this page was strictly onMount-only — totals
+  // stayed frozen while reality moved underneath the user.
+  const debouncedReload = debounce(async () => {
+    await loadFiles();
+    await loadFileMetadata();
+  }, 600);
 
   onMount(async () => {
     // Check for project query param
@@ -61,6 +74,10 @@
       attributes: true,
       attributeFilter: ['class']
     });
+
+    unsubscribeFileChanged = websocketService.subscribe('file-changed', () => {
+      debouncedReload();
+    });
   });
 
   onDestroy(() => {
@@ -68,6 +85,7 @@
     if (themeObserver) {
       themeObserver.disconnect();
     }
+    if (unsubscribeFileChanged) unsubscribeFileChanged();
     // Destroy all charts
     Object.values(charts).forEach(chart => chart?.destroy());
   });
@@ -82,6 +100,7 @@
         : '/tracked-files';
 
       files = await api.get(endpoint);
+      lastUpdated = new Date();
 
       loading = false;
     } catch (err) {
@@ -491,10 +510,17 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="File Browser" description="Browse and track file modifications">
+  <PageHeader
+    title="Files Raven has watched"
+    description="Every file your AI tools have created, edited, or deleted at least once. Click any row to see its history."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-muted font-mono">{stats.totalFiles} files tracked</span>
+        <span
+          class="text-xs text-muted font-mono"
+          title="Files Raven has seen change at least once.">{stats.totalFiles} files tracked</span
+        >
+        <FreshnessBadge mode="live" since={lastUpdated} />
         <RefreshButton onClick={refresh} {loading} />
       </div>
     {/snippet}

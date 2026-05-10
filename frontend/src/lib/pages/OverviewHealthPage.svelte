@@ -3,7 +3,13 @@
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, EmptyState, LoadingState } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    EmptyState,
+    LoadingState
+  } from '../components/ui/index.js';
+  import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Project Health Details Page
    * Comprehensive health analysis for a single project
@@ -15,6 +21,7 @@
   let projectsData = $state([]);
   let loading = $state(false);
   let error = $state(null);
+  let lastUpdated = $state(null);
   let selectedProject = $derived($projectFilter.currentProject || 'all');
   let selectedDays = $state(7);
 
@@ -64,13 +71,17 @@
         `/health/projects?project=${selectedProject}&days=${selectedDays}`
       );
 
-      // Normalize field names
+      // Normalize field names. Backend now returns BOTH a lifetime
+      // `total_events` and a windowed `recent_events`, so we keep them
+      // distinct rather than collapsing them and rendering identical tiles.
       projectsData = (response.projects || []).map(p => ({
         ...p,
         project_name: p.project_name || p.name,
-        total_events: p.total_events || p.recent_events || 0
+        total_events: p.total_events ?? 0,
+        recent_events: p.recent_events ?? 0
       }));
       healthData = { overall_score: overallScore, status: overallStatus };
+      lastUpdated = new Date();
     } catch (err) {
       logger.error('Failed to load health summary:', err);
       error = err.message;
@@ -79,21 +90,29 @@
     }
   }
 
-  // Load on mount; reload when project or time range changes
+  // Load on mount; reload when project or time range changes. Also poll
+  // every 30 s so the page doesn't show data older than the user expects
+  // — this is a "right now" view, not a snapshot.
+  let pollHandle = null;
   onMount(() => {
     loadHealthSummary();
+    pollHandle = setInterval(loadHealthSummary, 30_000);
   });
 
-  onDestroy(() => abortRequests());
+  onDestroy(() => {
+    abortRequests();
+    if (pollHandle) clearInterval(pollHandle);
+  });
 </script>
 
 <PageLayout>
   <PageHeader
-    title="Project Health"
-    description="Health analysis for {selectedProject === 'all' ? 'all projects' : selectedProject}"
+    title="Are your projects busy and healthy?"
+    description="How active each project is and whether errors are piling up. The score combines recent activity with a syntax-error penalty — busy and clean is a 90+, quiet or buggy drags it down."
   >
     {#snippet actions()}
       <div class="flex items-center gap-3">
+        <FreshnessBadge mode="polled" since={lastUpdated} intervalSeconds={30} />
         <select
           bind:value={selectedDays}
           onchange={loadHealthSummary}
@@ -103,141 +122,142 @@
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
         </select>
-        <RefreshButton onClick={loadHealthSummary} loading={loading} />
+        <RefreshButton onClick={loadHealthSummary} {loading} />
       </div>
     {/snippet}
   </PageHeader>
 
-    {#if loading && !healthData}
-      <LoadingState message="Calculating health score..." />
-    {:else if error}
-      <EmptyState title={error}>
-        {#snippet actions()}
-          <ToolbarButton onClick={loadHealthSummary}>Try Again</ToolbarButton>
-        {/snippet}
-      </EmptyState>
-    {:else if healthData}
-      <!-- Overall Health Score -->
-      <div class="bg-surface border border-border rounded-lg p-5 mb-6">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-              Overall Health Score
-            </h3>
-            <p class="text-sm text-muted">
-              <span class="capitalize">{overallStatus}</span> — {projectsData.length} project{projectsData.length !==
-              1
-                ? 's'
-                : ''}
-            </p>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="text-2xl font-bold font-mono" style="color: {scoreColor}">
-              {overallScore}
-            </div>
-            <div class="text-xs text-muted">/ 100</div>
-          </div>
-        </div>
-        <div class="h-2 bg-canvas rounded overflow-hidden">
-          <div
-            class="h-full transition-all duration-500"
-            style="width: {overallScore}%; background: {scoreColor}"
-          ></div>
-        </div>
-      </div>
-
-      <!-- Summary Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Events
-          </div>
-          <div class="text-sm font-mono text-body">{totalEvents.toLocaleString()}</div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Recent Events
-          </div>
-          <div class="text-sm font-mono text-body">{recentEvents.toLocaleString()}</div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Total Errors
-          </div>
-          <div class="flex items-center gap-2">
-            <span
-              class="w-2 h-2 rounded-full {totalErrors > 0
-                ? 'bg-error'
-                : 'bg-success'}"
-            ></span>
-            <span class="text-sm font-mono text-body">{totalErrors.toLocaleString()}</span>
-          </div>
-        </div>
-        <div class="bg-surface border border-border rounded p-4">
-          <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-            Projects
-          </div>
-          <div class="text-sm font-mono text-body">{projectsData.length}</div>
-        </div>
-      </div>
-
-      <!-- Per-Project Health -->
-      {#if projectsData.length > 0}
-        <div class="bg-surface border border-border rounded-lg p-6">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
-            Per-Project Health
+  {#if loading && !healthData}
+    <LoadingState message="Calculating health score..." />
+  {:else if error}
+    <EmptyState title={error}>
+      {#snippet actions()}
+        <ToolbarButton onClick={loadHealthSummary}>Try Again</ToolbarButton>
+      {/snippet}
+    </EmptyState>
+  {:else if healthData}
+    <!-- Overall Health Score -->
+    <div class="bg-surface border border-border rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+            Overall Health Score
           </h3>
+          <p class="text-sm text-muted">
+            <span class="capitalize">{overallStatus}</span> — {projectsData.length} project{projectsData.length !==
+            1
+              ? 's'
+              : ''}
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-2xl font-bold font-mono" style="color: {scoreColor}">
+            {overallScore}
+          </div>
+          <div class="text-xs text-muted">/ 100</div>
+        </div>
+      </div>
+      <div class="h-2 bg-canvas rounded overflow-hidden">
+        <div
+          class="h-full transition-all duration-500"
+          style="width: {overallScore}%; background: {scoreColor}"
+        ></div>
+      </div>
+    </div>
 
-          <div class="space-y-3">
-            {#each projectsData as project (project.project_name)}
-              <div
-                class="flex items-center gap-4 p-3 bg-canvas border border-border rounded"
-              >
-                <div
-                  class="text-sm font-mono text-body w-32 truncate"
-                  title={project.project_name}
-                >
-                  {project.project_name}
-                </div>
+    <!-- Summary Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div
+        class="bg-surface border border-border rounded p-4"
+        title="Activity in the selected window — file edits + AI tool calls combined."
+      >
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Activity in last {selectedDays} day{selectedDays === 1 ? '' : 's'}
+        </div>
+        <div class="text-sm font-mono text-body">{recentEvents.toLocaleString()}</div>
+      </div>
+      <div
+        class="bg-surface border border-border rounded p-4"
+        title="Lifetime total — every file edit and AI tool call Raven has seen across these projects."
+      >
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Lifetime activity
+        </div>
+        <div class="text-sm font-mono text-body">{totalEvents.toLocaleString()}</div>
+      </div>
+      <div
+        class="bg-surface border border-border rounded p-4"
+        title="Syntax errors found — drops the health score by 5 points each, up to 50."
+      >
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          Syntax errors
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full {totalErrors > 0 ? 'bg-error' : 'bg-success'}"></span>
+          <span class="text-sm font-mono text-body">{totalErrors.toLocaleString()}</span>
+        </div>
+      </div>
+      <div
+        class="bg-surface border border-border rounded p-4"
+        title="Projects Raven has seen activity in."
+      >
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Projects</div>
+        <div class="text-sm font-mono text-body">{projectsData.length}</div>
+      </div>
+    </div>
 
-                <div class="flex-1 flex items-center gap-3">
-                  <div class="flex-1 h-2 bg-surface rounded overflow-hidden">
-                    <div
-                      class="h-full transition-all"
-                      style="width: {project.health_score || 0}%; background: {getScoreColor(
-                        project.health_score || 0
-                      )}"
-                    ></div>
-                  </div>
-                  <span
-                    class="text-sm font-mono w-8 text-right"
-                    style="color: {getScoreColor(project.health_score || 0)}"
-                  >
-                    {project.health_score || 0}
-                  </span>
-                </div>
+    <!-- Per-Project Health -->
+    {#if projectsData.length > 0}
+      <div class="bg-surface border border-border rounded-lg p-6">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
+          Per-Project Health
+        </h3>
 
-                <div class="text-xs font-mono text-muted w-20 text-right">
-                  {project.error_count || 0} errors
-                </div>
+        <div class="space-y-3">
+          {#each projectsData as project (project.project_name)}
+            <div class="flex items-center gap-4 p-3 bg-canvas border border-border rounded">
+              <div class="text-sm font-mono text-body w-32 truncate" title={project.project_name}>
+                {project.project_name}
+              </div>
 
-                <span class="flex items-center gap-1.5 text-xs font-mono">
-                  <span
-                    class="w-2 h-2 rounded-full"
-                    style="background: {getSeverityColor(
-                      project.status === 'active'
-                        ? 'success'
-                        : project.status === 'recent'
-                          ? 'low'
-                          : 'medium'
+              <div class="flex-1 flex items-center gap-3">
+                <div class="flex-1 h-2 bg-surface rounded overflow-hidden">
+                  <div
+                    class="h-full transition-all"
+                    style="width: {project.health_score || 0}%; background: {getScoreColor(
+                      project.health_score || 0
                     )}"
-                  ></span>
-                  <span class="text-body">{project.status}</span>
+                  ></div>
+                </div>
+                <span
+                  class="text-sm font-mono w-8 text-right"
+                  style="color: {getScoreColor(project.health_score || 0)}"
+                >
+                  {project.health_score || 0}
                 </span>
               </div>
-            {/each}
-          </div>
+
+              <div class="text-xs font-mono text-muted w-20 text-right">
+                {project.error_count || 0} errors
+              </div>
+
+              <span class="flex items-center gap-1.5 text-xs font-mono">
+                <span
+                  class="w-2 h-2 rounded-full"
+                  style="background: {getSeverityColor(
+                    project.status === 'active'
+                      ? 'success'
+                      : project.status === 'recent'
+                        ? 'low'
+                        : 'medium'
+                  )}"
+                ></span>
+                <span class="text-body">{project.status}</span>
+              </span>
+            </div>
+          {/each}
         </div>
-      {/if}
+      </div>
     {/if}
+  {/if}
 </PageLayout>

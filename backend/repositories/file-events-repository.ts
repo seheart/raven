@@ -184,8 +184,10 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
 
   // Time-bounded list — parameter positions adjust by which bounds are set.
   // Two SELECT shapes (with/without diff) since `diff` is a heavyweight column.
-  const listColsNoDiff = 'id, timestamp, filepath, change_type, cpu, mem, session_id';
-  const listColsDiff = 'id, timestamp, filepath, change_type, diff, cpu, mem, session_id';
+  const listColsNoDiff =
+    'id, timestamp, filepath, change_type, cpu, mem, session_id, project_name, agent_source';
+  const listColsDiff =
+    'id, timestamp, filepath, change_type, diff, cpu, mem, session_id, project_name, agent_source';
   const listAllNoDiff = db.db.prepare(
     `SELECT ${listColsNoDiff} FROM events ORDER BY timestamp DESC LIMIT ?`
   );
@@ -259,8 +261,8 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
 
     recent(limit = 100, includeDiff = false) {
       const fields = includeDiff
-        ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name, agent_source'
-        : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name, agent_source';
+        ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, session_id, project_name, agent_source'
+        : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, session_id, project_name, agent_source';
       return db.db
         .prepare(`SELECT ${fields} FROM events ORDER BY timestamp DESC LIMIT ?`)
         .all(limit) as FileEventRow[];
@@ -276,8 +278,8 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
 
     list({ limit, includeDiff, project, filepath, startTime, endTime }) {
       const fields = includeDiff
-        ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, project_name, agent_source'
-        : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, project_name, agent_source';
+        ? 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, diff, session_id, project_name, agent_source'
+        : 'id, timestamp, filepath, change_type, event_size, file_hash, cpu, mem, session_id, project_name, agent_source';
 
       let query = `SELECT ${fields} FROM events`;
       const params: (string | number)[] = [];

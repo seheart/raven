@@ -182,14 +182,14 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
   `);
 
   const recentStmt = db.db.prepare(`
-    SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+    SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name
     FROM agent_events
     ORDER BY timestamp DESC
     LIMIT ?
   `);
 
   const byAgentStmt = db.db.prepare(`
-    SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+    SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name
     FROM agent_events
     WHERE agent = ?
     ORDER BY timestamp DESC
@@ -377,24 +377,24 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
   // Time-bounded list. Both bounds optional; ASC param positions adjust by
   // building the WHERE clause in code rather than a string-templated query.
   const listAllStmt = db.db.prepare(
-    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name
      FROM agent_events
      ORDER BY timestamp DESC LIMIT ?`
   );
   const listFromStmt = db.db.prepare(
-    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name
      FROM agent_events
      WHERE timestamp >= ?
      ORDER BY timestamp DESC LIMIT ?`
   );
   const listUntilStmt = db.db.prepare(
-    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name
      FROM agent_events
      WHERE timestamp <= ?
      ORDER BY timestamp DESC LIMIT ?`
   );
   const listBetweenStmt = db.db.prepare(
-    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
+    `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata, session_id, project_name
      FROM agent_events
      WHERE timestamp >= ? AND timestamp <= ?
      ORDER BY timestamp DESC LIMIT ?`

@@ -35,15 +35,15 @@
       const cutoff = new Date();
 
       switch (timeRange) {
-      case 'today':
-        cutoff.setHours(0, 0, 0, 0);
-        break;
-      case 'week':
-        cutoff.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        cutoff.setMonth(now.getMonth() - 1);
-        break;
+        case 'today':
+          cutoff.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          cutoff.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          cutoff.setMonth(now.getMonth() - 1);
+          break;
       }
 
       filtered = filtered.filter(e => {
@@ -121,35 +121,55 @@
 
   function _getEventIcon(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-      return '+';
-    case 'change':
-    case 'edit':
-    case 'modified':
-      return '~';
-    case 'unlink':
-    case 'delete':
-      return '-';
-    default:
-      return '';
+      case 'add':
+      case 'create':
+        return '+';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return '~';
+      case 'unlink':
+      case 'delete':
+        return '-';
+      default:
+        return '';
+    }
+  }
+
+  function getEventLabel(changeType) {
+    // Friendly labels — `unlink` is the raw fs term but readers expect
+    // "deleted"; same for `change` → `edited`. Stays in sync with the
+    // type-filter dropdown vocabulary.
+    switch (changeType) {
+      case 'add':
+      case 'create':
+        return 'CREATED';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return 'EDITED';
+      case 'unlink':
+      case 'delete':
+        return 'DELETED';
+      default:
+        return (changeType || 'EDIT').toUpperCase();
     }
   }
 
   function getEventColor(changeType) {
     switch (changeType) {
-    case 'add':
-    case 'create':
-      return 'var(--success)';
-    case 'change':
-    case 'edit':
-    case 'modified':
-      return 'var(--accent)';
-    case 'unlink':
-    case 'delete':
-      return 'var(--error)';
-    default:
-      return 'var(--muted)';
+      case 'add':
+      case 'create':
+        return 'var(--success)';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return 'var(--accent)';
+      case 'unlink':
+      case 'delete':
+        return 'var(--error)';
+      default:
+        return 'var(--muted)';
     }
   }
 
@@ -185,155 +205,143 @@
 <PageLayout>
   <PageHeader title="Activity Timeline" description="Chronological view of file changes">
     {#snippet actions()}
-      <RefreshButton onClick={loadEvents} loading={loading} />
+      <RefreshButton onClick={loadEvents} {loading} />
     {/snippet}
   </PageHeader>
 
-    {#if error}
-      <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
-        <span class="text-sm text-error font-sans"> {error}</span>
-      </div>
-    {/if}
-
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Total Events
-        </div>
-        <div class="text-sm font-mono text-body">{stats.total}</div>
-      </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Created
-        </div>
-        <div class="text-sm font-mono text-body">{stats.creates}</div>
-      </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Modified
-        </div>
-        <div class="text-sm font-mono text-body">{stats.edits}</div>
-      </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Deleted
-        </div>
-        <div class="text-sm font-mono text-body">{stats.deletes}</div>
-      </div>
+  {#if error}
+    <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
+      <span class="text-sm text-error font-sans"> {error}</span>
     </div>
+  {/if}
 
-    <!-- Filters -->
-    <div
-      class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-4 flex-wrap items-center"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-muted">Type</span>
-        <select
-          bind:value={filter}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-        >
-          <option value="all">All Types</option>
-          <option value="add">Created</option>
-          <option value="change">Modified</option>
-          <option value="unlink">Deleted</option>
-        </select>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-muted">Range</span>
-        <select
-          bind:value={timeRange}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-        >
-          <option value="all">All Time</option>
-          <option value="today">Today</option>
-          <option value="week">Last 7 Days</option>
-          <option value="month">Last 30 Days</option>
-        </select>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-muted">Group</span>
-        <select
-          bind:value={groupBy}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
-        >
-          <option value="day">Day</option>
-          <option value="hour">Hour</option>
-        </select>
-      </div>
+  <!-- Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Events</div>
+      <div class="text-sm font-mono text-body">{stats.total}</div>
     </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Created</div>
+      <div class="text-sm font-mono text-body">{stats.creates}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Modified</div>
+      <div class="text-sm font-mono text-body">{stats.edits}</div>
+    </div>
+    <div class="bg-surface border border-border rounded p-4">
+      <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Deleted</div>
+      <div class="text-sm font-mono text-body">{stats.deletes}</div>
+    </div>
+  </div>
 
-    <!-- Timeline -->
-    {#if loading}
-      <div class="text-center py-12">
-        <div class="text-sm text-muted font-sans">Loading timeline...</div>
-      </div>
-    {:else if groupedEvents.length === 0}
-      <EmptyState
-        title="Nothing in this window"
-        description="Either no edits happened in the time range you selected, or the project / change-type filters above are hiding them. Widen the time range or clear the filters to see more."
-        icon="◴"
-      />
-    {:else}
-      <div class="space-y-6">
-        {#each groupedEvents as group, index (index)}
-          <div class="relative">
-            <!-- Date Header -->
-            <div class="sticky top-12 bg-canvas z-10 pb-3">
-              <div class="flex items-center gap-3">
-                <div
-                  class="bg-surface border border-border px-3 py-1.5 rounded text-sm font-mono text-body"
-                >
-                  {group.date}
-                </div>
-                <div class="text-xs text-muted font-mono">
-                  {group.events.length} event{group.events.length !== 1 ? 's' : ''}
-                </div>
+  <!-- Filters -->
+  <div
+    class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-4 flex-wrap items-center"
+  >
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-muted">Type</span>
+      <select
+        bind:value={filter}
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+      >
+        <option value="all">All Types</option>
+        <option value="add">Created</option>
+        <option value="change">Modified</option>
+        <option value="unlink">Deleted</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-muted">Range</span>
+      <select
+        bind:value={timeRange}
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+      >
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">Last 7 Days</option>
+        <option value="month">Last 30 Days</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-muted">Group</span>
+      <select
+        bind:value={groupBy}
+        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+      >
+        <option value="day">Day</option>
+        <option value="hour">Hour</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  {#if loading}
+    <div class="text-center py-12">
+      <div class="text-sm text-muted font-sans">Loading timeline...</div>
+    </div>
+  {:else if groupedEvents.length === 0}
+    <EmptyState
+      title="Nothing in this window"
+      description="Either no edits happened in the time range you selected, or the project / change-type filters above are hiding them. Widen the time range or clear the filters to see more."
+      icon="◴"
+    />
+  {:else}
+    <div class="space-y-6">
+      {#each groupedEvents as group, index (index)}
+        <div class="relative">
+          <!-- Date Header -->
+          <div class="sticky top-12 bg-canvas z-10 pb-3">
+            <div class="flex items-center gap-3">
+              <div
+                class="bg-surface border border-border px-3 py-1.5 rounded text-sm font-mono text-body"
+              >
+                {group.date}
+              </div>
+              <div class="text-xs text-muted font-mono">
+                {group.events.length} event{group.events.length !== 1 ? 's' : ''}
               </div>
             </div>
-
-            <!-- Timeline Events -->
-            <div class="space-y-3">
-              {#each group.events as event, eventIndex (eventIndex)}
-                <div
-                  class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
-                  style="border-left: 3px solid {getEventColor(event.change_type)}"
-                >
-                  <div class="flex justify-between items-start mb-2">
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
-                        style="background: {getEventColor(
-                          event.change_type
-                        )}15; color: {getEventColor(event.change_type)}"
-                      >
-                        {event.change_type?.toUpperCase() || 'UNKNOWN'}
-                      </span>
-                      {#if event.project_name}
-                        <span class="text-xs text-muted font-mono"
-                          >{event.project_name}</span
-                        >
-                      {/if}
-                    </div>
-                    <div
-                      class="flex items-center gap-2 text-xs text-muted font-mono flex-shrink-0"
-                    >
-                      <span>{formatTime(event.timestamp)}</span>
-                      <span class="text-border">·</span>
-                      <span>{getRelativeTime(event.timestamp)}</span>
-                    </div>
-                  </div>
-
-                  {#if event.filepath}
-                    <div class="text-sm font-mono text-body truncate">
-                      {event.filepath}
-                    </div>
-                  {/if}
-                </div>
-              {/each}
-            </div>
           </div>
-        {/each}
-      </div>
-    {/if}
+
+          <!-- Timeline Events -->
+          <div class="space-y-3">
+            {#each group.events as event, eventIndex (eventIndex)}
+              <div
+                class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
+                style="border-left: 3px solid {getEventColor(event.change_type)}"
+              >
+                <div class="flex justify-between items-start mb-2">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
+                      style="background: {getEventColor(
+                        event.change_type
+                      )}15; color: {getEventColor(event.change_type)}"
+                    >
+                      {getEventLabel(event.change_type)}
+                    </span>
+                    {#if event.project_name}
+                      <span class="text-xs text-muted font-mono">{event.project_name}</span>
+                    {/if}
+                  </div>
+                  <div class="flex items-center gap-2 text-xs text-muted font-mono flex-shrink-0">
+                    <span>{formatTime(event.timestamp)}</span>
+                    <span class="text-border">·</span>
+                    <span>{getRelativeTime(event.timestamp)}</span>
+                  </div>
+                </div>
+
+                {#if event.filepath}
+                  <div class="text-sm font-mono text-body truncate">
+                    {event.filepath}
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </PageLayout>

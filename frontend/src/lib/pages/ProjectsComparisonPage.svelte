@@ -9,6 +9,7 @@
     EmptyState,
     LoadingState
   } from '../components/ui/index.js';
+  import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Projects Comparison Page
    * Compare all monitored projects side-by-side
@@ -23,7 +24,7 @@
   let sortDesc = $state(true);
   let searchQuery = $state('');
   let filterStatus = $state('all');
-  let _autoRefresh = $state(true);
+  let lastUpdated = $state(null);
 
   // Filtered projects
   const filteredProjects = $derived.by(() => {
@@ -219,6 +220,7 @@
           first_activity: storage.first_event || null
         };
       });
+      lastUpdated = new Date();
     } catch (error) {
       logger.error('Failed to load projects:', error);
     } finally {
@@ -226,17 +228,29 @@
     }
   }
 
+  // Poll every 30 s — totals update as new events land. The earlier
+  // `_autoRefresh` flag was scaffolded but never wired up, so the page sat
+  // frozen at whatever the user saw on first load.
+  let pollHandle = null;
   onMount(() => {
     loadProjects();
+    pollHandle = setInterval(loadProjects, 30_000);
   });
 
-  onDestroy(() => abortRequests());
+  onDestroy(() => {
+    abortRequests();
+    if (pollHandle) clearInterval(pollHandle);
+  });
 </script>
 
 <PageLayout>
-  <PageHeader title="Projects Comparison" description="Compare all monitored projects side-by-side">
+  <PageHeader
+    title="Projects, side by side"
+    description="Every project Raven has seen — most-recently-active first. See where your AI tools have been spending time."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3">
+        <FreshnessBadge mode="polled" since={lastUpdated} intervalSeconds={30} />
         <ToolbarButton onClick={exportCSV}>Export</ToolbarButton>
         <RefreshButton onClick={() => loadProjects()} {loading} />
       </div>

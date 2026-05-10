@@ -174,7 +174,6 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     ravenDir,
     dbPath,
     port,
-    projectName,
     snapshotsDir,
     metricsCollector,
     triggerEngine,
@@ -297,14 +296,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
       agentEventsRepo: agentEventsRepository
     })
   );
-  app.use(
-    '/api/health',
-    createHealthProjectsRouter({
-      fileEventsRepo: fileEventsRepository,
-      syntaxErrorsRepo: syntaxErrorsRepository,
-      projectName
-    })
-  );
+  app.use('/api/health', createHealthProjectsRouter({ db }));
   app.use(
     '/api',
     createDashboardRouter({

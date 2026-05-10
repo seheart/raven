@@ -1,8 +1,9 @@
 <script>
   import { logger } from '../logger.js';
-  import { formatDateTime, formatTimeOnly } from '../timeFormat.js';
+  import { formatDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, EmptyState, ToolbarButton } from '../components/ui/index.js';
+  import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
    */
@@ -113,10 +114,10 @@
         timestamp: event.timestamp || new Date().toISOString(),
         filepath: event.filepath || event.file,
         change_type: normalizeChangeType(event.change_type || event.event_type),
-        agent: event.agent,
+        agent: event.agent_source || event.agent,
         event_size: event.event_size || 0,
         duration_ms: event.duration_ms,
-        project: event.filepath?.split('/')[0] || event.project_name || event.project,
+        project: event.project_name || event.project || event.filepath?.split('/')[0],
         file_hash: event.file_hash
       }));
 
@@ -236,10 +237,13 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Code Changes" description="Source code file change history">
+  <PageHeader
+    title="What changed in your code"
+    description="A live feed of file edits with their diffs — see exactly what your AI tools wrote. Click any row to view the diff."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-muted font-mono">{formatTimeOnly(lastUpdated)}</span>
+        <FreshnessBadge mode="live" since={lastUpdated} />
         <RefreshButton onClick={loadEvents} {loading} />
       </div>
     {/snippet}

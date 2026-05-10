@@ -1,68 +1,137 @@
 /**
  * Multi-project health route — `/api/health/projects`
  *
- * Aggregate "is anything happening?" rollup. Currently treats the whole
- * database as a single project (named after PROJECT_NAME) — multi-project
- * tracking is pending.
+ * Enumerates real projects from `project_stats` (trigger-maintained, survives
+ * retention) and returns per-project recent activity, error counts, and a
+ * derived health score. Honors ?project=<name> for a single-project view and
+ * ?days=<n> to size the "recent" window.
+ *
+ * Earlier this handler hardcoded a single row named after PROJECT_NAME — every
+ * tile on the page was a Potemkin village (one project always, days param
+ * silently ignored). Fixed here.
  */
 
 import express, { Request, Response, Router } from 'express';
 import { logger } from '../utils/logger.js';
 import { cacheMiddleware } from '../services/cache-service.js';
-import type { FileEventsRepository } from '../repositories/file-events-repository.js';
-import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
+import type { RavenDB } from '../db.js';
 
 interface HealthProjectsDeps {
-  fileEventsRepo: FileEventsRepository;
-  syntaxErrorsRepo: SyntaxErrorsRepository;
-  projectName: string;
+  db: RavenDB;
 }
 
-export function createHealthProjectsRouter({
-  fileEventsRepo,
-  syntaxErrorsRepo,
-  projectName
-}: HealthProjectsDeps): Router {
+interface ProjectStatsRow {
+  project_name: string;
+  total_events: number;
+  total_agent_events: number;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  last_agent_seen_at: string | null;
+}
+
+export function createHealthProjectsRouter({ db }: HealthProjectsDeps): Router {
   const router = express.Router();
 
-  router.get('/projects', cacheMiddleware(5000), (_req: Request, res: Response) => {
+  const projectsStmt = db.db.prepare(`
+    SELECT project_name, total_events, total_agent_events,
+           first_seen_at, last_seen_at, last_agent_seen_at
+    FROM project_stats
+    ORDER BY COALESCE(last_agent_seen_at, last_seen_at) DESC
+  `);
+
+  // Recent window counters: events touched recently and errors filed recently.
+  // We don't have project_name on syntax_errors, so we attribute errors by
+  // filepath prefix — events.project_name is a directory-style slug
+  // ("raven/backend/foo.ts" → "raven"), and syntax_errors.filepath uses the
+  // same convention.
+  const recentEventsStmt = db.db.prepare(`
+    SELECT COUNT(*) as count FROM events
+    WHERE project_name = ? AND timestamp >= ?
+  `);
+  const recentAgentEventsStmt = db.db.prepare(`
+    SELECT COUNT(*) as count FROM agent_events
+    WHERE project_name = ? AND timestamp >= ?
+  `);
+  const recentErrorsStmt = db.db.prepare(`
+    SELECT COUNT(*) as count FROM syntax_errors
+    WHERE filepath LIKE ? AND timestamp >= ?
+  `);
+  const totalErrorsStmt = db.db.prepare(`
+    SELECT COUNT(*) as count FROM syntax_errors WHERE filepath LIKE ?
+  `);
+
+  router.get('/projects', cacheMiddleware(5000), (req: Request, res: Response) => {
     try {
-      const totalEventsCount = fileEventsRepo.totalCount();
-      const recent = fileEventsRepo.countSinceHours(24);
-      const lastActivityTs = fileEventsRepo.lastTimestamp();
-      const errorCount = syntaxErrorsRepo.totalCount();
+      const projectFilter = (req.query.project as string) || 'all';
+      const daysRaw = parseInt(String(req.query.days ?? '7'), 10);
+      const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? daysRaw : 7;
+      const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
 
-      const activityScore = Math.min(recent, 100);
-      const errorPenalty = Math.min(errorCount * 5, 50);
-      const healthScore = Math.max(activityScore - errorPenalty, 0);
-
-      let status: 'active' | 'recent' | 'idle' | 'inactive' = 'inactive';
-      if (lastActivityTs) {
-        const hours = (Date.now() - new Date(lastActivityTs).getTime()) / 3_600_000;
-        if (hours < 1) status = 'active';
-        else if (hours < 24) status = 'recent';
-        else if (hours < 168) status = 'idle';
+      let rows = projectsStmt.all() as ProjectStatsRow[];
+      if (projectFilter && projectFilter !== 'all') {
+        rows = rows.filter(r => r.project_name === projectFilter);
       }
 
-      const projects = [
-        {
-          name: projectName,
+      const projects = rows.map(row => {
+        const recentFiles =
+          (recentEventsStmt.get(row.project_name, cutoff) as { count: number } | undefined)
+            ?.count ?? 0;
+        const recentAgent =
+          (recentAgentEventsStmt.get(row.project_name, cutoff) as { count: number } | undefined)
+            ?.count ?? 0;
+        const recent = recentFiles + recentAgent;
+
+        const errorCount =
+          (totalErrorsStmt.get(`${row.project_name}/%`) as { count: number } | undefined)?.count ??
+          0;
+        const recentErrors =
+          (recentErrorsStmt.get(`${row.project_name}/%`, cutoff) as { count: number } | undefined)
+            ?.count ?? 0;
+
+        // Activity proxy: cap at 100 so a chatty project doesn't dominate;
+        // subtract a per-error penalty up to 50 so syntax-error backlog drags
+        // the score down. Not a code-quality measure — it's an "is this
+        // project busy AND not crashing" signal.
+        const activityScore = Math.min(recent, 100);
+        const errorPenalty = Math.min(recentErrors * 5, 50);
+        const healthScore = Math.max(activityScore - errorPenalty, 0);
+
+        const lastTs = row.last_agent_seen_at || row.last_seen_at;
+        let status: 'active' | 'recent' | 'idle' | 'inactive' = 'inactive';
+        if (lastTs) {
+          const hours = (Date.now() - new Date(lastTs).getTime()) / 3_600_000;
+          if (hours < 1) status = 'active';
+          else if (hours < 24) status = 'recent';
+          else if (hours < 168) status = 'idle';
+        }
+
+        return {
+          name: row.project_name,
+          project_name: row.project_name,
           status,
           health_score: healthScore,
           recent_events: recent,
+          recent_file_events: recentFiles,
+          recent_agent_events: recentAgent,
+          total_events: row.total_events + row.total_agent_events,
           error_count: errorCount,
-          last_activity: lastActivityTs
-        }
-      ];
+          recent_error_count: recentErrors,
+          first_seen: row.first_seen_at,
+          last_activity: lastTs
+        };
+      });
 
       return res.json({
         projects,
         total_projects: projects.length,
         active_projects: projects.filter(p => p.status === 'active').length,
         recent_projects: projects.filter(p => p.status === 'recent').length,
-        // Kept for legacy callers — `total_events` was reported alongside the
-        // project entries in the original handler.
-        total_events: totalEventsCount
+        days,
+        // Lifetime sum across the projects in the response. With ?project=
+        // applied this narrows to the single project; otherwise it's the
+        // grand total of all known projects.
+        total_events: projects.reduce((sum, p) => sum + p.total_events, 0),
+        recent_window_events: projects.reduce((sum, p) => sum + p.recent_events, 0)
       });
     } catch (error) {
       logger.error('❌ Multi-project health error:', error as Error);

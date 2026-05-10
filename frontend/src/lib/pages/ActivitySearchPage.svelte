@@ -162,6 +162,33 @@
     }
   }
 
+  // Friendly chip labels — the API uses raw enum values like `unlink`,
+  // `tool_call`, and `assistant_text`; readable names belong on the page.
+  function getEventLabel(changeType) {
+    switch (changeType) {
+      case 'add':
+      case 'create':
+        return 'CREATED';
+      case 'change':
+      case 'edit':
+      case 'modified':
+        return 'EDITED';
+      case 'unlink':
+      case 'delete':
+        return 'DELETED';
+      case 'tool_call':
+        return 'TOOL';
+      case 'tool_result':
+        return 'RESULT';
+      case 'user_message':
+        return 'YOU';
+      case 'assistant_text':
+        return 'AI';
+      default:
+        return (changeType || 'EVENT').toUpperCase();
+    }
+  }
+
   function formatTimestamp(timestamp) {
     if (!timestamp) return 'N/A';
     return formatDateTime(timestamp);
@@ -169,7 +196,10 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Global Search" description="Search across all files, events, and activity" />
+  <PageHeader
+    title="Search"
+    description="Look across every file, every AI tool call, and every message Raven has seen. Type a filename, a project name, or part of a path."
+  />
 
   <!-- Search Bar -->
   <div class="bg-surface border border-border rounded-lg p-4 mb-6">
@@ -178,16 +208,16 @@
         type="text"
         bind:value={searchQuery}
         onkeypress={handleKeyPress}
-        placeholder="Search files, messages, agents..."
+        placeholder="Search file paths, messages, or your AI tools..."
         class="flex-1 px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
       />
       <ToolbarButton onClick={performSearch} disabled={loading || !searchQuery.trim()}
-        >{loading ? '...' : '↻'} Search</ToolbarButton
+        >{loading ? 'Searching…' : 'Search'}</ToolbarButton
       >
     </div>
 
     <div class="flex flex-wrap gap-2">
-      {#each [['all', 'All Results'], ['files', 'Files Only'], ['messages', 'Messages Only'], ['agents', 'Agents Only']] as [value, label] (value)}
+      {#each [['all', 'All results'], ['files', 'Files only'], ['messages', 'Messages only'], ['agents', 'AI tools only']] as [value, label] (value)}
         <FilterToggle active={searchType === value} onClick={() => (searchType = value)}>
           {label}
         </FilterToggle>
@@ -209,7 +239,7 @@
   {:else if filteredResults.length === 0}
     <EmptyState
       title="Nothing matches “{searchQuery}”"
-      description="Try a partial filename, a project slug, or drop the file extension. Search is case-insensitive but exact on substrings."
+      description="Try a partial filename, your project's folder name, or drop the file extension — search matches any chunk of text, not just whole words."
       icon="∅"
     />
   {:else}
@@ -256,7 +286,7 @@
                   result.change_type
                 )}"
               >
-                {result.change_type?.toUpperCase() || 'EVENT'}
+                {getEventLabel(result.change_type)}
               </span>
               {#if result.agent}
                 <span class="text-xs text-muted font-mono">

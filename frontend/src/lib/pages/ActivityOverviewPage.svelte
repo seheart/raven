@@ -4,6 +4,7 @@
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
+  import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
   import { formatDateTime } from '../timeFormat.js';
@@ -101,9 +102,9 @@
           category: 'file',
           description: `${e.change_type || 'modified'} ${e.filepath}`,
           target: e.filepath,
-          session_id: e.session_id,
+          session_id: e.session_id || null,
           metadata: {
-            agent: e.agent,
+            agent: e.agent_source,
             project_name: e.project_name,
             change_type: e.change_type,
             filepath: e.filepath
@@ -116,12 +117,12 @@
           category: 'agent',
           description: `${e.event_type || 'activity'} by ${e.agent}`,
           target: e.agent,
-          session_id: e.session_id,
+          session_id: e.session_id || null,
           metadata: {
             agent: e.agent,
             project_name: e.project_name,
             event_type: e.event_type,
-            details: e.details
+            message: e.message
           }
         }))
       ];
@@ -764,10 +765,13 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Activity Log" description="Complete audit trail of file and agent activity">
+  <PageHeader
+    title="What just happened"
+    description="Every file change and every AI tool call, newest first. File events come from the filesystem; agent events are tool calls and messages from your AI coder."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3">
-        <span class="text-xs text-muted font-mono">{timeAgo}</span>
+        <FreshnessBadge mode="live" since={lastUpdated} />
         <ToolbarButton onClick={exportLog}>Export</ToolbarButton>
         <RefreshButton onClick={() => loadActivities(true)} {loading} />
       </div>
