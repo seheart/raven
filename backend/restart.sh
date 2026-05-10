@@ -56,7 +56,7 @@ PORT="${PORT}" \
 CORS_ORIGIN="${CORS_ORIGIN}" \
 API_RATE_LIMIT_MAX="${API_RATE_LIMIT_MAX}" \
 TELEMETRY_RATE_LIMIT_MAX="${TELEMETRY_RATE_LIMIT_MAX}" \
-npm run start:ts > "${LOG_FILE}" 2>&1 &
+node dist/server.js > "${LOG_FILE}" 2>&1 &
 
 # Wait a moment and verify it started
 sleep 2

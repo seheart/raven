@@ -101,7 +101,7 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
     const httpCode = dbHealthy ? 200 : 503;
     res.status(httpCode).json({
       status,
-      version: '2.2.0',
+      version: '0.5.0',
       session_id: deps.sessionId,
       uptime: process.uptime(),
       active_agents: deps.agentRegistry.size,

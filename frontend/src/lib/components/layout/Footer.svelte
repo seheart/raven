@@ -4,7 +4,7 @@
   import { settings, uiSettings } from '../../stores/settingsStore.js';
 
   let {
-    version = '2.2.0',
+    version = '0.5.0',
     onAboutClick = () => {},
     onDesignSystemClick = () => {},
     onRoadmapClick = () => {},

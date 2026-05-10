@@ -406,7 +406,7 @@ export const PRINCIPLES = [
 
 export const MANIFEST = [
   { k: 'Created by', v: 'Seth Eheart' },
-  { k: 'Version', v: '2.2.0' },
+  { k: 'Version', v: '0.5.0' },
   { k: 'License', v: 'MIT' },
   { k: 'Source', v: 'github.com/seheart/raven', link: 'https://github.com/seheart/raven' }
 ];
