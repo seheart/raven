@@ -3,6 +3,7 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
+  import { LinkButton } from '../components/ui/index.js';
   import { websocketService } from '../services/websocket.js';
   import MermaidDiagram from '../components/MermaidDiagram.svelte';
   import {
@@ -243,35 +244,13 @@
         <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-20">
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Get started</div>
           <div class="flex flex-col gap-1.5">
-            <a
-              href="/today"
-              class="text-sm font-sans px-3 py-2 bg-accent text-canvas rounded text-center hover:bg-accent-strong transition-colors"
-              >Open Today →</a
-            >
-            <a
-              href="#sect-quickstart"
-              class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors"
-              >Quick start</a
-            >
-            <a
-              href="/system"
-              class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors"
-              >System diagnostics</a
-            >
-            <a
-              href="https://github.com/seheart/raven"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors"
-              >★ GitHub</a
-            >
-            <a
-              href="https://github.com/seheart/raven/issues/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors"
-              >Send feedback</a
-            >
+            <LinkButton href="/today" variant="primary">Open Today →</LinkButton>
+            <LinkButton href="#sect-quickstart">Quick start</LinkButton>
+            <LinkButton href="/system">System diagnostics</LinkButton>
+            <LinkButton href="https://github.com/seheart/raven" external>★ GitHub</LinkButton>
+            <LinkButton href="https://github.com/seheart/raven/issues/new" external>
+              Send feedback
+            </LinkButton>
           </div>
           <div
             class="mt-4 pt-4 border-t border-border text-xs font-mono text-muted leading-relaxed"
@@ -605,35 +584,15 @@
         </p>
       </ProseBlock>
       <div class="flex flex-wrap gap-2">
-        <a
-          href="https://github.com/seheart/raven"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:bg-accent-strong hover:border-accent-strong transition-colors"
-          >[ ★ Star on GitHub ]</a
-        >
-        <a
-          href="https://github.com/seheart/raven/issues/new"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >[ Send feedback ]</a
-        >
-        <a
-          href="#sect-quickstart"
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >[ Quick start ↑ ]</a
-        >
-        <a
-          href="/today"
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >[ Today → ]</a
-        >
-        <a
-          href="/system"
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-          >[ System ]</a
-        >
+        <LinkButton href="https://github.com/seheart/raven" external variant="primary" size="sm">
+          [ ★ Star on GitHub ]
+        </LinkButton>
+        <LinkButton href="https://github.com/seheart/raven/issues/new" external size="sm">
+          [ Send feedback ]
+        </LinkButton>
+        <LinkButton href="#sect-quickstart" size="sm">[ Quick start ↑ ]</LinkButton>
+        <LinkButton href="/today" size="sm">[ Today → ]</LinkButton>
+        <LinkButton href="/system" size="sm">[ System ]</LinkButton>
       </div>
     </PageSection>
 

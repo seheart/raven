@@ -5,6 +5,7 @@
 // Page-action primitives (used in <PageHeader> actions and inline toolbars)
 export { default as RefreshButton } from './RefreshButton.svelte';
 export { default as ToolbarButton } from './ToolbarButton.svelte';
+export { default as LinkButton } from './LinkButton.svelte';
 export { default as FilterToggle } from './FilterToggle.svelte';
 export { default as TabButton } from './TabButton.svelte';
 

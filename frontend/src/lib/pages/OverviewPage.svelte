@@ -10,7 +10,11 @@
   import { websocketService } from '../services/websocket.js';
   import { projectFilter } from '../projectFilterStore.js';
   import { get } from 'svelte/store';
-  import { getAgentColor } from '../utils/agentBrand.js';
+  import {
+    getAgentColor,
+    getSubagentTypeColor,
+    FALLBACK_AGENT_PALETTE
+  } from '../utils/agentBrand.js';
   import {
     createChart,
     destroyChart,
@@ -248,16 +252,7 @@
     return n.toString();
   }
 
-  function getTypeColor(type) {
-    // Per-subagent-type brand colors. design-system-allow: hex
-    const colors = {
-      'general-purpose': '#FF6B35',
-      Explore: '#10A37F',
-      Plan: '#4285F4',
-      'code-reviewer': '#F39C12'
-    };
-    return colors[type] || '#6b7280';
-  }
+  const getTypeColor = getSubagentTypeColor;
 
   function pushActivity(item) {
     const id = Date.now() + Math.random();
@@ -338,11 +333,7 @@
     return 'var(--accent)';
   }
 
-  // Chart color palette — per-agent brand identity flows through
-  // getAgentColor() from agentBrand.js so there's one source of truth
-  // (updating Ollama there propagates to every chart).
-  // design-system-allow: hex (vendor brand fallbacks)
-  const defaultAgentColors = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
+  const defaultAgentColors = FALLBACK_AGENT_PALETTE;
 
   // Bucket recentFiles + recentAgentEvents into buckets grouped by agent.
   // Fine buckets + frequent ticks + linear animation = oscilloscope-style slide.

@@ -3,6 +3,7 @@
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime as formatTime } from '../timeFormat.js';
   import { formatUsd } from '../utils/formatUsd.js';
+  import { getSubagentTypeColor } from '../utils/agentBrand.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, FreshnessBadge } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -108,16 +109,7 @@
     return n.toString();
   }
 
-  function getTypeColor(type) {
-    // Per-subagent-type brand colors. design-system-allow: hex
-    const colors = {
-      'general-purpose': '#FF6B35',
-      Explore: '#10A37F',
-      Plan: '#4285F4',
-      'code-reviewer': '#F39C12'
-    };
-    return colors[type] || '#6b7280';
-  }
+  const getTypeColor = getSubagentTypeColor;
 
   onMount(() => {
     websocketService.connect();

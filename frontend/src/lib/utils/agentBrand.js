@@ -26,6 +26,20 @@ const BRAND = {
 
 const DEFAULT = { color: '#9ca3af', name: 'Unknown' };
 
+// Per-subagent-type brand colors — matches Claude Code's built-in agent types.
+// Keyed exactly (not substring-matched) because type names are short and stable.
+/** @type {Record<string, string>} */
+const SUBAGENT_TYPE = {
+  'general-purpose': '#FF6B35',
+  Explore: '#10A37F',
+  Plan: '#4285F4',
+  'code-reviewer': '#F39C12'
+};
+
+// Rotating palette for unknown agents in charts — keeps lines visually distinct
+// when getAgentColor can't match a brand. Order matters: most distinct first.
+export const FALLBACK_AGENT_PALETTE = ['#10A37F', '#4285F4', '#A855F7', '#EC4899'];
+
 /**
  * Look up brand color + display name by agent identifier.
  * Case-insensitive substring match — passes "Claude Code 4.6" or "claude-code-1m" all match the
@@ -52,4 +66,15 @@ export function getAgentBrand(agentName) {
  */
 export function getAgentColor(agentName, fallback) {
   return getAgentBrand(agentName)?.color ?? fallback ?? DEFAULT.color;
+}
+
+/**
+ * Look up color for a subagent type (general-purpose, Explore, Plan, code-reviewer).
+ * Falls back to neutral gray for unknown types.
+ *
+ * @param {string} type
+ * @returns {string}
+ */
+export function getSubagentTypeColor(type) {
+  return SUBAGENT_TYPE[type] || '#6b7280';
 }
