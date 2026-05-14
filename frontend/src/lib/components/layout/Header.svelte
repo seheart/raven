@@ -2,6 +2,7 @@
   import RavenLogo from '../ui/RavenLogo.svelte';
   import HeartbeatIndicator from './HeartbeatIndicator.svelte';
   import HeaderLlmPill from './HeaderLlmPill.svelte';
+  import HeaderVramPill from './HeaderVramPill.svelte';
   import EndpointHealthPill from './EndpointHealthPill.svelte';
   import { navigate } from '../../utils/router.svelte.js';
   import { onMount } from 'svelte';
@@ -249,6 +250,9 @@
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
     </button>
+    <!-- VRAM % + sparkline tail. Narrow-only — at xl+ the larger
+         HeaderLlmPill carries this signal (and more) inline in the nav. -->
+    <HeaderVramPill />
     <HeartbeatIndicator />
   </div>
 
