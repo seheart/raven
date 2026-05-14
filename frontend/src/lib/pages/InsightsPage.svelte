@@ -345,25 +345,52 @@
     description="Stories Raven can write about how you and your AI tools have been working together. Tap a card to ask for one. Stories are written by your local AI, so nothing leaves your machine."
   >
     {#snippet actions()}
-      {#if status.available}
-        <span
-          class="flex items-center gap-1.5 text-xs text-success font-mono"
-          title="Local AI is ready to write."
-        >
-          <span class="w-1.5 h-1.5 bg-success rounded-full"></span>
-          AI ready
-        </span>
-      {:else}
-        <span
-          class="flex items-center gap-1.5 text-xs text-error font-mono"
-          title="Raven can't reach the local AI right now. Check Ollama is running."
-        >
-          <span class="w-1.5 h-1.5 bg-error rounded-full"></span>
-          AI unavailable
-        </span>
-      {/if}
+      <!-- Pill renders here only at lg+; at narrow widths the header is
+           sr-only so the pill would float orphaned. Narrow-width version
+           lives inline in the page body below. -->
+      <span class="hidden lg:flex">
+        {#if status.available}
+          <span
+            class="flex items-center gap-1.5 text-xs text-success font-mono"
+            title="Local AI is ready to write."
+          >
+            <span class="w-1.5 h-1.5 bg-success rounded-full"></span>
+            AI ready
+          </span>
+        {:else}
+          <span
+            class="flex items-center gap-1.5 text-xs text-error font-mono"
+            title="Raven can't reach the local AI right now. Check Ollama is running."
+          >
+            <span class="w-1.5 h-1.5 bg-error rounded-full"></span>
+            AI unavailable
+          </span>
+        {/if}
+      </span>
     {/snippet}
   </PageHeader>
+
+  <!-- Narrow-width counterpart of the actions pill — shows above the
+       cards as a small status row. lg+ uses the header actions slot. -->
+  <div class="lg:hidden -mt-2 mb-2">
+    {#if status.available}
+      <span
+        class="inline-flex items-center gap-1.5 text-xs text-success font-mono"
+        title="Local AI is ready to write."
+      >
+        <span class="w-1.5 h-1.5 bg-success rounded-full"></span>
+        AI ready
+      </span>
+    {:else}
+      <span
+        class="inline-flex items-center gap-1.5 text-xs text-error font-mono"
+        title="Raven can't reach the local AI right now. Check Ollama is running."
+      >
+        <span class="w-1.5 h-1.5 bg-error rounded-full"></span>
+        AI unavailable
+      </span>
+    {/if}
+  </div>
 
   {#if generating}
     <!-- Loud feedback while the local LLM is writing. Without this, the

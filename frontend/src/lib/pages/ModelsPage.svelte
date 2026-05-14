@@ -208,7 +208,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-2 xl:grid-cols-7 gap-px bg-border">
+            <div class="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-7 gap-px bg-border">
               <div class="bg-surface p-4 text-center">
                 <div class="text-lg font-bold font-mono text-accent">
                   {formatNumber(model.total_events)}

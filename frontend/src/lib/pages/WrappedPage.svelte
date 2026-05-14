@@ -245,6 +245,21 @@
       </div>
     </aside>
 
+    <!-- Narrow-width progress strip — sticky to the top of the scroll
+         region. Replaces the side rail (which is hidden below xl) so
+         users still see where they are in the card sequence. -->
+    <div class="narrow-progress xl:hidden" aria-hidden="true">
+      <span class="narrow-progress-num">{String(activeIdx + 1).padStart(2, '0')}</span>
+      <span class="narrow-progress-sep">/</span>
+      <span class="narrow-progress-tot">{String(payload.cards.length).padStart(2, '0')}</span>
+      <span class="narrow-progress-bar">
+        <span
+          class="narrow-progress-bar-fill"
+          style="width: {((activeIdx + 1) / payload.cards.length) * 100}%"
+        ></span>
+      </span>
+    </div>
+
     {#each payload.cards as rawCard, i (rawCard.id)}
       {@const card = massageCard(rawCard)}
       <section
@@ -508,5 +523,46 @@
   .card-next:hover {
     background: color-mix(in oklab, var(--card-color) 12%, transparent);
     transform: translateY(-1px);
+  }
+
+  /* Narrow-width progress strip — replaces the side rail below xl.
+     Sticky to the top of the snap container so users always see where
+     they are in the card sequence. */
+  .narrow-progress {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 1rem;
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .narrow-progress-num {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .narrow-progress-sep,
+  .narrow-progress-tot {
+    color: var(--muted);
+  }
+  .narrow-progress-bar {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .narrow-progress-bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
   }
 </style>

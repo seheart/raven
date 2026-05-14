@@ -846,7 +846,11 @@
   <!-- Narrow widths (<1280px) stack everything vertically with bounded
        per-module heights — Bloomberg-terminal pattern. xl+ reclaims the
        fixed-viewport flex layout so each row fills available height. -->
-  <div class="p-4 pb-2 xl:h-[calc(100vh-6rem)] xl:flex xl:flex-col">
+  <!-- Wide-screen fixed-viewport layout. The 8rem subtraction maps to the
+       chrome at lg+: header (~48px) + sub-tab row (~32px) + footer (~48px) +
+       some breathing = ~128px. The constant lives here rather than in
+       PageLayout because only the Dashboard uses fill-viewport flex. -->
+  <div class="p-4 pb-2 xl:h-[calc(100vh-8rem)] xl:flex xl:flex-col">
     <div class="mx-auto px-2 w-full xl:flex xl:flex-col xl:flex-1 xl:min-h-0">
       <div class="mb-3">
         <PageHeader size="medium" title="Dashboard" description="Real-time monitoring" />

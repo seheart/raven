@@ -602,9 +602,12 @@
       <div class="flex-1 min-w-0 max-w-[48rem]">
         <!-- Presence pill + live-connection indicator. The pulsing dot
              doubles as WS-status (success when connected, warning when
-             not), absorbing what used to be a separate status strip. -->
+             not), absorbing what used to be a separate status strip.
+             Hero (pill + h1 + subtitle) only renders at lg+; at narrow
+             widths the collapsed nav already says "Dashboard › Narrative"
+             and the page lands directly on the narrative beats. -->
         <div
-          class="mb-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
+          class="hidden lg:inline-flex mb-3 items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
           title={websocketConnected
             ? 'Connected — live updates flowing'
             : 'Disconnected from live updates'}
@@ -617,8 +620,12 @@
           ></span>
           <span>Always perched · your AI's steady companion</span>
         </div>
-        <h1 class="text-3xl font-bold text-heading tracking-[-0.015em] leading-tight">Today</h1>
-        <p class="mt-0.5 text-sm text-muted font-sans">
+        <h1
+          class="sr-only lg:not-sr-only text-3xl font-bold text-heading tracking-[-0.015em] leading-tight"
+        >
+          Today
+        </h1>
+        <p class="sr-only lg:not-sr-only lg:mt-0.5 text-sm text-muted font-sans">
           {todayLabel} — a quick read of what's happened so far.
         </p>
 
