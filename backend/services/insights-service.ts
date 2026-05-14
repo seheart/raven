@@ -8,6 +8,7 @@
 import { logger } from '../utils/logger.js';
 import type { RavenDB } from '../db.js';
 import { recordLoadHint } from './recent-load-hints.js';
+import { getBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 interface InsightSummary {
   id: string;
@@ -47,12 +48,10 @@ export class InsightsService {
   private ollamaQueue: Array<() => void> = [];
   private ollamaRunning = false;
 
-  // Circuit breaker: stop hammering ollama after repeated failures
-  private consecutiveFailures = 0;
-  private circuitOpenUntil = 0;
-  private static readonly CIRCUIT_FAILURE_THRESHOLD = 5;
-  private static readonly CIRCUIT_BASE_COOLDOWN_MS = 30000; // 30s, doubles each trip
-  private static readonly CIRCUIT_MAX_COOLDOWN_MS = 600000; // 10 min cap
+  // Shared circuit breaker for all Ollama callers (proxy, model-info, ps, library,
+  // and this insights pipeline). Registered under 'ollama' so independent code
+  // paths see the same open/closed state instead of each tripping in isolation.
+  private readonly breaker = getBreaker('ollama', { failureThreshold: 3, cooldownMs: 30_000 });
 
   // Diff risk debounce: batch file changes before scoring
   private pendingDiffRisks: Array<{
@@ -122,7 +121,7 @@ export class InsightsService {
     if (this.disabled) return false;
     try {
       const res = await fetch(`${this.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) this.resetCircuitOnProbe();
+      if (res.ok) this.breaker.recordSuccess();
       return res.ok;
     } catch {
       return false;
@@ -133,7 +132,7 @@ export class InsightsService {
     try {
       const res = await fetch(`${this.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
       if (!res.ok) return [];
-      this.resetCircuitOnProbe();
+      this.breaker.recordSuccess();
       const data: any = await res.json();
       // Filter out embedding-only models. They show up in /api/tags
       // alongside chat models but Ollama returns 400 if you try to use
@@ -162,18 +161,8 @@ export class InsightsService {
     }
   }
 
-  // A successful /api/tags ping proves Ollama is reachable. Inference may still
-  // fail (bad model, OOM), but the breaker shouldn't keep us locked out for
-  // minutes when the underlying service is healthy. Reset the cooldown so the
-  // next call gets through immediately; consecutiveFailures stays so repeated
-  // inference failures still trip again.
-  private resetCircuitOnProbe(): void {
-    if (this.circuitOpenUntil > Date.now()) {
-      logger.info('Circuit breaker RESET — Ollama probe succeeded');
-      this.circuitOpenUntil = 0;
-      this.consecutiveFailures = 0;
-    }
-  }
+  // Probe success → mark the shared breaker closed. Other callers (proxy,
+  // /ollama/ps) see this immediately because they reach the same breaker.
 
   // ==================== Session Summary ====================
 
@@ -1033,16 +1022,18 @@ Keep it under 150 words.`;
   ): Promise<string | null> {
     if (this.disabled) return null;
 
-    // Circuit breaker: reject immediately if circuit is open
-    if (this.isCircuitOpen()) {
-      const remainingSec = Math.ceil((this.circuitOpenUntil - Date.now()) / 1000);
-      logger.warn(`Circuit breaker OPEN — skipping ollama call (${remainingSec}s remaining)`);
+    // Shared circuit breaker: reject immediately if open. Other Ollama callers
+    // (proxy, /ollama/ps, /ollama/library, model-info) share the same breaker.
+    if (this.breaker.isOpen()) {
+      logger.warn(
+        `Ollama circuit OPEN — skipping insights call (${this.breaker.retryInSec()}s remaining)`
+      );
       return null;
     }
 
     if (!(await this.ensureModel())) {
       logger.warn('No Ollama models installed — skipping call');
-      this.recordFailure();
+      this.breaker.recordFailure();
       return null;
     }
 
@@ -1062,76 +1053,47 @@ Keep it under 150 words.`;
     });
 
     try {
-      const res = await fetch(`${this.ollamaUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.model,
-          prompt,
-          stream: false,
-          keep_alive: '1m',
-          options: {
-            temperature: 0.3,
-            num_predict: numPredict
-          }
-        }),
-        signal: AbortSignal.timeout(timeoutMs)
-      });
+      const res = await this.breaker.exec(() =>
+        fetch(`${this.ollamaUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: this.model,
+            prompt,
+            stream: false,
+            keep_alive: '1m',
+            options: {
+              temperature: 0.3,
+              num_predict: numPredict
+            }
+          }),
+          signal: AbortSignal.timeout(timeoutMs)
+        })
+      );
 
       if (!res.ok) {
         logger.error(`Ollama returned ${res.status}`);
         removeHint();
-        this.recordFailure();
+        // A non-2xx response counts as a failure for breaker purposes — the
+        // wrapper above only knows about thrown errors.
+        this.breaker.recordFailure();
         return null;
       }
 
       const data: any = await res.json();
-      this.recordSuccess();
       return data.response?.trim() || null;
     } catch (err: any) {
+      if (err instanceof CircuitOpenError) {
+        // Already logged above, just bail.
+        removeHint();
+        return null;
+      }
       logger.error(`Ollama call failed: ${err.message}`);
       removeHint();
-      this.recordFailure();
       return null;
     } finally {
       this.releaseOllamaSlot();
     }
-  }
-
-  private isCircuitOpen(): boolean {
-    if (this.consecutiveFailures < InsightsService.CIRCUIT_FAILURE_THRESHOLD) return false;
-    if (Date.now() >= this.circuitOpenUntil) {
-      // Half-open: allow one request through to test recovery
-      logger.info('Circuit breaker HALF-OPEN — allowing test request');
-      return false;
-    }
-    return true;
-  }
-
-  private recordFailure(): void {
-    this.consecutiveFailures++;
-    if (this.consecutiveFailures >= InsightsService.CIRCUIT_FAILURE_THRESHOLD) {
-      // Exponential backoff: 30s, 60s, 120s, ... capped at 10min
-      const trips = this.consecutiveFailures - InsightsService.CIRCUIT_FAILURE_THRESHOLD;
-      const cooldown = Math.min(
-        InsightsService.CIRCUIT_BASE_COOLDOWN_MS * Math.pow(2, trips),
-        InsightsService.CIRCUIT_MAX_COOLDOWN_MS
-      );
-      this.circuitOpenUntil = Date.now() + cooldown;
-      logger.warn(
-        `Circuit breaker OPEN — ${this.consecutiveFailures} consecutive failures, cooldown ${cooldown / 1000}s`
-      );
-    }
-  }
-
-  private recordSuccess(): void {
-    if (this.consecutiveFailures > 0) {
-      logger.info(
-        `Circuit breaker CLOSED — ollama recovered after ${this.consecutiveFailures} failures`
-      );
-    }
-    this.consecutiveFailures = 0;
-    this.circuitOpenUntil = 0;
   }
 
   private acquireOllamaSlot(): Promise<void> {

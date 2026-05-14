@@ -58,6 +58,16 @@ export class RavenDB {
         agent_source TEXT
       )
     `);
+    // Safe migration for legacy DBs: agent_source was added to the canonical
+    // schema later. New DBs already have it (CREATE TABLE above); old ones
+    // need an ALTER. Done HERE — before file_stats triggers/backfill below
+    // reference it — so a v0.4 → 0.5 upgrade doesn't crash on missing column.
+    const eventsColsEarly = this.db.prepare(`PRAGMA table_info(events)`).all() as Array<{
+      name: string;
+    }>;
+    if (!eventsColsEarly.some(c => c.name === 'agent_source')) {
+      this.db.exec(`ALTER TABLE events ADD COLUMN agent_source TEXT`);
+    }
 
     // Agent telemetry events table
     this.db.exec(`
@@ -155,6 +165,128 @@ export class RavenDB {
           total_agent_events = excluded.total_agent_events,
           first_seen_at = COALESCE(project_stats.first_seen_at, excluded.first_seen_at),
           last_agent_seen_at = excluded.last_agent_seen_at
+      `);
+    }
+
+    // Lifetime per-filepath rollup. Mirrors the columns topModifiedFiles
+    // returns (plus a few we can use for cheap project-scoped filtering and
+    // change-type breakdowns). Like project_stats, this table is NOT
+    // retention-purged — once a file shows up, its lifetime counter stays
+    // forever. The triggers below keep it current atomically with each
+    // events INSERT so the read path is O(1) for top-K queries instead of
+    // an O(rows) GROUP BY filepath scan.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS file_stats (
+        filepath TEXT PRIMARY KEY,
+        total_modifications INTEGER NOT NULL DEFAULT 0,
+        last_modified TEXT,
+        agent_source TEXT,
+        project_name TEXT,
+        create_count INTEGER NOT NULL DEFAULT 0,
+        edit_count INTEGER NOT NULL DEFAULT 0,
+        delete_count INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+    // Project-scoped top-K reads also benefit from an index, since the
+    // by-project query is ORDER BY total_modifications DESC WHERE project_name = ?.
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_file_stats_project_mods ON file_stats(project_name, total_modifications DESC)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_file_stats_total_modifications ON file_stats(total_modifications DESC)`
+    );
+
+    // Lifetime per-change_type rollup powering dashboardStats.eventStats.
+    // Same retention story — survives the 7-day events purge so the header
+    // strip's lifetime odometer doesn't reset every week.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS event_type_stats (
+        change_type TEXT PRIMARY KEY,
+        count INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+
+    // Trigger: bump file_stats on every events INSERT with a filepath.
+    // The CASE arithmetic mirrors the change_type buckets in the existing
+    // dashboardStats query so creates/edits/deletes stay coherent with the
+    // pre-rollup numbers.
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS bump_file_stats_events
+      AFTER INSERT ON events
+      WHEN NEW.filepath IS NOT NULL AND NEW.filepath != ''
+      BEGIN
+        INSERT INTO file_stats (
+          filepath, total_modifications, last_modified, agent_source, project_name,
+          create_count, edit_count, delete_count
+        ) VALUES (
+          NEW.filepath,
+          1,
+          NEW.timestamp,
+          NEW.agent_source,
+          NEW.project_name,
+          CASE WHEN NEW.change_type IN ('add','create') THEN 1 ELSE 0 END,
+          CASE WHEN NEW.change_type IN ('change','edit','modified') THEN 1 ELSE 0 END,
+          CASE WHEN NEW.change_type IN ('unlink','delete') THEN 1 ELSE 0 END
+        )
+        ON CONFLICT(filepath) DO UPDATE SET
+          total_modifications = total_modifications + 1,
+          last_modified = NEW.timestamp,
+          agent_source = COALESCE(NEW.agent_source, agent_source),
+          project_name = COALESCE(NEW.project_name, project_name),
+          create_count = create_count + CASE WHEN NEW.change_type IN ('add','create') THEN 1 ELSE 0 END,
+          edit_count   = edit_count   + CASE WHEN NEW.change_type IN ('change','edit','modified') THEN 1 ELSE 0 END,
+          delete_count = delete_count + CASE WHEN NEW.change_type IN ('unlink','delete') THEN 1 ELSE 0 END;
+      END
+    `);
+
+    // Trigger: bump event_type_stats on every events INSERT with a change_type.
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS bump_event_type_stats_events
+      AFTER INSERT ON events
+      WHEN NEW.change_type IS NOT NULL AND NEW.change_type != ''
+      BEGIN
+        INSERT INTO event_type_stats (change_type, count)
+        VALUES (NEW.change_type, 1)
+        ON CONFLICT(change_type) DO UPDATE SET
+          count = count + 1;
+      END
+    `);
+
+    // One-time backfill so existing DBs see honest lifetime numbers on
+    // first boot after the upgrade. Guarded by emptiness so we don't
+    // double-count on subsequent boots (triggers own the rows from here on).
+    const fileStatsCount = this.db.prepare('SELECT COUNT(*) as n FROM file_stats').get() as {
+      n: number;
+    };
+    if (fileStatsCount.n === 0) {
+      this.db.exec(`
+        INSERT INTO file_stats (
+          filepath, total_modifications, last_modified, agent_source, project_name,
+          create_count, edit_count, delete_count
+        )
+        SELECT
+          filepath,
+          COUNT(*),
+          MAX(timestamp),
+          MAX(agent_source),
+          MAX(project_name),
+          SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END),
+          SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END),
+          SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END)
+        FROM events
+        WHERE filepath IS NOT NULL AND filepath != ''
+        GROUP BY filepath
+      `);
+    }
+    const eventTypeStatsCount = this.db
+      .prepare('SELECT COUNT(*) as n FROM event_type_stats')
+      .get() as { n: number };
+    if (eventTypeStatsCount.n === 0) {
+      this.db.exec(`
+        INSERT INTO event_type_stats (change_type, count)
+        SELECT change_type, COUNT(*) FROM events
+        WHERE change_type IS NOT NULL AND change_type != ''
+        GROUP BY change_type
       `);
     }
 
@@ -484,14 +616,8 @@ export class RavenDB {
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_change_type ON events(change_type)`);
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_filepath ON events(filepath)`);
 
-    // Safe migration: add agent_source column if it doesn't exist (PRAGMA-checked,
-    // not try/catch — the latter masks unrelated SQL errors).
-    const eventsCols = this.db.prepare(`PRAGMA table_info(events)`).all() as Array<{
-      name: string;
-    }>;
-    if (!eventsCols.some(c => c.name === 'agent_source')) {
-      this.db.exec(`ALTER TABLE events ADD COLUMN agent_source TEXT`);
-    }
+    // (agent_source ALTER moved to the top of initializeSchema so file_stats
+    // backfill above can reference the column safely.)
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent_source ON events(agent_source)`);
 
     // Agent events indexes

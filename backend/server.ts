@@ -50,6 +50,7 @@ import { bindEventBusListeners } from './services/event-bus-bindings.js';
 import { startRetentionCleanup, scheduleDaily } from './services/retention-cleanup.js';
 import { installGracefulShutdown } from './services/graceful-shutdown.js';
 import { startTransparentOllamaProxy } from './services/transparent-ollama-proxy.js';
+import { onDiskStateChange, getDiskState } from './utils/disk-state.js';
 import { createLocalModelCallbacks } from './services/local-model-callbacks.js';
 import { startIdleDetection } from './services/idle-detection.js';
 import { createErrorsRepository } from './repositories/errors-repository.js';
@@ -208,6 +209,35 @@ const expensiveOpLimiter = rateLimit({
 
 // Apply general rate limiter to all API routes
 app.use('/api/', apiLimiter);
+
+// Disk-full early-rejection: when the disk-state flag is set, fail writes
+// fast with 503 instead of letting them re-trigger ENOSPC and pile up
+// stack traces. Reads are unaffected so the UI can still load.
+app.use((req: Request, res: Response, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  const ds = getDiskState();
+  if (ds.diskFull) {
+    return res.status(503).json({
+      error: 'Disk full',
+      message: ds.message || 'Server filesystem is full; writes are rejected.',
+      detected_at: ds.detectedAt
+    });
+  }
+  return next();
+});
+
+// Broadcast disk-full state changes over the websocket so the UI shows/clears
+// a banner without polling /api/health.
+onDiskStateChange(state => {
+  io.emit('disk-state', state);
+  if (state.diskFull) {
+    logger.error(
+      `💾 Broadcasting disk-full state: ${state.message} (detected at ${state.detectedAt})`
+    );
+  } else {
+    logger.info('💾 Disk-full state cleared — writes succeeding again');
+  }
+});
 
 // ==================== Initialize Services ====================
 
@@ -491,7 +521,9 @@ wireRoutes(app, {
   patternWarningsRepository,
   errorsRepository,
   notificationsRepository,
-  hostIdentity: { host_id: HOST_IDENTITY.host_id, host_name: HOST_IDENTITY.host_name }
+  hostIdentity: { host_id: HOST_IDENTITY.host_id, host_name: HOST_IDENTITY.host_name },
+  claudeLogWatcher,
+  codexLogWatcher
 });
 
 // Serve built frontend in production/npx mode (when frontend/dist exists)

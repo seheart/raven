@@ -13,6 +13,7 @@ import type { AgentEventsRepository } from '../repositories/agent-events-reposit
 import { getAgentColor } from '../utils/agent-colors.js';
 import { attributeConnection } from '../utils/process-attribution.js';
 import { recordLoadHint } from '../services/recent-load-hints.js';
+import { getBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 interface MinimalLogger {
   debug: (msg: string) => void;
@@ -40,6 +41,10 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
   // (which mutates process.env.OLLAMA_URL) takes effect without a restart.
   const getOllamaUrl = (): string =>
     deps.ollamaUrl || process.env.OLLAMA_URL || 'http://localhost:11434';
+
+  // Shared with /api/ollama/* and the insights service so the breaker tracks
+  // a single Ollama health state across all callers.
+  const breaker = getBreaker('ollama', { failureThreshold: 3, cooldownMs: 30_000 });
 
   const router = express.Router();
 
@@ -157,6 +162,17 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
       });
     }
 
+    // Fast-fail when the breaker is open. Caller sees a clear 503 with the
+    // remaining cooldown instead of waiting 3s for fetch to time out.
+    if (breaker.isOpen()) {
+      removeHint?.();
+      return res.status(503).json({
+        error: 'Ollama unavailable',
+        message: `Circuit breaker open — retry in ${breaker.retryInSec()}s`,
+        retry_in_sec: breaker.retryInSec()
+      });
+    }
+
     try {
       const fetchOptions: RequestInit = {
         method: req.method,
@@ -173,7 +189,13 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
       // bad params) — no VRAM swap happened, so the hint must not survive
       // to mis-attribute a later real load of the same model. Network
       // errors fall through to the outer catch which also calls remover.
-      if (!ollamaResponse.ok) removeHint?.();
+      if (!ollamaResponse.ok) {
+        removeHint?.();
+        // 5xx counts toward breaker; 4xx is a caller-side issue, not service health.
+        if (ollamaResponse.status >= 500) breaker.recordFailure();
+      } else {
+        breaker.recordSuccess();
+      }
 
       const isStreaming =
         req.body?.stream !== false &&
@@ -347,8 +369,17 @@ export function createOllamaProxyRouter(deps: OllamaProxyDeps): Router {
         }
       }
     } catch (error: any) {
+      // Real network error → trip the breaker so subsequent callers fast-fail.
+      breaker.recordFailure();
       logger.error(`Ollama proxy error: ${error.message}`);
       removeHint?.();
+      if (error instanceof CircuitOpenError) {
+        return res.status(503).json({
+          error: 'Ollama unavailable',
+          message: error.message,
+          retry_in_sec: breaker.retryInSec()
+        });
+      }
       return res.status(502).json({
         error: 'Ollama not reachable',
         message: `Could not connect to ${getOllamaUrl()}. Is Ollama running?`

@@ -3,6 +3,7 @@
  */
 
 import type { RavenDB } from '../db.js';
+import { retryWrite } from '../utils/sqlite-retry.js';
 
 interface FileEventListParams {
   limit: number;
@@ -245,18 +246,22 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
       project_name,
       agent_source
     ) {
-      const result = insertStmt.run(
-        timestamp,
-        filepath,
-        change_type,
-        truncateDiff(diff),
-        cpu,
-        mem,
-        session_id || null,
-        file_hash || null,
-        event_size || null,
-        project_name || null,
-        agent_source || null
+      const result = retryWrite(
+        () =>
+          insertStmt.run(
+            timestamp,
+            filepath,
+            change_type,
+            truncateDiff(diff),
+            cpu,
+            mem,
+            session_id || null,
+            file_hash || null,
+            event_size || null,
+            project_name || null,
+            agent_source || null
+          ),
+        'events.insert'
       );
       return Number(result.lastInsertRowid);
     },

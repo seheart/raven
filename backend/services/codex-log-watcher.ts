@@ -103,6 +103,15 @@ export class CodexLogWatcher {
   private positionsSaveTimer: NodeJS.Timeout | null;
   private _currentIdle: boolean | undefined;
   private _idleSwitching: boolean | undefined;
+  // Mirrors ClaudeLogWatcher's resilience: auto-restart on chokidar errors,
+  // capped attempts, and a lastSuccessfulTail timestamp for /api/health.
+  private lastSuccessfulTailAt: string | null = null;
+  private restartAttempts = 0;
+  private static readonly MAX_RESTART_ATTEMPTS = 5;
+  private static readonly RESTART_BACKOFF_MS = [1_000, 5_000, 15_000, 60_000, 300_000];
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private permanentlyFailed = false;
+  private lastErrorMessage: string | null = null;
 
   constructor(
     eventCallback: CodexEventCallback,
@@ -165,6 +174,13 @@ export class CodexLogWatcher {
     }
 
     await this.loadPositions();
+    // Guard against restart-path double-spawn: start() runs again from
+    // scheduleRestart(), and without this clear we'd leak a positionsSaveTimer
+    // every restart cycle.
+    if (this.positionsSaveTimer) {
+      clearInterval(this.positionsSaveTimer);
+      this.positionsSaveTimer = null;
+    }
     this.positionsSaveTimer = setInterval(() => {
       this.savePositions().catch(() => {});
     }, 30000);
@@ -190,19 +206,93 @@ export class CodexLogWatcher {
 
     this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
     this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
-    this.logWatcher.on('error', error =>
-      this.logger.error(
-        `❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
+    this.logWatcher.on('unlink', (filepath: string) => {
+      // Reclaim per-file state for deleted rollout logs so these maps don't
+      // grow forever across weeks of Codex session rotation.
+      this.filePositions.delete(filepath);
+      this.sessionMeta.delete(filepath);
+    });
+    this.logWatcher.on('error', error => {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.lastErrorMessage = msg;
+      this.logger.error(`❌ Codex watcher error: ${msg}`);
+      this.scheduleRestart();
+    });
 
     this.logWatcher.on('ready', () => {
+      this.restartAttempts = 0;
+      this.permanentlyFailed = false;
+      this.lastErrorMessage = null;
       this.logger.info('📡 Codex watcher ready');
     });
 
     const stats = await this.getWatchStats();
     this.logger.info('✅ Codex Log Watcher started');
     this.logger.info(`   Watching ${stats.fileCount} rollout files`);
+  }
+
+  /** Auto-restart on chokidar failure. See ClaudeLogWatcher for design notes. */
+  private scheduleRestart(): void {
+    if (this.permanentlyFailed) return;
+    if (this.restartTimer) return;
+
+    if (this.restartAttempts >= CodexLogWatcher.MAX_RESTART_ATTEMPTS) {
+      this.permanentlyFailed = true;
+      this.logger.error(
+        `Codex log watcher permanently failed after ${CodexLogWatcher.MAX_RESTART_ATTEMPTS} restart attempts (last error: ${this.lastErrorMessage})`
+      );
+      return;
+    }
+
+    const delay =
+      CodexLogWatcher.RESTART_BACKOFF_MS[
+        Math.min(this.restartAttempts, CodexLogWatcher.RESTART_BACKOFF_MS.length - 1)
+      ];
+    this.restartAttempts++;
+    this.logger.warn(
+      `Codex log watcher restart scheduled in ${delay}ms (attempt ${this.restartAttempts}/${CodexLogWatcher.MAX_RESTART_ATTEMPTS})`
+    );
+
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      void (async () => {
+        try {
+          if (this.logWatcher) {
+            try {
+              await this.logWatcher.close();
+            } catch {
+              /* ignore close failures */
+            }
+            this.logWatcher = null;
+          }
+          await this.savePositions();
+          await this.start();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.lastErrorMessage = msg;
+          this.logger.error(`Codex log watcher restart failed: ${msg}`);
+          this.scheduleRestart();
+        }
+      })();
+    }, delay);
+    this.restartTimer.unref?.();
+  }
+
+  /** Health summary used by /api/health. */
+  health(): {
+    running: boolean;
+    permanentlyFailed: boolean;
+    restartAttempts: number;
+    lastError: string | null;
+    lastSuccessfulTailAt: string | null;
+  } {
+    return {
+      running: this.logWatcher !== null && !this.permanentlyFailed,
+      permanentlyFailed: this.permanentlyFailed,
+      restartAttempts: this.restartAttempts,
+      lastError: this.lastErrorMessage,
+      lastSuccessfulTailAt: this.lastSuccessfulTailAt
+    };
   }
 
   async setIdle(idle: boolean): Promise<void> {
@@ -238,11 +328,18 @@ export class CodexLogWatcher {
       });
       this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
       this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
-      this.logWatcher.on('error', error =>
-        this.logger.error(
-          `❌ Codex watcher error: ${error instanceof Error ? error.message : String(error)}`
-        )
-      );
+      this.logWatcher.on('unlink', (filepath: string) => {
+        // Mirror the cleanup in start() — without it, every idle/active flip
+        // would silently disable per-file state cleanup until full restart.
+        this.filePositions.delete(filepath);
+        this.sessionMeta.delete(filepath);
+      });
+      this.logWatcher.on('error', error => {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.lastErrorMessage = msg;
+        this.logger.error(`❌ Codex watcher error: ${msg}`);
+        this.scheduleRestart();
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Failed to switch Codex idle mode: ${msg}`);
@@ -252,6 +349,10 @@ export class CodexLogWatcher {
   }
 
   async stop(): Promise<void> {
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
     if (this.positionsSaveTimer) {
       clearInterval(this.positionsSaveTimer);
       this.positionsSaveTimer = null;
@@ -326,6 +427,7 @@ export class CodexLogWatcher {
       }
       this.filePositions.set(filepath, stats.size);
       if (processed > 0) {
+        this.lastSuccessfulTailAt = new Date().toISOString();
         this.logger.info(
           `   Ingested ${processed} new entries` +
             (effectiveStart > 0 ? ` (resumed from byte ${effectiveStart})` : '')
@@ -388,6 +490,7 @@ export class CodexLogWatcher {
       }
 
       this.filePositions.set(filepath, lastPosition + completeBytes);
+      this.lastSuccessfulTailAt = new Date().toISOString();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Error processing Codex log ${filepath}: ${msg}`);

@@ -109,14 +109,17 @@
     return Math.max(6, w);
   }
 
+  const handleConnect = () => {
+    connected = true;
+  };
+  const handleDisconnect = () => {
+    connected = false;
+  };
+
   onMount(() => {
     connected = websocketService.isConnected();
-    websocketService.on('connect', () => {
-      connected = true;
-    });
-    websocketService.on('disconnect', () => {
-      connected = false;
-    });
+    websocketService.on('connect', handleConnect);
+    websocketService.on('disconnect', handleDisconnect);
     websocketService.on('token-usage', handleTokenUsage);
 
     tick = setInterval(() => {
@@ -130,6 +133,8 @@
   onDestroy(() => {
     if (tick) clearInterval(tick);
     websocketService.off?.('token-usage', handleTokenUsage);
+    websocketService.off?.('connect', handleConnect);
+    websocketService.off?.('disconnect', handleDisconnect);
   });
 </script>
 

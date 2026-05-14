@@ -19,3 +19,4 @@ export { default as FreshnessBadge } from './FreshnessBadge.svelte';
 export { default as RavenLogo } from './RavenLogo.svelte';
 export { default as ToastContainer } from './ToastContainer.svelte';
 export { default as PlaceholderPage } from './PlaceholderPage.svelte';
+export { default as ErrorBoundary } from './ErrorBoundary.svelte';

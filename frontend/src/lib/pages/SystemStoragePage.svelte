@@ -4,7 +4,7 @@
   import { dataService } from '../dataService.js';
   import { formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton } from '../components/ui/index.js';
+  import { RefreshButton, ToolbarButton, LinkButton } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
 
@@ -479,6 +479,42 @@
             {actionLoading === 'retention' ? 'Saving...' : 'Save Policy'}
           </ToolbarButton>
         </div>
+      </div>
+    </div>
+
+    <!-- Export Data — delivers on the "your data is yours" pitch. Each link
+         triggers a browser download from /api/export; nothing leaves this
+         machine. -->
+    <div class="bg-surface border border-border rounded-lg p-5 mt-6">
+      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+        Export your data
+      </h3>
+      <p class="text-sm text-muted font-sans mb-4">
+        Download your full Raven history. Nothing is sent anywhere — this is a direct dump of the
+        local database.
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <LinkButton
+          href="/api/export?format=sqlite"
+          size="sm"
+          title="Hot-copy of the live SQLite database (.db). Best for full fidelity."
+        >
+          SQLite (.db)
+        </LinkButton>
+        <LinkButton
+          href="/api/export?format=jsonl"
+          size="sm"
+          title="Line-delimited JSON of every high-value table. Best for grep / jq pipelines."
+        >
+          JSONL
+        </LinkButton>
+        <LinkButton
+          href="/api/export?format=csv"
+          size="sm"
+          title="Gzipped tarball with one CSV per table. Best for spreadsheets."
+        >
+          CSV (.tar.gz)
+        </LinkButton>
       </div>
     </div>
   {/if}

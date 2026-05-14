@@ -13,6 +13,7 @@ import type { ApiLatencyRepository } from '../repositories/api-latency-repositor
 import { logger } from '../utils/logger.js';
 import { getAgentColor } from '../utils/agent-colors.js';
 import { calculateCost } from './token-cost-calculator.js';
+import { retryWrite } from '../utils/sqlite-retry.js';
 
 interface FactoryDeps {
   db: RavenDB;
@@ -125,22 +126,25 @@ export function createAgentEventHandlerFactory({
       // agent_event — tool calls, tool results, inferences
       if (category === 'agent_event') {
         try {
-          db.db
-            .prepare(
-              `INSERT INTO agent_events (timestamp, agent, event_type, file, message, session_id, project_name, metadata, duration_ms)
+          const stmt = db.db.prepare(
+            `INSERT INTO agent_events (timestamp, agent, event_type, file, message, session_id, project_name, metadata, duration_ms)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            )
-            .run(
-              timestamp,
-              effectiveAgentName,
-              event.type,
-              event.file || event.path || null,
-              event.tool ? `${event.tool} call` : event.type,
-              event.sessionId || sessionId,
-              event.projectName || null,
-              metadataJson,
-              event.duration_ms ?? null
-            );
+          );
+          retryWrite(
+            () =>
+              stmt.run(
+                timestamp,
+                effectiveAgentName,
+                event.type,
+                event.file || event.path || null,
+                event.tool ? `${event.tool} call` : event.type,
+                event.sessionId || sessionId,
+                event.projectName || null,
+                metadataJson,
+                event.duration_ms ?? null
+              ),
+            'agent_events.insert (agent_event)'
+          );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           logger.debug(`Failed to store agent event: ${msg}`);
@@ -150,19 +154,22 @@ export function createAgentEventHandlerFactory({
       // conversation — user / assistant turns
       if (category === 'conversation') {
         try {
-          db.db
-            .prepare(
-              `INSERT INTO agent_events (timestamp, agent, event_type, message, session_id, project_name)
+          const stmt = db.db.prepare(
+            `INSERT INTO agent_events (timestamp, agent, event_type, message, session_id, project_name)
                VALUES (?, ?, ?, ?, ?, ?)`
-            )
-            .run(
-              timestamp,
-              agentName,
-              event.type,
-              (event.content || '').slice(0, 500),
-              event.sessionId || sessionId,
-              event.projectName || null
-            );
+          );
+          retryWrite(
+            () =>
+              stmt.run(
+                timestamp,
+                agentName,
+                event.type,
+                (event.content || '').slice(0, 500),
+                event.sessionId || sessionId,
+                event.projectName || null
+              ),
+            'agent_events.insert (conversation)'
+          );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           logger.debug(`Failed to store conversation: ${msg}`);

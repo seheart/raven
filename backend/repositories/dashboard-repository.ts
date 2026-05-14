@@ -163,15 +163,22 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
     `SELECT id, timestamp, agent, event_type, file, lines_changed, duration_ms, message, metadata
      FROM agent_events ORDER BY timestamp DESC LIMIT ?`
   );
+  // Read from the trigger-maintained file_stats rollup so this query stays
+  // O(K log N) (index seek + top-K) instead of degrading to a full-table
+  // GROUP BY scan as the events table grows. Same return shape as the old
+  // query — filepath/edit_count/last_modified — so callers don't change.
+  // edit_count here is total_modifications (any change, not just edits),
+  // which matches the pre-rollup semantics: it counted every row, not
+  // just rows with change_type='edit'.
   const topModifiedByProjectStmt = db.db.prepare(
-    `SELECT filepath, COUNT(*) as edit_count, MAX(timestamp) as last_modified
-     FROM events WHERE filepath IS NOT NULL AND project_name = ?
-     GROUP BY filepath ORDER BY edit_count DESC LIMIT ?`
+    `SELECT filepath, total_modifications as edit_count, last_modified
+     FROM file_stats WHERE project_name = ?
+     ORDER BY total_modifications DESC LIMIT ?`
   );
   const topModifiedAllStmt = db.db.prepare(
-    `SELECT filepath, COUNT(*) as edit_count, MAX(timestamp) as last_modified
-     FROM events WHERE filepath IS NOT NULL
-     GROUP BY filepath ORDER BY edit_count DESC LIMIT ?`
+    `SELECT filepath, total_modifications as edit_count, last_modified
+     FROM file_stats
+     ORDER BY total_modifications DESC LIMIT ?`
   );
 
   // Metrics dashboard summary statements
@@ -366,20 +373,14 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
 
     dashboardStats(session_id, project) {
       const projectFilter = project && project !== 'all' && project.trim() ? project : null;
-      const whereClause = projectFilter ? 'WHERE project_name = ?' : '';
-      const params = projectFilter ? [projectFilter] : [];
 
-      const eventStats = db.db
-        .prepare(
-          `SELECT
-            COUNT(*) as total_events,
-            COUNT(DISTINCT filepath) as total_files,
-            SUM(CASE WHEN change_type IN ('add','create') THEN 1 ELSE 0 END) as creates,
-            SUM(CASE WHEN change_type IN ('change','edit','modified') THEN 1 ELSE 0 END) as edits,
-            SUM(CASE WHEN change_type IN ('unlink','delete') THEN 1 ELSE 0 END) as deletes
-          FROM events ${whereClause}`
-        )
-        .get(...params) as
+      // Lifetime event counters now read from the trigger-maintained
+      // rollups (file_stats + event_type_stats) instead of a full-table
+      // GROUP BY change_type on events. Same return shape, just O(K)
+      // instead of O(rows). The unfiltered case fans out to two tiny
+      // index-backed reads; the project-filtered case reads only the
+      // rows for that project from file_stats.
+      let eventStats:
         | {
             total_events: number;
             total_files: number;
@@ -388,6 +389,61 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
             deletes: number;
           }
         | undefined;
+      if (projectFilter) {
+        // file_stats has per-file totals, so SUM across rows for this project
+        // gives both file count (rows) and aggregate change-type counts.
+        const row = db.db
+          .prepare(
+            `SELECT
+               COALESCE(SUM(total_modifications), 0) AS total_events,
+               COUNT(*) AS total_files,
+               COALESCE(SUM(create_count), 0) AS creates,
+               COALESCE(SUM(edit_count), 0) AS edits,
+               COALESCE(SUM(delete_count), 0) AS deletes
+             FROM file_stats WHERE project_name = ?`
+          )
+          .get(projectFilter) as
+          | {
+              total_events: number;
+              total_files: number;
+              creates: number;
+              edits: number;
+              deletes: number;
+            }
+          | undefined;
+        eventStats = row;
+      } else {
+        // Unfiltered: total_events + per-change_type counts from
+        // event_type_stats; total_files (distinct filepaths) from
+        // file_stats row count.
+        const typeRow = db.db
+          .prepare(
+            `SELECT
+               COALESCE(SUM(count), 0) AS total_events,
+               COALESCE(SUM(CASE WHEN change_type IN ('add','create') THEN count ELSE 0 END), 0) AS creates,
+               COALESCE(SUM(CASE WHEN change_type IN ('change','edit','modified') THEN count ELSE 0 END), 0) AS edits,
+               COALESCE(SUM(CASE WHEN change_type IN ('unlink','delete') THEN count ELSE 0 END), 0) AS deletes
+             FROM event_type_stats`
+          )
+          .get() as
+          | {
+              total_events: number;
+              creates: number;
+              edits: number;
+              deletes: number;
+            }
+          | undefined;
+        const filesRow = db.db.prepare('SELECT COUNT(*) AS total_files FROM file_stats').get() as
+          | { total_files: number }
+          | undefined;
+        eventStats = {
+          total_events: typeRow?.total_events ?? 0,
+          total_files: filesRow?.total_files ?? 0,
+          creates: typeRow?.creates ?? 0,
+          edits: typeRow?.edits ?? 0,
+          deletes: typeRow?.deletes ?? 0
+        };
+      }
 
       const durationSql = projectFilter
         ? `SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM (

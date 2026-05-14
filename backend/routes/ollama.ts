@@ -14,6 +14,7 @@ import { spawn } from 'child_process';
 import { cacheMiddleware } from '../services/cache-service.js';
 import type { AgentEventsRepository } from '../repositories/agent-events-repository.js';
 import type { MetricsRepository } from '../repositories/metrics-repository.js';
+import { getBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 // Read lazily so the transparent-ollama-proxy EADDRINUSE fallback (which
 // mutates OLLAMA_URL after a port conflict) takes effect without a restart.
@@ -69,13 +70,20 @@ export function createOllamaDetailRouter(
 ): Router {
   const router = express.Router();
 
+  const breaker = getBreaker('ollama', { failureThreshold: 3, cooldownMs: 30_000 });
+
   // GET /api/ollama/ps — resident-in-VRAM models with attribution
   router.get('/ollama/ps', cacheMiddleware(2000), async (_req: Request, res: Response) => {
     try {
-      const r = await fetch(`${ollamaInternalUrl()}/api/ps`, {
-        signal: AbortSignal.timeout(3000)
-      });
-      if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
+      const r = await breaker.exec(() =>
+        fetch(`${ollamaInternalUrl()}/api/ps`, {
+          signal: AbortSignal.timeout(3000)
+        })
+      );
+      if (!r.ok) {
+        breaker.recordFailure();
+        return res.status(502).json({ error: `Ollama returned ${r.status}` });
+      }
       const data = (await r.json()) as { models?: OllamaPsModel[] };
 
       // Window for "recent" model consumers — anything that hit the
@@ -124,7 +132,12 @@ export function createOllamaDetailRouter(
       });
       return res.json({ models, count: models.length, ollama_status: 'online' });
     } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
+      const detail =
+        err instanceof CircuitOpenError
+          ? `Ollama unavailable (circuit open ${breaker.retryInSec()}s)`
+          : err instanceof Error
+            ? err.message
+            : String(err);
       // Surface the failure in the standard `error` shape so the
       // no-silent-failures middleware promotes the response to 502 — earlier
       // we only set `detail` and consumers reading `models.length` rendered
@@ -142,10 +155,15 @@ export function createOllamaDetailRouter(
   // GET /api/ollama/library — installed model catalog
   router.get('/ollama/library', cacheMiddleware(30000), async (_req: Request, res: Response) => {
     try {
-      const r = await fetch(`${ollamaInternalUrl()}/api/tags`, {
-        signal: AbortSignal.timeout(3000)
-      });
-      if (!r.ok) return res.status(502).json({ error: `Ollama returned ${r.status}` });
+      const r = await breaker.exec(() =>
+        fetch(`${ollamaInternalUrl()}/api/tags`, {
+          signal: AbortSignal.timeout(3000)
+        })
+      );
+      if (!r.ok) {
+        breaker.recordFailure();
+        return res.status(502).json({ error: `Ollama returned ${r.status}` });
+      }
       const data = (await r.json()) as { models?: OllamaTagsModel[] };
       const models = (data.models || []).map(m => ({
         name: m.name,
@@ -157,7 +175,12 @@ export function createOllamaDetailRouter(
       }));
       return res.json({ models, count: models.length, ollama_status: 'online' });
     } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
+      const detail =
+        err instanceof CircuitOpenError
+          ? `Ollama unavailable (circuit open ${breaker.retryInSec()}s)`
+          : err instanceof Error
+            ? err.message
+            : String(err);
       // Surface the failure in the standard `error` shape so the
       // no-silent-failures middleware promotes the response to 502 — earlier
       // we only set `detail` and consumers reading `models.length` rendered

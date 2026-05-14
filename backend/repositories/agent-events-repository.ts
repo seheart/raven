@@ -5,6 +5,7 @@
  */
 
 import type { RavenDB } from '../db.js';
+import { retryWrite } from '../utils/sqlite-retry.js';
 
 interface LastProjectForAgent {
   project: string | null;
@@ -420,17 +421,21 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
       session_id,
       project_name
     ) {
-      const result = insertStmt.run(
-        timestamp,
-        agent,
-        event_type,
-        file || null,
-        lines_changed || null,
-        duration_ms || null,
-        message,
-        metadata ? JSON.stringify(metadata) : null,
-        session_id || null,
-        project_name || null
+      const result = retryWrite(
+        () =>
+          insertStmt.run(
+            timestamp,
+            agent,
+            event_type,
+            file || null,
+            lines_changed || null,
+            duration_ms || null,
+            message,
+            metadata ? JSON.stringify(metadata) : null,
+            session_id || null,
+            project_name || null
+          ),
+        'agent_events.insert'
       );
       return Number(result.lastInsertRowid);
     },

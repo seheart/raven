@@ -17,6 +17,8 @@ import os from 'os';
 import express, { Request, Response, Router } from 'express';
 import type { RavenDB } from '../db.js';
 import type { AgentInfo } from '../types/agent-info.js';
+import { allBreakers } from '../utils/circuit-breaker.js';
+import { getDiskState } from '../utils/disk-state.js';
 
 interface RateLimitBucket {
   current: number;
@@ -45,36 +47,85 @@ interface LocalModelWatcherLike {
   getRunningModels(): { name: string; type: string; models: string[] }[];
 }
 
+interface WatcherHealth {
+  health?(): {
+    running: boolean;
+    permanentlyFailed: boolean;
+    restartAttempts: number;
+    lastError: string | null;
+  };
+  isRunning(): boolean;
+}
+
+interface LogWatcherHealth {
+  health?(): {
+    running: boolean;
+    permanentlyFailed: boolean;
+    restartAttempts: number;
+    lastError: string | null;
+    lastSuccessfulTailAt: string | null;
+  };
+}
+
+interface InsightsServiceLike {
+  isGenerating(): boolean;
+}
+
 interface SystemInfoDeps {
   db: RavenDB;
   sessionId: string;
   dbPath: string;
   port: number;
   agentRegistry: Map<string, AgentInfo>;
-  fileWatcher: ServiceState;
+  fileWatcher: ServiceState & WatcherHealth;
   gitMonitor: ServiceState;
   metricsCollector: MetricsService;
   projectManager: ProjectManagerLike;
   localModelWatcher: LocalModelWatcherLike;
   rateLimitStatus: RateLimitStatusMap;
   hostIdentity?: { host_id: string; host_name: string };
+  claudeLogWatcher?: LogWatcherHealth;
+  codexLogWatcher?: LogWatcherHealth;
+  insightsService?: InsightsServiceLike;
 }
 
 /** Public health endpoint mounted at `/health` (no /api prefix). */
 export function createPublicHealthRouter(deps: SystemInfoDeps): Router {
   const router = express.Router();
   router.get('/', (_req: Request, res: Response) => {
-    res.json({
-      status: 'healthy',
+    // The previous version hard-coded `status: 'healthy'`. start.sh uses this
+    // as a liveness probe, so it does need to return 200 when the server is
+    // up — but lying about subsystem state was a footgun. Now we mirror the
+    // /api/health logic in a stripped-down form: DB unreachable or disk full
+    // demotes us to 503; everything else stays 200 with an honest status field.
+    let dbReadable = true;
+    try {
+      deps.db.db.prepare('SELECT 1').get();
+    } catch {
+      dbReadable = false;
+    }
+    const diskState = getDiskState();
+    const watcherRunning =
+      deps.projectManager.activeWatcherCount() > 0 || deps.fileWatcher.isRunning();
+    const status =
+      !dbReadable || diskState.diskFull
+        ? 'down'
+        : watcherRunning && deps.metricsCollector.isCollectorRunning()
+          ? 'healthy'
+          : 'degraded';
+    const httpCode = !dbReadable || diskState.diskFull ? 503 : 200;
+    res.status(httpCode).json({
+      status,
       session_id: deps.sessionId,
       uptime: process.uptime(),
       active_agents: deps.agentRegistry.size,
       modules: {
-        watcher: deps.fileWatcher.isRunning(),
+        watcher: watcherRunning,
         git: deps.gitMonitor.isRunning(),
         metrics: deps.metricsCollector.isCollectorRunning()
       },
-      database: deps.dbPath
+      database: deps.dbPath,
+      disk_full: diskState.diskFull
     });
   });
   return router;
@@ -85,20 +136,80 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
   const router = express.Router();
 
   router.get('/health', (_req: Request, res: Response) => {
-    let dbHealthy = true;
+    // ---- DB: read probe + writable probe -----------------------------------
+    // SELECT 1 only proves the DB is open. A read-only / corrupted DB or
+    // disk-full filesystem would still pass that, but writes would fail. The
+    // write probe uses a temp table that doesn't touch real data.
+    let dbReadable = true;
+    let dbWritable = true;
     try {
       deps.db.db.prepare('SELECT 1').get();
     } catch {
-      dbHealthy = false;
+      dbReadable = false;
     }
-    const watcher = deps.projectManager.isWatching() || deps.fileWatcher.isRunning();
+    try {
+      // CREATE TEMP TABLE writes to the WAL but is scoped to the connection;
+      // skips the disk if WAL was already opened. Combined with the disk
+      // state below it gives an honest "can we write?" answer.
+      deps.db.db.exec(
+        'CREATE TEMP TABLE IF NOT EXISTS _health_probe(x INTEGER); INSERT INTO _health_probe(x) VALUES(1); DELETE FROM _health_probe'
+      );
+    } catch {
+      dbWritable = false;
+    }
+
+    // ---- File watcher -------------------------------------------------------
+    const fwHealth = deps.fileWatcher.health?.() ?? null;
+    const projectWatcherCount = deps.projectManager.activeWatcherCount();
+    const watcherRunning =
+      projectWatcherCount > 0 || (fwHealth ? fwHealth.running : deps.fileWatcher.isRunning());
+    const watcherUnhealthy = (fwHealth?.permanentlyFailed ?? false) && projectWatcherCount === 0;
+
+    // ---- Log watchers (claude, codex) --------------------------------------
+    const claudeHealth = deps.claudeLogWatcher?.health?.() ?? null;
+    const codexHealth = deps.codexLogWatcher?.health?.() ?? null;
+
+    // ---- Ollama breaker -----------------------------------------------------
+    const ollamaBreaker =
+      allBreakers()
+        .find(b => b.name === 'ollama')
+        ?.snapshot() ?? null;
+
+    // ---- Disk state ---------------------------------------------------------
+    const diskState = getDiskState();
+
+    // ---- Metrics + git ------------------------------------------------------
     const metrics = deps.metricsCollector.isCollectorRunning();
-    // DB and watcher are load-bearing; without them the rest of the app is
-    // serving stale or zero data. Git monitor is informational. Earlier this
-    // endpoint returned `status: 'healthy'` unconditionally — the canonical
-    // liveness probe was lying.
-    const status = dbHealthy && watcher && metrics ? 'healthy' : 'degraded';
-    const httpCode = dbHealthy ? 200 : 503;
+
+    // ---- Overall status -----------------------------------------------------
+    // DB read/write + watcher are load-bearing; metrics is load-bearing too
+    // (without it the dashboard goes silent). Everything else is informational.
+    const subsystemStatuses: Record<string, 'ok' | 'degraded' | 'down'> = {
+      db: dbReadable && dbWritable ? 'ok' : !dbReadable ? 'down' : 'degraded',
+      watcher: watcherUnhealthy ? 'down' : watcherRunning ? 'ok' : 'degraded',
+      metrics: metrics ? 'ok' : 'degraded',
+      disk: diskState.diskFull ? 'down' : 'ok',
+      claude_log_watcher: claudeHealth
+        ? claudeHealth.permanentlyFailed
+          ? 'down'
+          : claudeHealth.running
+            ? 'ok'
+            : 'degraded'
+        : 'ok',
+      codex_log_watcher: codexHealth
+        ? codexHealth.permanentlyFailed
+          ? 'down'
+          : codexHealth.running
+            ? 'ok'
+            : 'degraded'
+        : 'ok',
+      ollama: ollamaBreaker?.state === 'open' ? 'degraded' : 'ok'
+    };
+    const anyDown = Object.values(subsystemStatuses).some(s => s === 'down');
+    const anyDegraded = Object.values(subsystemStatuses).some(s => s === 'degraded');
+    const status = anyDown ? 'down' : anyDegraded ? 'degraded' : 'healthy';
+    const httpCode = anyDown ? 503 : 200;
+
     res.status(httpCode).json({
       status,
       version: '0.5.0',
@@ -106,12 +217,51 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
       uptime: process.uptime(),
       active_agents: deps.agentRegistry.size,
       modules: {
-        watcher,
+        watcher: watcherRunning,
         git: deps.gitMonitor.isRunning(),
         metrics
       },
+      // Honest per-subsystem state. The frontend health chip should derive its
+      // color from this `subsystems` map, not from the boolean `modules` block.
+      subsystems: {
+        db: {
+          status: subsystemStatuses.db,
+          readable: dbReadable,
+          writable: dbWritable
+        },
+        watcher: {
+          status: subsystemStatuses.watcher,
+          running: watcherRunning,
+          project_watcher_count: projectWatcherCount,
+          permanently_failed: fwHealth?.permanentlyFailed ?? false,
+          restart_attempts: fwHealth?.restartAttempts ?? 0,
+          last_error: fwHealth?.lastError ?? null
+        },
+        metrics: { status: subsystemStatuses.metrics, running: metrics },
+        disk: {
+          status: subsystemStatuses.disk,
+          disk_full: diskState.diskFull,
+          detected_at: diskState.detectedAt,
+          message: diskState.message
+        },
+        claude_log_watcher: {
+          status: subsystemStatuses.claude_log_watcher,
+          ...(claudeHealth ?? { running: true })
+        },
+        codex_log_watcher: {
+          status: subsystemStatuses.codex_log_watcher,
+          ...(codexHealth ?? { running: true })
+        },
+        ollama: {
+          status: subsystemStatuses.ollama,
+          ...(ollamaBreaker ?? { state: 'closed', failures: 0, retryInSec: 0 })
+        },
+        insights_queue: {
+          generating: deps.insightsService?.isGenerating?.() ?? false
+        }
+      },
       project_watchers: {
-        active: deps.projectManager.activeWatcherCount(),
+        active: projectWatcherCount,
         projects: deps.projectManager.getWatcherStatus()
       },
       local_models: {
@@ -124,7 +274,11 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
         }))
       },
       database: deps.dbPath,
-      database_health: { status: dbHealthy ? 'healthy' : 'error', accessible: dbHealthy },
+      database_health: {
+        status: dbReadable && dbWritable ? 'healthy' : 'error',
+        accessible: dbReadable,
+        writable: dbWritable
+      },
       host: deps.hostIdentity
         ? { id: deps.hostIdentity.host_id, name: deps.hostIdentity.host_name }
         : undefined

@@ -23,9 +23,33 @@ import fs from 'fs/promises';
 
 const PID_CACHE_TTL_MS = 5_000;
 const CWD_CACHE_TTL_MS = 30_000;
+// Caps avoid unbounded growth on long-running processes: TCP source ports
+// cycle through ~28k ephemeral values and PIDs through the kernel's pid_max,
+// so without a ceiling these maps slowly grow forever. The TTLs above make
+// each entry stale fast; we just need a sweep that runs occasionally.
+const PORT_CACHE_MAX = 2048;
+const CWD_CACHE_MAX = 1024;
 
 const portToPidCache = new Map<number, { pid: number | null; ts: number }>();
 const cwdCache = new Map<number, { cwd: string | null; ts: number }>();
+
+function sweepStale<K>(cache: Map<K, { ts: number }>, ttl: number, max: number): void {
+  if (cache.size < max) return;
+  const cutoff = Date.now() - ttl;
+  for (const [k, v] of cache) {
+    if (v.ts < cutoff) cache.delete(k);
+  }
+  // If TTL pruning didn't get us under the cap (rare — would mean the cache
+  // is being hammered faster than TTL), drop oldest insertion-order entries.
+  if (cache.size >= max) {
+    const drop = cache.size - Math.floor(max * 0.75);
+    let i = 0;
+    for (const k of cache.keys()) {
+      if (i++ >= drop) break;
+      cache.delete(k);
+    }
+  }
+}
 
 interface ProjectPath {
   name: string;
@@ -105,6 +129,7 @@ async function findPidByPort(srcPort: number): Promise<number | null> {
   }
 
   portToPidCache.set(srcPort, { pid, ts: Date.now() });
+  sweepStale(portToPidCache, PID_CACHE_TTL_MS, PORT_CACHE_MAX);
   return pid;
 }
 
@@ -118,6 +143,7 @@ async function getProcessCwdCached(pid: number): Promise<string | null> {
     cwd = null;
   }
   cwdCache.set(pid, { cwd, ts: Date.now() });
+  sweepStale(cwdCache, CWD_CACHE_TTL_MS, CWD_CACHE_MAX);
   return cwd;
 }
 

@@ -145,6 +145,16 @@ export class ClaudeLogWatcher {
   private positionsSaveTimer: NodeJS.Timeout | null;
   private _currentIdle: boolean | undefined;
   private _idleSwitching: boolean | undefined;
+  // Health tracking for /api/health. lastSuccessfulTail bumps on every tail
+  // that reads bytes — used by the health endpoint to distinguish "watcher
+  // running but no data flowing" from a truly active watcher.
+  private lastSuccessfulTailAt: string | null = null;
+  private restartAttempts = 0;
+  private static readonly MAX_RESTART_ATTEMPTS = 5;
+  private static readonly RESTART_BACKOFF_MS = [1_000, 5_000, 15_000, 60_000, 300_000];
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private permanentlyFailed = false;
+  private lastErrorMessage: string | null = null;
 
   constructor(
     eventCallback: ClaudeEventCallback,
@@ -211,6 +221,13 @@ export class ClaudeLogWatcher {
     }
 
     await this.loadPositions();
+    // Guard against restart-path double-spawn: start() runs again from
+    // scheduleRestart(), and without this clear we'd leak a positionsSaveTimer
+    // every restart cycle.
+    if (this.positionsSaveTimer) {
+      clearInterval(this.positionsSaveTimer);
+      this.positionsSaveTimer = null;
+    }
     this.positionsSaveTimer = setInterval(() => {
       this.savePositions().catch(() => {});
     }, 30000);
@@ -247,13 +264,24 @@ export class ClaudeLogWatcher {
       this.handleLogFileChanged(filepath);
     });
 
+    this.logWatcher.on('unlink', (filepath: string) => {
+      // Reclaim positions for deleted session logs so this map doesn't grow
+      // forever across weeks of Claude session rotation.
+      this.filePositions.delete(filepath);
+    });
+
     this.logWatcher.on('error', error => {
-      this.logger.error(
-        `❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`
-      );
+      const msg = error instanceof Error ? error.message : String(error);
+      this.lastErrorMessage = msg;
+      this.logger.error(`❌ Watcher error: ${msg}`);
+      this.scheduleRestart();
     });
 
     this.logWatcher.on('ready', () => {
+      // Successful re-arm — clear restart back-pressure.
+      this.restartAttempts = 0;
+      this.permanentlyFailed = false;
+      this.lastErrorMessage = null;
       this.logger.info('📡 Chokidar ready event fired');
 
       setTimeout(() => {
@@ -330,11 +358,17 @@ export class ClaudeLogWatcher {
       });
       this.logWatcher.on('add', (filepath: string) => this.handleLogFileAdded(filepath));
       this.logWatcher.on('change', (filepath: string) => this.handleLogFileChanged(filepath));
-      this.logWatcher.on('error', error =>
-        this.logger.error(
-          `❌ Watcher error: ${error instanceof Error ? error.message : String(error)}`
-        )
-      );
+      this.logWatcher.on('unlink', (filepath: string) => {
+        // Mirror the cleanup in start() — without it, every idle/active flip
+        // would silently disable filePositions cleanup until full restart.
+        this.filePositions.delete(filepath);
+      });
+      this.logWatcher.on('error', error => {
+        const msg = error instanceof Error ? error.message : String(error);
+        this.lastErrorMessage = msg;
+        this.logger.error(`❌ Watcher error: ${msg}`);
+        this.scheduleRestart();
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Failed to switch idle mode: ${msg}`);
@@ -343,7 +377,85 @@ export class ClaudeLogWatcher {
     }
   }
 
+  /**
+   * Auto-restart on chokidar failure. Exponential backoff, capped at
+   * MAX_RESTART_ATTEMPTS so a permanent FS issue doesn't spin. After the cap,
+   * permanentlyFailed sticks and the health endpoint reports it.
+   *
+   * The persisted-position file (log-positions-claude.json) is preserved, so
+   * when chokidar comes back up handleLogFileChanged auto-reseeks from the
+   * last byte-offset and we don't lose entries written during the outage.
+   */
+  private scheduleRestart(): void {
+    if (this.permanentlyFailed) return;
+    if (this.restartTimer) return;
+
+    if (this.restartAttempts >= ClaudeLogWatcher.MAX_RESTART_ATTEMPTS) {
+      this.permanentlyFailed = true;
+      this.logger.error(
+        `Claude log watcher permanently failed after ${ClaudeLogWatcher.MAX_RESTART_ATTEMPTS} restart attempts (last error: ${this.lastErrorMessage})`
+      );
+      return;
+    }
+
+    const delay =
+      ClaudeLogWatcher.RESTART_BACKOFF_MS[
+        Math.min(this.restartAttempts, ClaudeLogWatcher.RESTART_BACKOFF_MS.length - 1)
+      ];
+    this.restartAttempts++;
+    this.logger.warn(
+      `Claude log watcher restart scheduled in ${delay}ms (attempt ${this.restartAttempts}/${ClaudeLogWatcher.MAX_RESTART_ATTEMPTS})`
+    );
+
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      void (async () => {
+        try {
+          if (this.logWatcher) {
+            try {
+              await this.logWatcher.close();
+            } catch {
+              /* close failure ignored — we're replacing the watcher */
+            }
+            this.logWatcher = null;
+          }
+          // Reuse start() so positions reload + watcher boots together. Save
+          // the current positions first so resuming reads from the right byte.
+          await this.savePositions();
+          await this.start();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.lastErrorMessage = msg;
+          this.logger.error(`Claude log watcher restart failed: ${msg}`);
+          this.scheduleRestart();
+        }
+      })();
+    }, delay);
+    this.restartTimer.unref?.();
+  }
+
+  /** Health summary used by /api/health. */
+  health(): {
+    running: boolean;
+    permanentlyFailed: boolean;
+    restartAttempts: number;
+    lastError: string | null;
+    lastSuccessfulTailAt: string | null;
+  } {
+    return {
+      running: this.logWatcher !== null && !this.permanentlyFailed,
+      permanentlyFailed: this.permanentlyFailed,
+      restartAttempts: this.restartAttempts,
+      lastError: this.lastErrorMessage,
+      lastSuccessfulTailAt: this.lastSuccessfulTailAt
+    };
+  }
+
   async stop(): Promise<void> {
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
     if (this.positionsSaveTimer) {
       clearInterval(this.positionsSaveTimer);
       this.positionsSaveTimer = null;
@@ -398,6 +510,7 @@ export class ClaudeLogWatcher {
       }
       this.filePositions.set(filepath, stats.size);
       if (processed > 0) {
+        this.lastSuccessfulTailAt = new Date().toISOString();
         this.logger.info(
           `   Ingested ${processed} new entries from ${path.basename(filepath)}` +
             (effectiveStart > 0 ? ` (resumed from byte ${effectiveStart})` : '')
@@ -473,6 +586,7 @@ export class ClaudeLogWatcher {
       }
 
       this.filePositions.set(filepath, lastPosition + completeBytes);
+      this.lastSuccessfulTailAt = new Date().toISOString();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Error processing log file ${filepath}: ${msg}`);

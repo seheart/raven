@@ -12,6 +12,7 @@
   // All pages lazy-loaded; eagerly importing AnalysisPage dragged chart.js
   // into the entry chunk (~150KB shell weight).
   import PlaceholderPage from './lib/components/ui/PlaceholderPage.svelte';
+  import ErrorBoundary from './lib/components/ui/ErrorBoundary.svelte';
   import ToastContainer from './lib/components/ui/ToastContainer.svelte';
   import { getPath, navigate } from './lib/utils/router.svelte.js';
   import { onMount } from 'svelte';
@@ -159,349 +160,383 @@
         </div>
       {/snippet}
       {#if activeTab === 'today'}
-        {#if activeSubTab === 'narrative'}
-          {#await import('./lib/pages/TodayPage.svelte')}
-            <PlaceholderPage title="Narrative" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Narrative" description="Failed to load" />
-          {/await}
-        {:else}
-          {#await import('./lib/pages/OverviewPage.svelte')}
-            <PlaceholderPage title="Dashboard" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Dashboard" description="Failed to load" />
-          {/await}
-        {/if}
+        <ErrorBoundary name="Dashboard">
+          {#if activeSubTab === 'narrative'}
+            {#await import('./lib/pages/TodayPage.svelte')}
+              <PlaceholderPage title="Narrative" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Narrative" description="Failed to load" />
+            {/await}
+          {:else}
+            {#await import('./lib/pages/OverviewPage.svelte')}
+              <PlaceholderPage title="Dashboard" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Dashboard" description="Failed to load" />
+            {/await}
+          {/if}
+        </ErrorBoundary>
       {:else if activeTab === 'activity'}
-        {#if !activeSubTab}
-          {#await import('./lib/pages/ActivityOverviewPage.svelte')}
-            <PlaceholderPage title="Activity" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Activity" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'live'}
-          {#await import('./lib/pages/LivePage.svelte')}
-            <PlaceholderPage title="Live" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Live" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'changes'}
-          {#await import('./lib/pages/ActivityCodeChangesPage.svelte')}
-            <PlaceholderPage title="Changes" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Changes" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'timeline'}
-          {#await import('./lib/pages/ActivityTimelinePage.svelte')}
-            <PlaceholderPage title="Timeline" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Timeline" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'files'}
-          {#await import('./lib/pages/ActivityFileBrowserPage.svelte')}
-            <PlaceholderPage title="Files" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Files" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'projects'}
-          {#await import('./lib/pages/ProjectsComparisonPage.svelte')}
-            <PlaceholderPage title="Projects" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Projects" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'health'}
-          {#await import('./lib/pages/OverviewHealthPage.svelte')}
-            <PlaceholderPage title="Health" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Health" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'search'}
-          {#await import('./lib/pages/ActivitySearchPage.svelte')}
-            <PlaceholderPage title="Search" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Search" description="Failed to load" />
-          {/await}
-        {:else}
-          <PlaceholderPage
-            title="Activity - {activeSubTab}"
-            description="This page is coming soon"
-          />
-        {/if}
+        <ErrorBoundary name="Activity">
+          {#if !activeSubTab}
+            {#await import('./lib/pages/ActivityOverviewPage.svelte')}
+              <PlaceholderPage title="Activity" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Activity" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'live'}
+            {#await import('./lib/pages/LivePage.svelte')}
+              <PlaceholderPage title="Live" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Live" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'changes'}
+            {#await import('./lib/pages/ActivityCodeChangesPage.svelte')}
+              <PlaceholderPage title="Changes" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Changes" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'timeline'}
+            {#await import('./lib/pages/ActivityTimelinePage.svelte')}
+              <PlaceholderPage title="Timeline" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Timeline" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'files'}
+            {#await import('./lib/pages/ActivityFileBrowserPage.svelte')}
+              <PlaceholderPage title="Files" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Files" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'projects'}
+            {#await import('./lib/pages/ProjectsComparisonPage.svelte')}
+              <PlaceholderPage title="Projects" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Projects" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'health'}
+            {#await import('./lib/pages/OverviewHealthPage.svelte')}
+              <PlaceholderPage title="Health" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Health" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'search'}
+            {#await import('./lib/pages/ActivitySearchPage.svelte')}
+              <PlaceholderPage title="Search" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Search" description="Failed to load" />
+            {/await}
+          {:else}
+            <PlaceholderPage
+              title="Activity - {activeSubTab}"
+              description="This page is coming soon"
+            />
+          {/if}
+        </ErrorBoundary>
       {:else if activeTab === 'agents'}
-        {#if !activeSubTab}
-          {#await import('./lib/pages/AgentMonitoringPage.svelte')}
-            <PlaceholderPage title="Agents" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Agents" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'stats'}
-          {#await import('./lib/pages/AgentStatsPage.svelte')}
-            <PlaceholderPage title="Stats" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Stats" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'convos'}
-          {#await import('./lib/pages/AgentConversationsPage.svelte')}
-            <PlaceholderPage title="Conversations" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Conversations" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'sub-agents'}
-          {#await import('./lib/pages/SubAgentTreePage.svelte')}
-            <PlaceholderPage title="Sub-Agents" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Sub-Agents" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'sessions'}
-          {#await import('./lib/pages/SessionActivityPage.svelte')}
-            <PlaceholderPage title="Sessions" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Sessions" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'network'}
-          {#await import('./lib/pages/ProcessActivityPage.svelte')}
-            <PlaceholderPage title="Network" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Network" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'models'}
-          {#await import('./lib/pages/ModelsPage.svelte')}
-            <PlaceholderPage title="Models" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Models" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'performance'}
-          {#await import('./lib/pages/AnalysisPerformancePage.svelte')}
-            <PlaceholderPage title="Performance" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Performance" description="Failed to load" />
-          {/await}
-        {:else}
-          <PlaceholderPage title="Agents - {activeSubTab}" description="This page is coming soon" />
-        {/if}
+        <ErrorBoundary name="Agents">
+          {#if !activeSubTab}
+            {#await import('./lib/pages/AgentMonitoringPage.svelte')}
+              <PlaceholderPage title="Agents" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Agents" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'stats'}
+            {#await import('./lib/pages/AgentStatsPage.svelte')}
+              <PlaceholderPage title="Stats" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Stats" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'convos'}
+            {#await import('./lib/pages/AgentConversationsPage.svelte')}
+              <PlaceholderPage title="Conversations" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Conversations" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'sub-agents'}
+            {#await import('./lib/pages/SubAgentTreePage.svelte')}
+              <PlaceholderPage title="Sub-Agents" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Sub-Agents" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'sessions'}
+            {#await import('./lib/pages/SessionActivityPage.svelte')}
+              <PlaceholderPage title="Sessions" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Sessions" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'network'}
+            {#await import('./lib/pages/ProcessActivityPage.svelte')}
+              <PlaceholderPage title="Network" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Network" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'models'}
+            {#await import('./lib/pages/ModelsPage.svelte')}
+              <PlaceholderPage title="Models" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Models" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'performance'}
+            {#await import('./lib/pages/AnalysisPerformancePage.svelte')}
+              <PlaceholderPage title="Performance" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Performance" description="Failed to load" />
+            {/await}
+          {:else}
+            <PlaceholderPage
+              title="Agents - {activeSubTab}"
+              description="This page is coming soon"
+            />
+          {/if}
+        </ErrorBoundary>
       {:else if activeTab === 'insights'}
-        {#if !activeSubTab}
-          {#await import('./lib/pages/InsightsPage.svelte')}
-            <PlaceholderPage title="Insights" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Insights" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'costs'}
-          {#await import('./lib/pages/CostsPage.svelte')}
-            <PlaceholderPage title="Costs" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Costs" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'trends'}
-          {#await import('./lib/pages/AnalysisHistoricalTrendsPage.svelte')}
-            <PlaceholderPage title="Trends" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Trends" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'wrapped'}
-          {#await import('./lib/pages/WrappedPage.svelte')}
-            <PlaceholderPage title="Wrapped" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Wrapped" description="Failed to load" />
-          {/await}
-        {:else}
-          <PlaceholderPage
-            title="Insights - {activeSubTab}"
-            description="This page is coming soon"
-          />
-        {/if}
+        <ErrorBoundary name="Insights">
+          {#if !activeSubTab}
+            {#await import('./lib/pages/InsightsPage.svelte')}
+              <PlaceholderPage title="Insights" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Insights" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'costs'}
+            {#await import('./lib/pages/CostsPage.svelte')}
+              <PlaceholderPage title="Costs" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Costs" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'trends'}
+            {#await import('./lib/pages/AnalysisHistoricalTrendsPage.svelte')}
+              <PlaceholderPage title="Trends" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Trends" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'wrapped'}
+            {#await import('./lib/pages/WrappedPage.svelte')}
+              <PlaceholderPage title="Wrapped" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Wrapped" description="Failed to load" />
+            {/await}
+          {:else}
+            <PlaceholderPage
+              title="Insights - {activeSubTab}"
+              description="This page is coming soon"
+            />
+          {/if}
+        </ErrorBoundary>
       {:else if activeTab === 'system'}
-        {#if !activeSubTab}
-          {#await import('./lib/pages/SystemPage.svelte')}
-            <PlaceholderPage title="System" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="System" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'code-health'}
-          {#await import('./lib/pages/CodeHealthPage.svelte')}
-            <PlaceholderPage title="Code Health" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Code Health" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'health-monitor'}
-          {#await import('./lib/pages/SystemHealthMonitorPage.svelte')}
-            <PlaceholderPage title="Health Monitor" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Health Monitor" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'safety'}
-          {#await import('./lib/pages/SafetyPage.svelte')}
-            <PlaceholderPage title="Safety" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Safety" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'projects'}
-          {#await import('./lib/pages/SystemProjectsPage.svelte')}
-            <PlaceholderPage title="Projects" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Projects" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'errors'}
-          {#await import('./lib/pages/SystemErrorsPage.svelte')}
-            <PlaceholderPage title="Errors" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Errors" description="Loading..." />
-          {/await}
-        {:else if activeSubTab === 'storage'}
-          {#await import('./lib/pages/SystemStoragePage.svelte')}
-            <PlaceholderPage title="Storage" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Storage" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'plugins'}
-          {#await import('./lib/pages/SystemPluginsPage.svelte')}
-            <PlaceholderPage title="Plugins" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Plugins" description="Failed to load" />
-          {/await}
-        {:else if activeSubTab === 'triggers'}
-          {#await import('./lib/pages/AnalysisTriggersPage.svelte')}
-            <PlaceholderPage title="Triggers" description="Loading..." />
-          {:then { default: Component }}
-            <Component />
-          {:catch}
-            <PlaceholderPage title="Triggers" description="Failed to load" />
-          {/await}
-        {:else}
-          <PlaceholderPage title="System - {activeSubTab}" description="This page is coming soon" />
-        {/if}
+        <ErrorBoundary name="System">
+          {#if !activeSubTab}
+            {#await import('./lib/pages/SystemPage.svelte')}
+              <PlaceholderPage title="System" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="System" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'code-health'}
+            {#await import('./lib/pages/CodeHealthPage.svelte')}
+              <PlaceholderPage title="Code Health" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Code Health" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'health-monitor'}
+            {#await import('./lib/pages/SystemHealthMonitorPage.svelte')}
+              <PlaceholderPage title="Health Monitor" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Health Monitor" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'safety'}
+            {#await import('./lib/pages/SafetyPage.svelte')}
+              <PlaceholderPage title="Safety" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Safety" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'projects'}
+            {#await import('./lib/pages/SystemProjectsPage.svelte')}
+              <PlaceholderPage title="Projects" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Projects" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'errors'}
+            {#await import('./lib/pages/SystemErrorsPage.svelte')}
+              <PlaceholderPage title="Errors" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Errors" description="Loading..." />
+            {/await}
+          {:else if activeSubTab === 'storage'}
+            {#await import('./lib/pages/SystemStoragePage.svelte')}
+              <PlaceholderPage title="Storage" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Storage" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'plugins'}
+            {#await import('./lib/pages/SystemPluginsPage.svelte')}
+              <PlaceholderPage title="Plugins" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Plugins" description="Failed to load" />
+            {/await}
+          {:else if activeSubTab === 'triggers'}
+            {#await import('./lib/pages/AnalysisTriggersPage.svelte')}
+              <PlaceholderPage title="Triggers" description="Loading..." />
+            {:then { default: Component }}
+              <Component />
+            {:catch}
+              <PlaceholderPage title="Triggers" description="Failed to load" />
+            {/await}
+          {:else}
+            <PlaceholderPage
+              title="System - {activeSubTab}"
+              description="This page is coming soon"
+            />
+          {/if}
+        </ErrorBoundary>
       {:else if activeTab === 'settings'}
-        {#await import('./lib/pages/SettingsPage.svelte')}
-          <PlaceholderPage title="Settings" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Settings" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Settings">
+          {#await import('./lib/pages/SettingsPage.svelte')}
+            <PlaceholderPage title="Settings" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Settings" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'about'}
-        {#await import('./lib/pages/AboutPage.svelte')}
-          <PlaceholderPage title="About" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="About" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="About">
+          {#await import('./lib/pages/AboutPage.svelte')}
+            <PlaceholderPage title="About" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="About" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'design-system'}
-        {#await import('./lib/pages/DesignSystemPage.svelte')}
-          <PlaceholderPage title="Design System" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Design System" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Design System">
+          {#await import('./lib/pages/DesignSystemPage.svelte')}
+            <PlaceholderPage title="Design System" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Design System" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'style-lab'}
-        {#await import('./lib/pages/StyleLabPage.svelte')}
-          <PlaceholderPage title="Style Lab" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Style Lab" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Style Lab">
+          {#await import('./lib/pages/StyleLabPage.svelte')}
+            <PlaceholderPage title="Style Lab" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Style Lab" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'light-lab'}
-        {#await import('./lib/pages/LightLabPage.svelte')}
-          <PlaceholderPage title="Light Lab" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Light Lab" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Light Lab">
+          {#await import('./lib/pages/LightLabPage.svelte')}
+            <PlaceholderPage title="Light Lab" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Light Lab" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'pulse-lab'}
-        {#await import('./lib/pages/PulseLabPage.svelte')}
-          <PlaceholderPage title="Pulse Lab" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Pulse Lab" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Pulse Lab">
+          {#await import('./lib/pages/PulseLabPage.svelte')}
+            <PlaceholderPage title="Pulse Lab" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Pulse Lab" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'llm-lab'}
-        {#await import('./lib/pages/LlmLabPage.svelte')}
-          <PlaceholderPage title="LLM Lab" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="LLM Lab" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="LLM Lab">
+          {#await import('./lib/pages/LlmLabPage.svelte')}
+            <PlaceholderPage title="LLM Lab" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="LLM Lab" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'roadmap'}
-        {#await import('./lib/pages/RoadmapPage.svelte')}
-          <PlaceholderPage title="Roadmap" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Roadmap" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Roadmap">
+          {#await import('./lib/pages/RoadmapPage.svelte')}
+            <PlaceholderPage title="Roadmap" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Roadmap" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else if activeTab === 'diagnostic'}
-        {#await import('./lib/pages/DiagnosticPage.svelte')}
-          <PlaceholderPage title="Diagnostic" description="Loading..." />
-        {:then { default: Component }}
-          <Component />
-        {:catch}
-          <PlaceholderPage title="Diagnostic" description="Failed to load" />
-        {/await}
+        <ErrorBoundary name="Diagnostic">
+          {#await import('./lib/pages/DiagnosticPage.svelte')}
+            <PlaceholderPage title="Diagnostic" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Diagnostic" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
       {:else}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">
           <div class="text-center max-w-[28rem]">

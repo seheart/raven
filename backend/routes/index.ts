@@ -54,6 +54,8 @@ import type { SelfAnalysisService } from '../services/self-analysis.js';
 import type { ProjectsConfigService } from '../services/projects-config.js';
 import type { GitMonitor, FileWatcher } from '../modules/index.js';
 import type { MetricsCollector } from '../metrics-collector.js';
+import type { ClaudeLogWatcher } from '../services/claude-log-watcher.js';
+import type { CodexLogWatcher } from '../services/codex-log-watcher.js';
 import { pauseManager } from '../pause-manager.js';
 
 import { createAgentEventsRoutesRouter } from './agent-events-routes.js';
@@ -74,6 +76,7 @@ import { createMilestonesRouter } from './milestones.js';
 import { createWrappedRouter } from './wrapped.js';
 import { createErrorsRouter } from './errors.js';
 import { createEventsRouter } from './events.js';
+import { createExportRouter } from './export.js';
 import { createFilesRouter } from './files.js';
 import { createGitRouter } from './git.js';
 import { createHealthMonitoringRouter } from './health-monitoring.js';
@@ -158,6 +161,10 @@ interface WireRoutesDeps {
   errorsRepository: ErrorsRepository;
   notificationsRepository: NotificationsRepository;
   hostIdentity?: { host_id: string; host_name: string };
+  // Log watchers — surfaced to /api/health so the endpoint can report each
+  // watcher's auto-restart state + lastSuccessfulTail timestamp.
+  claudeLogWatcher?: ClaudeLogWatcher;
+  codexLogWatcher?: CodexLogWatcher;
 }
 
 /**
@@ -225,7 +232,10 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     projectManager,
     localModelWatcher,
     rateLimitStatus,
-    hostIdentity: deps.hostIdentity
+    hostIdentity: deps.hostIdentity,
+    claudeLogWatcher: deps.claudeLogWatcher,
+    codexLogWatcher: deps.codexLogWatcher,
+    insightsService
   };
 
   app.use('/health', createPublicHealthRouter(systemInfoDeps));
@@ -352,6 +362,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     })
   );
   app.use('/api/system', createSystemRouter({ db, agentRegistry }));
+  app.use('/api/export', createExportRouter({ db, dbPath }));
 
   // Let the self-analysis service introspect mounted routes for the
   // contract-drift check. Must run after all routes are mounted.

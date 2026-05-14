@@ -39,6 +39,15 @@ export class FileWatcher {
   private config: WatcherConfig;
   private fileCache: Map<string, string> = new Map();
   private pendingOps: Map<string, Promise<void>> = new Map();
+  private restartAttempts = 0;
+  private static readonly MAX_RESTART_ATTEMPTS = 5;
+  // Backoff between auto-restarts. Exponential so a permanent FS problem
+  // doesn't keep us spinning. Caps at 5 attempts; after that the subsystem
+  // is marked unhealthy and surfaces in /api/health.
+  private static readonly RESTART_BACKOFF_MS = [1_000, 5_000, 15_000, 60_000, 300_000];
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private permanentlyFailed = false;
+  private lastErrorMessage: string | null = null;
 
   constructor(config: WatcherConfig) {
     this.config = {
@@ -146,20 +155,78 @@ export class FileWatcher {
       .on('change', (path: string) => this.handleFileEvent('change', path))
       .on('unlink', (path: string) => this.handleFileEvent('unlink', path))
       .on('error', (error: any) => {
-        logger.error('Watcher error', {
-          error: error?.message || String(error),
-          stack: error?.stack
-        });
+        const msg = error?.message || String(error);
+        this.lastErrorMessage = msg;
+        logger.error('Watcher error', { error: msg, stack: error?.stack });
+        // Chokidar can survive transient errors, but some FS conditions
+        // (inotify exhaustion, FS unmounted) leave the instance in a wedged
+        // state where nothing fires after this point. Schedule a restart;
+        // capped at MAX_RESTART_ATTEMPTS so a permanent FS issue stops
+        // spinning eventually.
+        this.scheduleRestart();
       })
       .on('ready', () => {
+        // Reset attempt counter on a clean ready event — we made it back.
+        this.restartAttempts = 0;
+        this.permanentlyFailed = false;
+        this.lastErrorMessage = null;
         logger.info('File watcher ready');
       });
+  }
+
+  private scheduleRestart(): void {
+    if (this.permanentlyFailed) return;
+    if (this.restartTimer) return; // already scheduled
+
+    if (this.restartAttempts >= FileWatcher.MAX_RESTART_ATTEMPTS) {
+      this.permanentlyFailed = true;
+      logger.error(
+        `File watcher permanently failed after ${FileWatcher.MAX_RESTART_ATTEMPTS} restart attempts (last error: ${this.lastErrorMessage})`
+      );
+      return;
+    }
+
+    const delay =
+      FileWatcher.RESTART_BACKOFF_MS[
+        Math.min(this.restartAttempts, FileWatcher.RESTART_BACKOFF_MS.length - 1)
+      ];
+    this.restartAttempts++;
+    logger.warn(
+      `File watcher restart scheduled in ${delay}ms (attempt ${this.restartAttempts}/${FileWatcher.MAX_RESTART_ATTEMPTS})`
+    );
+
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      void (async () => {
+        try {
+          if (this.watcher) {
+            try {
+              await this.watcher.close();
+            } catch {
+              /* close failure is OK — we're replacing it anyway */
+            }
+            this.watcher = null;
+          }
+          this.start();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.lastErrorMessage = msg;
+          logger.error(`File watcher restart failed: ${msg}`);
+          this.scheduleRestart();
+        }
+      })();
+    }, delay);
+    this.restartTimer.unref?.();
   }
 
   /**
    * Stop watching
    */
   async stop(): Promise<void> {
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
     if (this.watcher) {
       await this.watcher.close();
       this.watcher = null;
@@ -295,6 +362,24 @@ export class FileWatcher {
    */
   isRunning(): boolean {
     return this.watcher !== null;
+  }
+
+  /**
+   * Watcher health for /api/health. Reports the auto-restart state so the UI
+   * can show "watcher unhealthy" once the cap is hit instead of just "off".
+   */
+  health(): {
+    running: boolean;
+    permanentlyFailed: boolean;
+    restartAttempts: number;
+    lastError: string | null;
+  } {
+    return {
+      running: this.watcher !== null && !this.permanentlyFailed,
+      permanentlyFailed: this.permanentlyFailed,
+      restartAttempts: this.restartAttempts,
+      lastError: this.lastErrorMessage
+    };
   }
 
   /**
