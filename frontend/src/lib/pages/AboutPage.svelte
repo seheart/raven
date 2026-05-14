@@ -265,6 +265,13 @@
               class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors"
               >★ GitHub</a
             >
+            <a
+              href="https://github.com/seheart/raven/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm font-sans px-3 py-2 bg-canvas border border-border rounded text-center hover:border-accent transition-colors"
+              >Send feedback</a
+            >
           </div>
           <div
             class="mt-4 pt-4 border-t border-border text-xs font-mono text-muted leading-relaxed"
@@ -604,6 +611,13 @@
           rel="noopener noreferrer"
           class="px-3 py-1.5 bg-accent text-canvas border border-accent rounded text-sm font-sans hover:bg-accent-strong hover:border-accent-strong transition-colors"
           >[ ★ Star on GitHub ]</a
+        >
+        <a
+          href="https://github.com/seheart/raven/issues/new"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans hover:border-accent transition-colors"
+          >[ Send feedback ]</a
         >
         <a
           href="#sect-quickstart"

@@ -80,6 +80,16 @@
       </button>
       <span class="text-[var(--muted)]" aria-hidden="true">|</span>
       <a
+        href="https://github.com/seheart/raven/issues/new"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors no-underline"
+        title="Report a bug or share feedback on GitHub"
+      >
+        Feedback
+      </a>
+      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <a
         href="https://github.com/seheart/raven"
         target="_blank"
         rel="noopener noreferrer"
