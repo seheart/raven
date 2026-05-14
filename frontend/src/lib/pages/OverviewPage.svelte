@@ -862,9 +862,11 @@
               Live
             </span>
           </div>
-          <!-- Bounded height at narrow widths so the feed doesn't push
-               the page miles long; full-height at xl when stacked side-by-side. -->
-          <div class="space-y-0.5 overflow-y-auto max-h-[400px] xl:max-h-none xl:flex-1">
+          <!-- Tight cap at narrow widths (~3 rows visible, internal scroll
+               for the rest) so the AI Pulse graph below stays visible
+               without scrolling. xl: drops the cap so the feed fills its
+               column when shown side-by-side. -->
+          <div class="space-y-0.5 overflow-y-auto max-h-[96px] xl:max-h-none xl:flex-1">
             {#if activityFeed.length === 0 && recentFiles.length === 0}
               <div class="text-center py-6 text-xs text-muted leading-relaxed">
                 <span class="inline-block idle-breathing">Waiting for activity</span>
@@ -926,10 +928,11 @@
             {/if}
           </div>
         </div>
-        <!-- AI Pulse — particle viz fills its container, so give it an
-             explicit min-height at narrow widths or it collapses to 0px
-             when stacked under Event Feed. -->
-        <div class="min-h-[280px] xl:min-h-0">
+        <!-- AI Pulse — particle viz. Compact height at narrow widths so
+             the Event Feed, AI Pulse, Active Models, and Agent Activity
+             chart all fit on a half-screen view without aggressive scroll.
+             xl: drops the cap and the viz fills its column. -->
+        <div class="min-h-[160px] xl:min-h-0">
           <NebulaActivity />
         </div>
         <!-- Active Models column. GPU health lives in the global VitalsStrip
@@ -1218,12 +1221,12 @@
              when stacked at narrow widths. order-1 puts it first in the
              narrow stack (above the diff and the agents list). -->
         <div
-          class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-[220px] xl:min-h-0 order-1 xl:order-3"
+          class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-[160px] xl:min-h-0 order-1 xl:order-3"
         >
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">
             Agent Activity (5m)
           </h3>
-          <div class="flex-1 min-h-[200px] xl:min-h-0 relative">
+          <div class="flex-1 min-h-[130px] xl:min-h-0 relative">
             <canvas id="chart-trend"></canvas>
             {#if recentFiles.length === 0 && recentAgentEvents.length === 0}
               <div

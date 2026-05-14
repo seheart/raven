@@ -130,11 +130,11 @@
        wider than the viewport on mobile. Pages that need internal
        horizontal scroll wrap the offending element with overflow-x-auto. -->
   <!--
-    pb-20 (was pb-16): per RESPONSIVE.md rule 5 the footer nav uses
-    flex-wrap and may grow to two rows at narrow widths. pb-20 (5rem)
-    matches PageLayout.default and clears the wrapped footer height.
+    Footer is hidden below `lg` (the half-screen design center) so no
+    bottom padding is needed there. At lg+ the footer reappears and we
+    add pb-20 (5rem) to clear its wrapped two-row height.
   -->
-  <main class="pb-20 overflow-x-clip">
+  <main class="pb-0 lg:pb-20 overflow-x-clip">
     <svelte:boundary>
       {#snippet failed(error, reset)}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">

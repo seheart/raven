@@ -22,12 +22,19 @@
   let { title, description, size = 'default', actions } = $props();
 </script>
 
+<!--
+  At narrow widths (<lg), the collapsed Header strip already shows
+  "<TabLabel> › <SubTabLabel>" as a breadcrumb, making the page header
+  redundant. We keep title + description in the DOM (sr-only) for screen
+  readers and document outline, and reveal them visually at lg+. Actions
+  stay visible at all widths so the refresh / filter controls remain.
+-->
 {#if size === 'compact'}
   <header class="flex items-center justify-between gap-4">
     <div class="min-w-0 flex-1">
-      <h1 class="text-sm font-semibold text-body">{title}</h1>
+      <h1 class="sr-only lg:not-sr-only text-sm font-semibold text-body">{title}</h1>
       {#if description}
-        <p class="text-[10px] text-muted mt-0.5">{description}</p>
+        <p class="sr-only lg:not-sr-only text-[10px] text-muted lg:mt-0.5">{description}</p>
       {/if}
     </div>
     {#if actions}
@@ -37,9 +44,11 @@
 {:else if size === 'medium'}
   <header class="flex items-center justify-between gap-4">
     <div class="flex items-center gap-3 min-w-0 flex-1">
-      <h1 class="text-xl font-bold text-heading tracking-[-0.025em]">{title}</h1>
+      <h1 class="sr-only lg:not-sr-only text-xl font-bold text-heading tracking-[-0.025em]">
+        {title}
+      </h1>
       {#if description}
-        <span class="text-xs text-muted font-sans">{description}</span>
+        <span class="sr-only lg:not-sr-only text-xs text-muted font-sans">{description}</span>
       {/if}
     </div>
     {#if actions}
@@ -49,9 +58,13 @@
 {:else}
   <header class="flex items-start justify-between gap-4">
     <div class="min-w-0 flex-1">
-      <h1 class="text-2xl font-bold text-heading tracking-[-0.025em] mb-1">{title}</h1>
+      <h1
+        class="sr-only lg:not-sr-only text-2xl font-bold text-heading tracking-[-0.025em] lg:mb-1"
+      >
+        {title}
+      </h1>
       {#if description}
-        <p class="text-sm text-muted font-sans">{description}</p>
+        <p class="sr-only lg:not-sr-only text-sm text-muted font-sans">{description}</p>
       {/if}
     </div>
     {#if actions}

@@ -13,6 +13,12 @@
 
   let { activeTab = 'overview', activeSubTab = '' } = $props();
 
+  // Collapsed-nav state — only meaningful at narrow widths (<lg). When false,
+  // the header shows just a thin "tab › sub-tab" strip with the heartbeat;
+  // when true, the full nav + sub-nav are visible. Auto-collapses on
+  // tab/sub-tab click. At lg+ the full nav is always visible regardless.
+  let navExpanded = $state(false);
+
   // Header strip frames today's file activity against a 14-day baseline
   // so the number means something. Raw counts ("121 files") have no
   // reference point — a multiplier ("1.4× usual") tells you whether
@@ -127,14 +133,21 @@
   };
 
   const currentSubTabs = $derived(subTabs[activeTab] || []);
+  const currentTabLabel = $derived(tabs.find(t => t.id === activeTab)?.label || '');
+  const currentSubTabLabel = $derived(
+    /** @type {{id:string,label:string}[]} */ (currentSubTabs).find(s => s.id === activeSubTab)
+      ?.label || ''
+  );
 
   function handleNavClick(event, path) {
     event.preventDefault();
+    navExpanded = false;
     navigate(path);
   }
 
   function handleSubNavClick(event, subId) {
     event.preventDefault();
+    navExpanded = false;
     const path = subId ? `/${activeTab}/${subId}` : `/${activeTab}`;
     navigate(path);
   }
@@ -198,18 +211,66 @@
   lines at narrow widths.
 -->
 <header class="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
-  <div class="flex flex-wrap items-center gap-x-2 gap-y-1 lg:gap-x-4 px-2 lg:px-3 py-2 min-h-12">
-    <!-- Logo -->
+  <!--
+    Collapsed strip — only shown at narrow widths (<lg). Tap to expand the
+    full nav below; auto-collapses when a tab/sub-tab is selected. Keeps
+    the heartbeat visible so the "is it alive" signal is never hidden.
+  -->
+  <div class="lg:hidden flex items-center justify-between px-3 py-1 gap-2">
     <button
-      onclick={e => handleNavClick(e, '/today')}
-      class="flex items-center gap-2 font-semibold text-[var(--text-heading)] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0 shrink-0"
-      aria-label="Go to Today"
+      onclick={() => (navExpanded = !navExpanded)}
+      class="flex items-center gap-2 min-w-0 flex-1 bg-transparent border-0 cursor-pointer p-0 text-left"
+      aria-label="Toggle navigation menu"
+      aria-expanded={navExpanded}
     >
-      <RavenLogo size={18} />
-      <span class="hidden lg:inline">Raven</span>
+      <RavenLogo size={16} />
+      <span class="text-sm font-semibold text-[var(--text-heading)] truncate"
+        >{currentTabLabel}</span
+      >
+      {#if currentSubTabLabel}
+        <span class="text-xs text-[var(--muted)] shrink-0">›</span>
+        <span class="text-xs text-[var(--muted)] truncate">{currentSubTabLabel}</span>
+      {/if}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="text-[var(--muted)] shrink-0 transition-transform duration-150 {navExpanded
+          ? 'rotate-180'
+          : ''}"
+        aria-hidden="true"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
     </button>
+    <HeartbeatIndicator />
+  </div>
 
-    <!--
+  <!--
+    Full nav (top row + sub-tab row). At lg+ this is always visible.
+    At <lg it's only visible when navExpanded is true.
+  -->
+  <div class={navExpanded ? 'block' : 'hidden lg:block'}>
+    <div
+      class="flex flex-wrap items-center gap-x-2 gap-y-1 lg:gap-x-4 px-2 lg:px-3 py-1 lg:py-2 min-h-9 lg:min-h-12"
+    >
+      <!-- Logo -->
+      <button
+        onclick={e => handleNavClick(e, '/today')}
+        class="flex items-center gap-2 font-semibold text-[var(--text-heading)] text-base hover:text-[var(--accent)] transition-colors font-sans bg-transparent border-0 cursor-pointer p-0 shrink-0"
+        aria-label="Go to Today"
+      >
+        <RavenLogo size={18} />
+        <span class="hidden lg:inline">Raven</span>
+      </button>
+
+      <!--
       Main Navigation. `min-w-0` lets flex shrink the nav so siblings
       can keep their natural width; `overflow-x-auto` + per-button
       `whitespace-nowrap` means tabs scroll horizontally inside the nav
@@ -217,109 +278,113 @@
       this gives clean tab strip behavior even with the project filter
       and pills present.
     -->
-    <nav
-      class="flex gap-0.5 lg:gap-1 flex-1 min-w-0 font-sans overflow-x-auto"
-      aria-label="Main navigation"
-    >
-      {#each tabs as tab (tab.id)}
-        <button
-          onclick={e => handleNavClick(e, tab.path)}
-          class={`px-2 lg:px-3 py-1.5 rounded text-sm transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
-            activeTab === tab.id
-              ? 'bg-[var(--accent)] text-canvas font-semibold'
-              : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] font-medium'
-          }`}
-          aria-current={activeTab === tab.id ? 'page' : undefined}
-        >
-          {tab.label}
-        </button>
-      {/each}
-    </nav>
+      <nav
+        class="flex gap-0.5 lg:gap-1 flex-1 min-w-0 font-sans overflow-x-auto"
+        aria-label="Main navigation"
+      >
+        {#each tabs as tab (tab.id)}
+          <button
+            onclick={e => handleNavClick(e, tab.path)}
+            class={`px-2 lg:px-3 py-0.5 lg:py-1.5 rounded text-xs lg:text-sm transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'bg-[var(--accent)] text-canvas font-semibold'
+                : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] font-medium'
+            }`}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </nav>
 
-    <!-- Activity Strip — file count framed against a 14-day baseline,
+      <!-- Activity Strip — file count framed against a 14-day baseline,
          plus today's API cost (USD billing only). Project focus lives
          in the filter dropdown to the right rather than as a passive
          display, since users routinely work across multiple projects
          and the "top project" framing was misleading. Hidden until xl
          so the nav has room at typical laptop widths. -->
-    <div
-      class="hidden xl:flex items-baseline gap-2 lg:gap-3 text-xs font-mono pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
-      title={baselineTip}
-    >
-      <span class="text-[10px] uppercase tracking-wide text-[var(--muted)]/70">Today</span>
-      <span class="text-[var(--text)]">{stats.filesToday} files</span>
-      {#if framing.label}
-        <span class="text-[var(--border)]">·</span>
-        <span class={framing.tone === 'body' ? 'text-[var(--text)]' : 'text-[var(--muted)]'}
-          >{framing.label}</span
-        >
-      {/if}
-      {#if costLabel}
-        <span class="text-[var(--border)]">·</span>
-        <button
-          onclick={e => handleNavClick(e, '/insights/costs')}
-          class="text-[var(--text)] bg-transparent border-0 cursor-pointer p-0 hover:text-[var(--accent)] transition-colors"
-          title="Estimated Claude API cost since local midnight. Click for the full breakdown."
-          >{costLabel}</button
-        >
-      {/if}
-    </div>
+      <div
+        class="hidden xl:flex items-baseline gap-2 lg:gap-3 text-xs font-mono pl-2 lg:pl-4 border-l border-[var(--border)] shrink-0"
+        title={baselineTip}
+      >
+        <span class="text-[10px] uppercase tracking-wide text-[var(--muted)]/70">Today</span>
+        <span class="text-[var(--text)]">{stats.filesToday} files</span>
+        {#if framing.label}
+          <span class="text-[var(--border)]">·</span>
+          <span class={framing.tone === 'body' ? 'text-[var(--text)]' : 'text-[var(--muted)]'}
+            >{framing.label}</span
+          >
+        {/if}
+        {#if costLabel}
+          <span class="text-[var(--border)]">·</span>
+          <button
+            onclick={e => handleNavClick(e, '/insights/costs')}
+            class="text-[var(--text)] bg-transparent border-0 cursor-pointer p-0 hover:text-[var(--accent)] transition-colors"
+            title="Estimated Claude API cost since local midnight. Click for the full breakdown."
+            >{costLabel}</button
+          >
+        {/if}
+      </div>
 
-    <!-- Endpoint health pill — only renders when one or more /system page
+      <!-- Endpoint health pill — only renders when one or more /system page
          endpoints are currently failing the periodic HealthChecker sweep.
          Hidden when all green; red + count when not. Click → diagnostic. -->
-    <EndpointHealthPill />
+      <EndpointHealthPill />
 
-    <!-- Local LLM status pill — always-on view of what's resident in
+      <!-- Local LLM status pill — always-on view of what's resident in
          VRAM, GPU temp, and model library size. Sits between the
          activity strip and the heartbeat so the eyebrow tells a complete
          "what's happening right now" story across project work, local
          LLM, and agent activity. Hidden under xl to make room for nav. -->
-    <HeaderLlmPill />
+      <HeaderLlmPill />
 
-    <!-- Persistent agent heartbeat — global presence element. Visible on
+      <!-- Persistent agent heartbeat — global presence element. Visible on
          every page; rhythm + color reflect the most-active agent's state.
          Honest stillness when nothing is happening. -->
-    <HeartbeatIndicator />
+      <HeartbeatIndicator />
 
-    <!-- CPU / MEM bars moved to the global VitalsStrip below the header. -->
+      <!-- CPU / MEM bars moved to the global VitalsStrip below the header. -->
 
-    <!-- Project Filter — hidden on small screens -->
-    {#if projects.length > 0}
-      <div class="hidden sm:block pl-2 lg:pl-3 border-l border-[var(--border)] shrink-0">
-        <select
-          value={currentFilter}
-          onchange={e => setProjectFilter(e.target.value)}
-          class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs font-mono text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
-          aria-label="Filter by project"
+      <!-- Project Filter — hidden on small screens -->
+      {#if projects.length > 0}
+        <div class="hidden sm:block pl-2 lg:pl-3 border-l border-[var(--border)] shrink-0">
+          <select
+            value={currentFilter}
+            onchange={e => setProjectFilter(e.target.value)}
+            class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-xs font-mono text-[var(--text)] cursor-pointer hover:border-[var(--accent)] transition-colors"
+            aria-label="Filter by project"
+          >
+            <option value="all">All Projects</option>
+            {#each projects as proj (proj)}
+              <option value={proj}>{proj}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Sub-Navigation -->
+    {#if currentSubTabs.length > 0}
+      <div class="border-t border-[var(--border)] bg-[var(--bg)]">
+        <nav
+          class="flex gap-1 px-3 py-0.5 lg:py-1.5 font-sans overflow-x-auto"
+          aria-label="Sub navigation"
         >
-          <option value="all">All Projects</option>
-          {#each projects as proj (proj)}
-            <option value={proj}>{proj}</option>
+          {#each currentSubTabs as subTab (subTab.id)}
+            <button
+              onclick={e => handleSubNavClick(e, subTab.id)}
+              class={`px-3 py-1 rounded text-xs transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
+                activeSubTab === subTab.id
+                  ? 'bg-[var(--accent)] text-canvas font-semibold'
+                  : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] font-medium'
+              }`}
+              aria-current={activeSubTab === subTab.id ? 'page' : undefined}
+            >
+              {subTab.label}
+            </button>
           {/each}
-        </select>
+        </nav>
       </div>
     {/if}
   </div>
-
-  <!-- Sub-Navigation -->
-  {#if currentSubTabs.length > 0}
-    <div class="border-t border-[var(--border)] bg-[var(--bg)]">
-      <nav class="flex gap-1 px-3 py-1.5 font-sans overflow-x-auto" aria-label="Sub navigation">
-        {#each currentSubTabs as subTab (subTab.id)}
-          <button
-            onclick={e => handleSubNavClick(e, subTab.id)}
-            class={`px-3 py-1 rounded text-xs transition-colors font-sans border-0 cursor-pointer whitespace-nowrap ${
-              activeSubTab === subTab.id
-                ? 'bg-[var(--accent)] text-canvas font-semibold'
-                : 'bg-transparent text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] font-medium'
-            }`}
-            aria-current={activeSubTab === subTab.id ? 'page' : undefined}
-          >
-            {subTab.label}
-          </button>
-        {/each}
-      </nav>
-    </div>
-  {/if}
 </header>

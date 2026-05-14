@@ -44,7 +44,7 @@
   the wrapped two-row footer height.
 -->
 <footer
-  class="fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] z-40"
+  class="hidden lg:block fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] z-40"
 >
   <div
     class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 text-sm font-mono"
