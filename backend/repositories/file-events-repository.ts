@@ -151,9 +151,11 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
   `);
 
   const totalCountStmt = db.db.prepare('SELECT COUNT(*) as count FROM events');
+  // Caller computes ISO cutoff so the timestamp index is honored (wrapping
+  // the column in datetime() disabled it).
   const countSinceHoursStmt = db.db.prepare(
     `SELECT COUNT(*) as count FROM events
-     WHERE datetime(timestamp) >= datetime('now', ?)`
+     WHERE timestamp >= ?`
   );
   const lastTimestampStmt = db.db.prepare('SELECT MAX(timestamp) as timestamp FROM events');
 
@@ -413,8 +415,8 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
     },
 
     countSinceHours(hours) {
-      const arg = `-${Math.max(0, hours)} hours`;
-      return (countSinceHoursStmt.get(arg) as { count: number } | undefined)?.count ?? 0;
+      const cutoff = new Date(Date.now() - Math.max(0, hours) * 3600 * 1000).toISOString();
+      return (countSinceHoursStmt.get(cutoff) as { count: number } | undefined)?.count ?? 0;
     },
 
     lastTimestamp() {

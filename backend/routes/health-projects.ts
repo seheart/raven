@@ -44,20 +44,37 @@ export function createHealthProjectsRouter({ db }: HealthProjectsDeps): Router {
   // filepath prefix — events.project_name is a directory-style slug
   // ("raven/backend/foo.ts" → "raven"), and syntax_errors.filepath uses the
   // same convention.
-  const recentEventsStmt = db.db.prepare(`
-    SELECT COUNT(*) as count FROM events
-    WHERE project_name = ? AND timestamp >= ?
+  //
+  // Previous shape was N+1: a 4-query .get() loop per project (4×N round
+  // trips). Replaced with 4 grouped .all() queries that return all projects
+  // at once, then merged by project_name in JS. Behavior is preserved —
+  // same counts, same window, same project filtering.
+  const recentEventsByProjectStmt = db.db.prepare(`
+    SELECT project_name, COUNT(*) as count FROM events
+    WHERE project_name IS NOT NULL AND timestamp >= ?
+    GROUP BY project_name
   `);
-  const recentAgentEventsStmt = db.db.prepare(`
-    SELECT COUNT(*) as count FROM agent_events
-    WHERE project_name = ? AND timestamp >= ?
+  const recentAgentEventsByProjectStmt = db.db.prepare(`
+    SELECT project_name, COUNT(*) as count FROM agent_events
+    WHERE project_name IS NOT NULL AND timestamp >= ?
+    GROUP BY project_name
   `);
-  const recentErrorsStmt = db.db.prepare(`
-    SELECT COUNT(*) as count FROM syntax_errors
-    WHERE filepath LIKE ? AND timestamp >= ?
+  // syntax_errors has no project column — derive it from filepath prefix.
+  // substr(filepath, 1, instr(filepath, '/') - 1) extracts the leading
+  // directory slug, matching the LIKE 'project/%' convention used before.
+  const recentErrorsByProjectStmt = db.db.prepare(`
+    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
+           COUNT(*) as count
+    FROM syntax_errors
+    WHERE instr(filepath, '/') > 0 AND timestamp >= ?
+    GROUP BY project_name
   `);
-  const totalErrorsStmt = db.db.prepare(`
-    SELECT COUNT(*) as count FROM syntax_errors WHERE filepath LIKE ?
+  const totalErrorsByProjectStmt = db.db.prepare(`
+    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
+           COUNT(*) as count
+    FROM syntax_errors
+    WHERE instr(filepath, '/') > 0
+    GROUP BY project_name
   `);
 
   router.get('/projects', cacheMiddleware(5000), (req: Request, res: Response) => {
@@ -72,21 +89,28 @@ export function createHealthProjectsRouter({ db }: HealthProjectsDeps): Router {
         rows = rows.filter(r => r.project_name === projectFilter);
       }
 
+      // Single-pass fetch for all four metrics, keyed by project_name.
+      // Replaces a 4-query .get() loop per project (was 4×N round-trips,
+      // now 4 round-trips regardless of project count).
+      const toMap = (results: unknown[]): Map<string, number> => {
+        const m = new Map<string, number>();
+        for (const r of results as Array<{ project_name: string | null; count: number }>) {
+          if (r.project_name) m.set(r.project_name, r.count);
+        }
+        return m;
+      };
+      const recentFilesByProject = toMap(recentEventsByProjectStmt.all(cutoff));
+      const recentAgentByProject = toMap(recentAgentEventsByProjectStmt.all(cutoff));
+      const recentErrorsByProject = toMap(recentErrorsByProjectStmt.all(cutoff));
+      const totalErrorsByProject = toMap(totalErrorsByProjectStmt.all());
+
       const projects = rows.map(row => {
-        const recentFiles =
-          (recentEventsStmt.get(row.project_name, cutoff) as { count: number } | undefined)
-            ?.count ?? 0;
-        const recentAgent =
-          (recentAgentEventsStmt.get(row.project_name, cutoff) as { count: number } | undefined)
-            ?.count ?? 0;
+        const recentFiles = recentFilesByProject.get(row.project_name) ?? 0;
+        const recentAgent = recentAgentByProject.get(row.project_name) ?? 0;
         const recent = recentFiles + recentAgent;
 
-        const errorCount =
-          (totalErrorsStmt.get(`${row.project_name}/%`) as { count: number } | undefined)?.count ??
-          0;
-        const recentErrors =
-          (recentErrorsStmt.get(`${row.project_name}/%`, cutoff) as { count: number } | undefined)
-            ?.count ?? 0;
+        const errorCount = totalErrorsByProject.get(row.project_name) ?? 0;
+        const recentErrors = recentErrorsByProject.get(row.project_name) ?? 0;
 
         // Activity proxy: cap at 100 so a chatty project doesn't dominate;
         // subtract a per-error penalty up to 50 so syntax-error backlog drags

@@ -561,10 +561,9 @@
     // Fire the LLM summary in parallel — it's slow and not blocking.
     loadSummary();
 
-    // Cost ticker: refresh every 5s so the dollar number visibly moves.
-    // Timeline redraws on a slower 60s cadence — the sparkline doesn't
-    // need to repaint every 5s and the timeline query is heavier.
-    costTicker = setInterval(loadCosts, 5000);
+    // Cost ticker: 60s cadence — billing windows are hourly, so refreshing
+    // every 5s was just thrashing. Timeline stays on its own 60s cadence.
+    costTicker = setInterval(loadCosts, 60_000);
     timelineTicker = setInterval(loadCostTimeline, 60000);
 
     websocketConnected = websocketService.isConnected();

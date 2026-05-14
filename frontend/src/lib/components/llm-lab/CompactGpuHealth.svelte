@@ -9,13 +9,20 @@
   let gpu = $state(null);
   let history = $state([]);
 
-  function tColor(c) { return c >= 85 ? 'var(--error)' : c >= 75 ? 'var(--warning)' : 'var(--success)'; }
-  function vColor(p) { return p >= 95 ? 'var(--error)' : p >= 85 ? 'var(--warning)' : 'var(--accent)'; }
+  function tColor(c) {
+    return c >= 85 ? 'var(--error)' : c >= 75 ? 'var(--warning)' : 'var(--success)';
+  }
+  function vColor(p) {
+    return p >= 95 ? 'var(--error)' : p >= 85 ? 'var(--warning)' : 'var(--accent)';
+  }
 
   function spark(values, w, h) {
     if (values.length < 2) return '';
     const step = w / 29;
-    return 'M ' + values.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / 100) * h).toFixed(1)}`).join(' L ');
+    return (
+      'M ' +
+      values.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / 100) * h).toFixed(1)}`).join(' L ')
+    );
   }
 
   async function refresh() {
@@ -40,7 +47,9 @@
   <div class="flex items-baseline justify-between mb-2">
     <h3 class="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wide">GPU</h3>
     {#if gpu}
-      <span class="text-[9px] text-[var(--muted)] font-mono truncate ml-2">{gpu.name.replace('NVIDIA GeForce ', '')}</span>
+      <span class="text-[9px] text-[var(--muted)] font-mono truncate ml-2"
+        >{gpu.name.replace('NVIDIA GeForce ', '')}</span
+      >
     {/if}
   </div>
 
@@ -48,11 +57,18 @@
     <!-- VRAM bar with inline numbers -->
     <div class="mb-2">
       <div class="flex justify-between text-[10px] font-mono text-[var(--muted)] mb-1">
-        <span>VRAM <span class="text-[var(--text)]">{(gpu.vram_used_mib / 1024).toFixed(1)}</span><span class="text-[var(--muted)]">/{(gpu.vram_total_mib / 1024).toFixed(1)}G</span></span>
+        <span
+          >VRAM <span class="text-[var(--text)]">{(gpu.vram_used_mib / 1024).toFixed(1)}</span><span
+            class="text-[var(--muted)]">/{(gpu.vram_total_mib / 1024).toFixed(1)}G</span
+          ></span
+        >
         <span style="color: {vColor(gpu.vram_pct)}">{gpu.vram_pct}%</span>
       </div>
       <div class="h-1.5 bg-[var(--bg)] rounded overflow-hidden border border-[var(--border)]">
-        <div class="h-full transition-all duration-500" style="width: {gpu.vram_pct}%; background: {vColor(gpu.vram_pct)}"></div>
+        <div
+          class="h-full transition-all duration-500"
+          style="width: {gpu.vram_pct}%; background: {vColor(gpu.vram_pct)}"
+        ></div>
       </div>
     </div>
 
@@ -68,12 +84,22 @@
       </span>
       <span>
         <span class="text-[var(--muted)]">pwr</span>
-        <span class="font-semibold text-[var(--text)]">{gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] font-normal">/{gpu.power_limit_w.toFixed(0)}W</span></span>
+        <span class="font-semibold text-[var(--text)]"
+          >{gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] font-normal"
+            >/{gpu.power_limit_w.toFixed(0)}W</span
+          ></span
+        >
       </span>
     </div>
 
     <!-- Tiny util sparkline -->
-    <svg viewBox="0 0 200 16" class="w-full h-4" preserveAspectRatio="none">
+    <svg
+      viewBox="0 0 200 16"
+      class="w-full h-4"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label="Recent GPU utilization sparkline"
+    >
       <path d={spark(history, 200, 16)} fill="none" stroke="var(--accent)" stroke-width="1.2" />
     </svg>
   {:else}

@@ -61,7 +61,9 @@
   onMount(() => {
     refresh();
     const t = setInterval(refresh, 2000);
-    const tickTimer = setInterval(() => { now = Date.now(); }, 1000);
+    const tickTimer = setInterval(() => {
+      now = Date.now();
+    }, 1000);
     return () => {
       clearInterval(t);
       clearInterval(tickTimer);
@@ -118,7 +120,9 @@
     <div class="grid grid-cols-3 gap-3 text-[11px] font-mono mb-3">
       <div>
         <div class="text-[var(--muted)] mb-0.5">Temp</div>
-        <div class="text-base font-semibold" style="color: {tempColor(gpu.temp_c)}">{gpu.temp_c}°C</div>
+        <div class="text-base font-semibold" style="color: {tempColor(gpu.temp_c)}">
+          {gpu.temp_c}°C
+        </div>
       </div>
       <div>
         <div class="text-[var(--muted)] mb-0.5">GPU util</div>
@@ -127,7 +131,9 @@
       <div>
         <div class="text-[var(--muted)] mb-0.5">Power</div>
         <div class="text-base font-semibold text-[var(--text)]">
-          {gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] text-xs">/{gpu.power_limit_w.toFixed(0)}W</span>
+          {gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] text-xs"
+            >/{gpu.power_limit_w.toFixed(0)}W</span
+          >
         </div>
       </div>
     </div>
@@ -135,7 +141,13 @@
     <!-- Util sparkline -->
     <div>
       <div class="text-[10px] font-mono text-[var(--muted)] mb-1">GPU util — last 60s</div>
-      <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+      <svg
+        viewBox="0 0 200 32"
+        class="w-full h-8"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Recent GPU utilization over the last 60 seconds"
+      >
         <path
           d={sparklinePath(utilHistory, 200, 32)}
           fill="none"

@@ -70,7 +70,7 @@
 
   onMount(() => {
     load();
-    poll = setInterval(load, 4_000);
+    poll = setInterval(load, 10_000);
   });
   onDestroy(() => {
     if (poll) clearInterval(poll);

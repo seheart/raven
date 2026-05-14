@@ -95,9 +95,9 @@
     refreshOllama();
     refreshLibrary();
     refreshGpu();
-    timers.push(setInterval(refreshOllama, 3000));
+    timers.push(setInterval(refreshOllama, 8000));
     timers.push(setInterval(refreshLibrary, 30000));
-    timers.push(setInterval(refreshGpu, 2000));
+    timers.push(setInterval(refreshGpu, 5000));
 
     // Listen for inference events to feed the activity bar chart. Each
     // completed turn carries a gen_tps reading; we keep the last 24

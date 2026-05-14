@@ -319,7 +319,9 @@ scheduleDaily(18, () => {
         });
       }
     })
-    .catch(() => {});
+    .catch(err => {
+      logger.error('[daily-digest] generation failed:', err as Error);
+    });
 });
 
 const agentRegistry = new Map<string, AgentInfo>();
@@ -683,7 +685,9 @@ httpServer.listen(PORT, BIND_HOST, async () => {
   // and explicit add/remove flows refresh the cache on demand.
   await projectsConfigService.refreshKnownProjects();
   setInterval(() => {
-    projectsConfigService.refreshKnownProjects().catch(() => {});
+    projectsConfigService.refreshKnownProjects().catch(err => {
+      logger.error('[projects-config] refreshKnownProjects failed:', err as Error);
+    });
   }, 300_000).unref();
 
   // Periodic comprehensive health sweep — every /system page's primary

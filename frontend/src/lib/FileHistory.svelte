@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { formatDateTime } from './timeFormat.js';
   import DiffViewer from './DiffViewer.svelte';
   import { api } from './apiClient.js';
@@ -9,6 +9,50 @@
   export let onClose = () => {};
   export let filepath = '';
   export let inline = false;
+
+  // --- Focus trap for modal dialog ---------------------------------------
+  // When the dialog opens we move focus inside it and remember whatever
+  // was focused before so we can restore it on close. Tab/Shift+Tab wrap
+  // around the focusable elements inside `modalEl`.
+  /** @type {HTMLElement | undefined} */
+  let modalEl;
+  /** @type {Element | null} */
+  let previouslyFocused = null;
+  const FOCUSABLE_SELECTOR =
+    'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  /** @returns {HTMLElement[]} */
+  function getFocusable() {
+    if (!modalEl) return [];
+    return /** @type {HTMLElement[]} */ (
+      Array.from(modalEl.querySelectorAll(FOCUSABLE_SELECTOR))
+    ).filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+  }
+
+  /** @param {KeyboardEvent} e */
+  function trapFocus(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = getFocusable();
+    if (focusable.length === 0) {
+      e.preventDefault();
+      modalEl?.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey) {
+      if (active === first || !modalEl?.contains(active)) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
 
   let history = [];
   let loading = true;
@@ -46,7 +90,24 @@
   });
 
   onMount(async () => {
+    if (!inline) {
+      previouslyFocused = document.activeElement;
+      // Wait for the dialog to render, then move focus inside.
+      await tick();
+      const focusable = getFocusable();
+      (focusable[0] || modalEl)?.focus();
+    }
     await loadHistory();
+  });
+
+  onDestroy(() => {
+    if (
+      !inline &&
+      previouslyFocused &&
+      typeof (/** @type {any} */ (previouslyFocused).focus) === 'function'
+    ) {
+      /** @type {any} */ (previouslyFocused).focus();
+    }
   });
 
   async function loadHistory() {
@@ -372,8 +433,12 @@
   >
     <div
       class="modal-content"
+      bind:this={modalEl}
       on:click|stopPropagation
-      on:keydown={e => e.stopPropagation()}
+      on:keydown={e => {
+        e.stopPropagation();
+        trapFocus(e);
+      }}
       role="dialog"
       tabindex="-1"
       aria-modal="true"

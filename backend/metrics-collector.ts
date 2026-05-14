@@ -328,7 +328,9 @@ export class MetricsCollector {
     // Refresh DNS every 5 minutes
     this.dnsRefreshInterval = setInterval(
       () => {
-        this.resolveEndpointIPs().catch(() => {});
+        this.resolveEndpointIPs().catch(err => {
+          logger.error('❌ DNS refresh failed:', err as Error);
+        });
       },
       5 * 60 * 1000
     );

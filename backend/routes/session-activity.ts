@@ -36,9 +36,17 @@ async function parseSessionLog(filePath: string, limit: number): Promise<Activit
     const lines = content.split('\n').filter(l => l.trim());
 
     for (const line of lines) {
+      let entry: any;
       try {
-        const entry = JSON.parse(line);
-
+        entry = JSON.parse(line);
+      } catch (parseErr) {
+        // One malformed JSONL line shouldn't kill the whole request.
+        logger.debug(
+          `Skipping malformed JSONL line in ${filePath}: ${(parseErr as Error).message}`
+        );
+        continue;
+      }
+      try {
         if (entry.type === 'user' && entry.message) {
           const msg = entry.message;
           let text = '';

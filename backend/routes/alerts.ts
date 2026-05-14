@@ -97,15 +97,12 @@ export function createAlertsRouter({ templatesPath }: AlertsRouterDeps): Router 
 
   router.get('/status', async (_req: Request, res: Response) => {
     // Earlier this returned hardcoded `enabled:true, triggersActive:5` —
-    // actively misleading. The real trigger-engine status lives at
-    // /api/triggers; until alerts gets its own engine, be honest about it.
-    return res.json({
-      enabled: false,
-      not_implemented: true,
-      message: 'Alert status tracking is not wired up yet. See /api/triggers.',
-      activeTemplate: null,
-      triggersActive: 0,
-      recentAlerts: []
+    // actively misleading. The alert engine isn't built yet; return 501
+    // to match the templates-apply endpoint instead of pretending a status
+    // surface exists. Real trigger-engine status lives at /api/triggers.
+    return res.status(501).json({
+      error: 'not_implemented',
+      message: 'Alert status tracking is not wired up yet. See /api/triggers.'
     });
   });
 

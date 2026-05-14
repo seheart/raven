@@ -10,6 +10,22 @@ import { cacheMiddleware } from '../services/cache-service.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { parseLimit, parseDateRange } from '../utils/request-helpers.js';
 
+// Row shapes returned by agentEventsRepo aggregate queries. Narrowed here
+// because the repository returns `unknown[]` for agentProfiles.
+interface AgentProfileRow {
+  agent: string;
+  event_count: number;
+  first_seen: string;
+  last_seen: string;
+  unique_files: number;
+}
+
+interface EventTypeDistributionRow {
+  agent: string;
+  event_type: string;
+  count: number;
+}
+
 export function createAgentsRouter(
   fileEventsRepo: FileEventsRepository,
   agentRegistry: Map<string, any>,
@@ -188,13 +204,13 @@ export function createAgentsRouter(
     cacheMiddleware(5000),
     asyncHandler(async (req: Request, res: Response) => {
       // Get all agent events grouped by agent
-      const agents = agentEventsRepo.agentProfiles() as any[];
+      const agents = agentEventsRepo.agentProfiles() as AgentProfileRow[];
 
       // Get event type distribution for all agents in a single query
-      const allEventTypes = agentEventsRepo.eventTypeDistribution() as any[];
+      const allEventTypes = agentEventsRepo.eventTypeDistribution() as EventTypeDistributionRow[];
 
       // Group by agent name
-      const eventTypesByAgent = new Map<string, any[]>();
+      const eventTypesByAgent = new Map<string, Array<{ event_type: string; count: number }>>();
       for (const row of allEventTypes) {
         if (!eventTypesByAgent.has(row.agent)) {
           eventTypesByAgent.set(row.agent, []);
@@ -202,7 +218,7 @@ export function createAgentsRouter(
         eventTypesByAgent.get(row.agent)!.push({ event_type: row.event_type, count: row.count });
       }
 
-      const profiles = agents.map((agent: any) => ({
+      const profiles = agents.map((agent: AgentProfileRow) => ({
         agent: agent.agent,
         event_count: agent.event_count,
         first_seen: agent.first_seen,

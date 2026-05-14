@@ -277,8 +277,12 @@ export function createProjectsRouter({
         }
         try {
           await fs.unlink(dbPath);
-          await fs.unlink(`${dbPath}-shm`).catch(() => {});
-          await fs.unlink(`${dbPath}-wal`).catch(() => {});
+          await fs.unlink(`${dbPath}-shm`).catch(err => {
+            logger.warn('[DELETE /api/projects/:id] Failed to remove SHM file:', err as Error);
+          });
+          await fs.unlink(`${dbPath}-wal`).catch(err => {
+            logger.warn('[DELETE /api/projects/:id] Failed to remove WAL file:', err as Error);
+          });
         } catch {
           logger.info('[DELETE /api/projects/:id] Database file not found:', dbPath);
         }

@@ -513,7 +513,13 @@
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
                 {#if s.tpsHistory.length > 1}
-                  <svg viewBox="0 0 80 20" class="w-20 h-5" preserveAspectRatio="none">
+                  <svg
+                    viewBox="0 0 80 20"
+                    class="w-20 h-5"
+                    preserveAspectRatio="none"
+                    role="img"
+                    aria-label="Recent token throughput sparkline"
+                  >
                     <path
                       d={sparklinePath(s.tpsHistory, 80, 20)}
                       fill="none"

@@ -107,6 +107,59 @@ describe('RavenDB - File Events', () => {
     // Should be unique
     expect(new Set(files).size).toBe(files.length);
   });
+
+  // Regression: the events table grew an `agent_source` column for agent
+  // attribution. Earlier the repo's insert dropped the column on the floor
+  // and downstream queries returned undefined. Round-trip ensures both the
+  // write and the read paths still wire the field through.
+  test('insert + byId round-trips agent_source', () => {
+    const id = fileEventsRepo.insert(
+      new Date().toISOString(),
+      '/src/attr.js',
+      'modified',
+      null,
+      null,
+      null,
+      'sess-attr',
+      null,
+      null,
+      'attr-proj',
+      'claude-code'
+    );
+    expect(id).toBeGreaterThan(0);
+
+    const row = fileEventsRepo.byId(id);
+    expect(row).toBeDefined();
+    expect(row.agent_source).toBe('claude-code');
+    expect(row.project_name).toBe('attr-proj');
+    expect(row.session_id).toBe('sess-attr');
+  });
+
+  // Regression: bySession() previously projected only legacy columns and
+  // dropped project_name and agent_source from the result set, so anything
+  // reading those off the row got undefined. session_id is intentionally
+  // not re-projected (it's the query parameter — caller already has it).
+  test('bySession returns project_name and agent_source on each row', () => {
+    fileEventsRepo.insert(
+      new Date().toISOString(),
+      '/src/bs.js',
+      'modified',
+      '+ x',
+      0,
+      0,
+      'sess-bys',
+      null,
+      null,
+      'bys-proj',
+      'claude'
+    );
+    const rows = fileEventsRepo.bySession('sess-bys');
+    expect(rows.length).toBeGreaterThan(0);
+    const r = rows[0];
+    expect(r).toHaveProperty('project_name', 'bys-proj');
+    expect(r).toHaveProperty('agent_source', 'claude');
+    expect(r.filepath).toBe('/src/bs.js');
+  });
 });
 
 describe('AgentEventsRepository', () => {
@@ -162,6 +215,108 @@ describe('AgentEventsRepository', () => {
     expect(stats[0]).toHaveProperty('event_count');
     expect(stats[0]).toHaveProperty('avg_duration_ms');
     expect(stats[0]).toHaveProperty('total_lines_changed');
+  });
+
+  // Regression (commit b5a52fc): toolBreakdown was previously a single global
+  // GROUP BY across all agents. The route would assign the same global top
+  // list to every agent row. The fix groups by (agent, message) so each
+  // agent's breakdown reflects only its own tool calls.
+  test('toolBreakdown groups by agent, not globally', () => {
+    const ts = () => new Date().toISOString();
+    // Agent X: Read x2, Glob x1.
+    agentEventsRepo.insert(
+      ts(),
+      'agent-X',
+      'tool_call',
+      null,
+      null,
+      null,
+      'Read call',
+      null,
+      'sX',
+      'tb-proj'
+    );
+    agentEventsRepo.insert(
+      ts(),
+      'agent-X',
+      'tool_call',
+      null,
+      null,
+      null,
+      'Read call',
+      null,
+      'sX',
+      'tb-proj'
+    );
+    agentEventsRepo.insert(
+      ts(),
+      'agent-X',
+      'tool_call',
+      null,
+      null,
+      null,
+      'Glob call',
+      null,
+      'sX',
+      'tb-proj'
+    );
+    // Agent Y: TodoWrite x2, Grep x1 — fully disjoint tool set.
+    agentEventsRepo.insert(
+      ts(),
+      'agent-Y',
+      'tool_call',
+      null,
+      null,
+      null,
+      'TodoWrite call',
+      null,
+      'sY',
+      'tb-proj'
+    );
+    agentEventsRepo.insert(
+      ts(),
+      'agent-Y',
+      'tool_call',
+      null,
+      null,
+      null,
+      'TodoWrite call',
+      null,
+      'sY',
+      'tb-proj'
+    );
+    agentEventsRepo.insert(
+      ts(),
+      'agent-Y',
+      'tool_call',
+      null,
+      null,
+      null,
+      'Grep call',
+      null,
+      'sY',
+      'tb-proj'
+    );
+
+    const rows = agentEventsRepo.toolBreakdown();
+    const byAgent = new Map();
+    for (const r of rows) {
+      if (!byAgent.has(r.agent)) byAgent.set(r.agent, []);
+      byAgent.get(r.agent).push(r);
+    }
+
+    const xMsgs = (byAgent.get('agent-X') || []).map(r => r.message).sort();
+    const yMsgs = (byAgent.get('agent-Y') || []).map(r => r.message).sort();
+    expect(xMsgs).toEqual(['Glob call', 'Read call']);
+    expect(yMsgs).toEqual(['Grep call', 'TodoWrite call']);
+
+    // Counts must be per-agent, not global. Read appears twice on X but
+    // never on Y — a global GROUP BY would have shown the same row count
+    // for every agent.
+    const xRead = byAgent.get('agent-X').find(r => r.message === 'Read call');
+    expect(xRead.count).toBe(2);
+    const yRead = (byAgent.get('agent-Y') || []).find(r => r.message === 'Read call');
+    expect(yRead).toBeUndefined();
   });
 });
 
@@ -341,6 +496,52 @@ describe('SyntaxErrorsRepository', () => {
     );
     const count = syntaxErrorsRepo.countUnresolved();
     expect(count).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// Regression (commit f57399f): aggregation queries returned NULL on empty
+// databases, which the front-end rendered as a silent "0 events" with no
+// indication that there was simply no data yet. The repo must coerce these
+// to actual zeros so consumers don't have to special-case nullish numerics.
+describe('Dashboard aggregations on an empty database', () => {
+  let emptyDb;
+  let emptyDashboardRepo;
+  let emptyDir;
+
+  beforeAll(() => {
+    emptyDir = mkdtempSync(join(tmpdir(), 'raven-db-empty-'));
+    emptyDb = new RavenDB(join(emptyDir, 'empty.db'));
+    emptyDashboardRepo = createDashboardRepository(emptyDb);
+  });
+
+  afterAll(() => {
+    if (emptyDb) emptyDb.close();
+    if (emptyDir) rmSync(emptyDir, { recursive: true, force: true });
+  });
+
+  test('dashboardStats returns 0 (not null) for every numeric field', () => {
+    const stats = emptyDashboardRepo.dashboardStats('no-session');
+    const numericFields = [
+      'total_events',
+      'lifetime_events',
+      'lifetime_agent_events',
+      'total_files',
+      'session_duration_seconds',
+      'active_files_today',
+      'creates',
+      'edits',
+      'deletes',
+      'creates_today',
+      'edits_today',
+      'deletes_today',
+      'files_avg_14d',
+      'cost_today_usd'
+    ];
+    for (const field of numericFields) {
+      expect(stats[field]).not.toBeNull();
+      expect(typeof stats[field]).toBe('number');
+      expect(stats[field]).toBe(0);
+    }
   });
 });
 

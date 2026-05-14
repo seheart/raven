@@ -179,9 +179,12 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
   const eventsByTypeStmt = db.db.prepare(
     `SELECT change_type, COUNT(*) as count FROM events GROUP BY change_type`
   );
+  // Bind ISO timestamp at call time so the timestamp index is used (the
+  // previous `datetime(timestamp) >= datetime('now', ...)` form disabled it
+  // by wrapping the column in a function call).
   const events24hStmt = db.db.prepare(
     `SELECT COUNT(*) as count FROM events
-     WHERE datetime(timestamp) >= datetime('now', '-24 hours')`
+     WHERE timestamp >= ?`
   );
   const activeProjectsStmt = db.db.prepare(
     `SELECT COUNT(DISTINCT project_name) as count FROM events
@@ -192,9 +195,10 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
     `SELECT filepath, COUNT(*) as count FROM events
      GROUP BY filepath ORDER BY count DESC LIMIT 1`
   );
+  // Same index-friendly rewrite as events24hStmt — caller supplies ISO cutoff.
   const avgPerDayStmt = db.db.prepare(
     `SELECT COUNT(*) / 7.0 as avg FROM events
-     WHERE datetime(timestamp) >= datetime('now', '-7 days')`
+     WHERE timestamp >= ?`
   );
   const busiestHourStmt = db.db.prepare(
     `SELECT CAST(strftime('%H', timestamp) AS INTEGER) as hour, COUNT(*) as count
@@ -246,7 +250,9 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
     getMetricsDashboard() {
       const totalEvents = totalEventsStmt.get() as { count: number } | undefined;
       const eventsByType = eventsByTypeStmt.all() as { change_type: string; count: number }[];
-      const events24h = events24hStmt.get() as { count: number } | undefined;
+      const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const since7d = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const events24h = events24hStmt.get(since24h) as { count: number } | undefined;
       let activeProjects = 1;
       try {
         const r = activeProjectsStmt.get() as { count: number } | undefined;
@@ -276,7 +282,7 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
       } catch {
         /* table missing */
       }
-      const avgPerDay = avgPerDayStmt.get() as { avg: number } | undefined;
+      const avgPerDay = avgPerDayStmt.get(since7d) as { avg: number } | undefined;
       const busiestHour = busiestHourStmt.get() as { hour: number; count: number } | undefined;
 
       return {

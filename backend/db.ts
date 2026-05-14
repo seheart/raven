@@ -506,6 +506,9 @@ export class RavenDB {
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_agent_events_session_file ON agent_events(session_id, file)`
     );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_agent_events_project_name ON agent_events(project_name)`
+    );
 
     // Metrics table indexes
     this.db.exec(
@@ -532,6 +535,9 @@ export class RavenDB {
     );
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_syntax_errors_filepath ON syntax_errors(filepath)`
+    );
+    this.db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_syntax_errors_filepath_timestamp ON syntax_errors(filepath, timestamp DESC)`
     );
     this.db.exec(
       `CREATE INDEX IF NOT EXISTS idx_syntax_errors_resolved ON syntax_errors(resolved)`

@@ -15,6 +15,31 @@ const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MS = 3000;
 const NUMSTAT_TTL_MS = 5000;
 
+// Minimal row shapes used by this router. Casts here narrow `unknown`
+// rows from better-sqlite3 to just what the handlers touch.
+interface FileEventRow {
+  id?: number;
+  filepath: string;
+  change_type?: string;
+  timestamp: string;
+}
+
+interface CountRow {
+  count: number;
+}
+
+interface SyntaxErrorRow {
+  id: number;
+  filepath: string;
+  line_number: number;
+  message: string;
+  timestamp: string;
+}
+
+interface FilepathRow {
+  filepath: string;
+}
+
 let numstatCache: { ts: number; map: Record<string, { added: number; removed: number }> } | null =
   null;
 
@@ -65,12 +90,12 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
        ORDER BY timestamp DESC
        LIMIT 500`
         )
-        .all(oneHourAgo);
+        .all(oneHourAgo) as FileEventRow[];
 
       const gitStats = await getGitNumstat();
 
       // Map files to include git stats (no subprocess spawning per file)
-      const filesWithStats = files.map((file: any) => {
+      const filesWithStats = files.map((file: FileEventRow) => {
         // Try exact match, then without raven/ prefix, then fallback to 0
         const stats = gitStats[file.filepath] ||
           gitStats[file.filepath.replace(/^raven\//, '')] || { added: 0, removed: 0 };
@@ -130,13 +155,13 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       // Get latest file change
       const latestChange = db
         .prepare(`SELECT filepath, timestamp FROM events ORDER BY timestamp DESC LIMIT 1`)
-        .get() as any;
+        .get() as FileEventRow | undefined;
 
       // Count files modified in last hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const fileCount = db
         .prepare(`SELECT COUNT(DISTINCT filepath) as count FROM events WHERE timestamp > ?`)
-        .get(oneHourAgo) as any;
+        .get(oneHourAgo) as CountRow | undefined;
 
       // Get total line changes from git (cached)
       let linesAdded = 0;
@@ -155,10 +180,10 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       // Determine session health based on recent errors
       const recentErrors = db
         .prepare(`SELECT COUNT(*) as count FROM syntax_errors WHERE timestamp > ?`)
-        .get(oneHourAgo) as any;
+        .get(oneHourAgo) as CountRow | undefined;
 
-      const sessionHealth =
-        recentErrors.count > 10 ? 'error' : recentErrors.count > 5 ? 'warning' : 'healthy';
+      const errorCount = recentErrors?.count ?? 0;
+      const sessionHealth = errorCount > 10 ? 'error' : errorCount > 5 ? 'warning' : 'healthy';
 
       res.json({
         currentFile: latestChange?.filepath || null,
@@ -187,7 +212,7 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
           `SELECT filepath, timestamp FROM events
        ORDER BY timestamp DESC LIMIT 10`
         )
-        .all();
+        .all() as FileEventRow[];
 
       // Simple heuristic: group recent changes to infer task
       let taskName = 'Ongoing Development';
@@ -195,10 +220,10 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       let progress = 50;
 
       if (recentChanges.length > 0) {
-        const files = recentChanges.map((c: any) => c.filepath);
-        const hasBackend = files.some((f: any) => f.includes('backend'));
-        const hasFrontend = files.some((f: any) => f.includes('frontend'));
-        const hasTests = files.some((f: any) => f.includes('test'));
+        const files = recentChanges.map((c: FileEventRow) => c.filepath);
+        const hasBackend = files.some((f: string) => f.includes('backend'));
+        const hasFrontend = files.some((f: string) => f.includes('frontend'));
+        const hasTests = files.some((f: string) => f.includes('test'));
 
         if (hasBackend && hasFrontend) {
           taskName = 'Full-Stack Feature Implementation';
@@ -245,9 +270,9 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const syntaxErrors = db
         .prepare(`SELECT * FROM syntax_errors WHERE timestamp > ? LIMIT 5`)
-        .all(fiveMinutesAgo);
+        .all(fiveMinutesAgo) as SyntaxErrorRow[];
 
-      syntaxErrors.forEach((error: any) => {
+      syntaxErrors.forEach((error: SyntaxErrorRow) => {
         alerts.push({
           id: `syntax-${error.id}`,
           type: 'error',
@@ -270,14 +295,14 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
        )
        LIMIT 3`
         )
-        .all(oneHourAgo);
+        .all(oneHourAgo) as FilepathRow[];
 
       if (riskFiles.length > 0) {
         alerts.push({
           id: 'high-risk-changes',
           type: 'warning',
           title: 'High-Risk File Changes',
-          message: `Modified security-sensitive files: ${riskFiles.map((f: any) => path.basename(f.filepath)).join(', ')}`
+          message: `Modified security-sensitive files: ${riskFiles.map((f: FilepathRow) => path.basename(f.filepath)).join(', ')}`
         });
       }
 
@@ -310,9 +335,9 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
        ORDER BY timestamp DESC
        LIMIT 10`
         )
-        .all();
+        .all() as FileEventRow[];
 
-      const activity = changes.map((change: any) => ({
+      const activity = changes.map((change: FileEventRow) => ({
         id: change.id,
         title: `${change.change_type === 'added' ? 'Added' : 'Modified'} ${path.basename(change.filepath)}`,
         description: change.filepath,
@@ -351,11 +376,11 @@ export function createLiveSessionRouter(ravenDB: RavenDB) {
        WHERE filepath LIKE ? AND filepath != ?
        LIMIT 5`
         )
-        .all(`%${path.dirname(filePath)}%`, filePath);
+        .all(`%${path.dirname(filePath)}%`, filePath) as FilepathRow[];
 
       const context = {
         impact,
-        relatedFiles: relatedFiles.map((f: any) => f.filepath),
+        relatedFiles: relatedFiles.map((f: FilepathRow) => f.filepath),
         risks: isHighRisk
           ? ['Security implications', 'Requires thorough testing', 'May affect authentication']
           : isMediumRisk

@@ -63,7 +63,8 @@
 
   onMount(() => {
     refresh();
-    const t = setInterval(refresh, 2000);
+    // 5s cadence — was 2s, but multiple components mount this poller
+    const t = setInterval(refresh, 5000);
     return () => clearInterval(t);
   });
 </script>
@@ -80,7 +81,9 @@
         style="width: {Math.min(100, cpu)}%; background: {barColor(cpu)}"
       ></div>
     </div>
-    <span class="font-semibold text-[var(--text)] tabular-nums w-8 text-right">{cpu.toFixed(0)}%</span>
+    <span class="font-semibold text-[var(--text)] tabular-nums w-8 text-right"
+      >{cpu.toFixed(0)}%</span
+    >
   </div>
 
   <!-- MEM -->
@@ -95,7 +98,9 @@
         style="width: {Math.min(100, memPct)}%; background: {barColor(memPct)}"
       ></div>
     </div>
-    <span class="font-semibold text-[var(--text)] tabular-nums w-8 text-right">{memPct.toFixed(0)}%</span>
+    <span class="font-semibold text-[var(--text)] tabular-nums w-8 text-right"
+      >{memPct.toFixed(0)}%</span
+    >
   </div>
 
   {#if gpu}
@@ -109,7 +114,9 @@
     <!-- GPU VRAM -->
     <div
       class="flex items-center gap-1.5"
-      title="VRAM: {(gpu.vram_used_mib / 1024).toFixed(2)} / {(gpu.vram_total_mib / 1024).toFixed(2)} GB"
+      title="VRAM: {(gpu.vram_used_mib / 1024).toFixed(2)} / {(gpu.vram_total_mib / 1024).toFixed(
+        2
+      )} GB"
     >
       <span class="text-[var(--muted)] uppercase tracking-wide text-[10px]">VRAM</span>
       <div class="w-20 h-1.5 bg-[var(--bg)] rounded overflow-hidden border border-[var(--border)]">
@@ -118,7 +125,9 @@
           style="width: {Math.min(100, gpu.vram_pct)}%; background: {barColor(gpu.vram_pct)}"
         ></div>
       </div>
-      <span class="font-semibold text-[var(--text)] tabular-nums w-8 text-right">{gpu.vram_pct}%</span>
+      <span class="font-semibold text-[var(--text)] tabular-nums w-8 text-right"
+        >{gpu.vram_pct}%</span
+      >
     </div>
 
     <!-- GPU stats -->
@@ -129,7 +138,11 @@
       util <span class="font-semibold text-[var(--text)]">{gpu.gpu_util_pct}%</span>
     </span>
     <span class="text-[var(--muted)]" title="Power draw / limit (watts)">
-      pwr <span class="font-semibold text-[var(--text)]">{gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] font-normal">/{gpu.power_limit_w.toFixed(0)}W</span></span>
+      pwr <span class="font-semibold text-[var(--text)]"
+        >{gpu.power_draw_w.toFixed(0)}<span class="text-[var(--muted)] font-normal"
+          >/{gpu.power_limit_w.toFixed(0)}W</span
+        ></span
+      >
     </span>
   {:else if gpuError}
     <span class="text-[var(--border)]">|</span>
