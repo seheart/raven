@@ -62,7 +62,7 @@
 
       <!-- Close button -->
       <button
-        class="flex-shrink-0 hover:opacity-70 transition-opacity text-lg font-bold"
+        class="flex-shrink-0 hover:opacity-70 transition-opacity text-lg font-bold px-2 py-1 -mr-1 -my-1"
         onclick={() => toasts.dismiss(toast.id)}
         aria-label="Dismiss"
       >

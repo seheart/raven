@@ -19,8 +19,13 @@
     {@render children()}
   </div>
 {:else}
-  <div class="min-h-screen bg-canvas p-6 pb-20">
-    <div class="max-w-none space-y-8">
+  <!--
+    Narrow widths (footer hidden, <lg): trim outer padding to p-4 and drop the
+    pb-20 footer compensation so dense pages don't waste a thumb of canvas on
+    every edge. Wide widths keep the canonical p-6 / pb-20 footer clearance.
+  -->
+  <div class="min-h-screen bg-canvas p-4 lg:p-6 pb-6 lg:pb-20">
+    <div class="max-w-none space-y-6 lg:space-y-8">
       {@render children()}
     </div>
   </div>

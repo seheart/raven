@@ -112,7 +112,7 @@
       <button
         type="button"
         onclick={dismiss}
-        class="text-muted hover:text-body text-sm leading-none px-1 -mr-1 bg-transparent border-0 cursor-pointer flex-shrink-0"
+        class="text-muted hover:text-body text-base leading-none px-2 py-1 -mr-1 -mt-1 bg-transparent border-0 cursor-pointer flex-shrink-0"
         aria-label="Dismiss this milestone"
         title="Dismiss">×</button
       >

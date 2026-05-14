@@ -472,7 +472,7 @@
         {/if}
       </header>
       <h2 class="text-lg font-semibold text-heading mb-3">{featuredInsight.title}</h2>
-      <div class="text-base text-body font-sans leading-relaxed">
+      <div class="text-base text-body font-sans leading-relaxed min-w-0 break-words">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
         {@html renderMarkdown(featuredInsight.content)}
       </div>
@@ -661,7 +661,7 @@
                   >
                 </div>
               </header>
-              <div class="text-base text-body font-sans leading-relaxed">
+              <div class="text-base text-body font-sans leading-relaxed min-w-0 break-words">
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
                 {@html renderMarkdown(insight.content)}
               </div>

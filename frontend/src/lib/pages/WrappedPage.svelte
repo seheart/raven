@@ -401,7 +401,11 @@
     font-weight: 600;
   }
 
-  @media (max-width: 768px) {
+  /* Hide rail below xl (1280px) — at half-screen / tablet widths the
+     fixed rail overlaps the card-inner content. Cards already scroll-snap
+     so the dots are decorative; users can wheel/swipe between cards
+     without them. */
+  @media (max-width: 1279px) {
     .rail {
       display: none;
     }

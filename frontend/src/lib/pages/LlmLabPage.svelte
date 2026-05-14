@@ -18,9 +18,9 @@
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-[var(--text-heading)] mb-1">Local LLM Lab</h1>
       <p class="text-sm text-[var(--muted)]">
-        Prototype area for live Ollama monitoring. All cards refresh on their own
-        interval (or stream live via websocket). Once a layout feels right we'll
-        shrink the AI Pulse and merge the winners into the Overview.
+        Prototype area for live Ollama monitoring. All cards refresh on their own interval (or
+        stream live via websocket). Once a layout feels right we'll shrink the AI Pulse and merge
+        the winners into the Overview.
       </p>
     </div>
 
@@ -34,11 +34,11 @@
         Dashboard column treatments
       </h2>
       <p class="text-xs text-[var(--muted)] mb-4">
-        Each preview shows what the LLM area would look like in the dashboard's
-        narrow column (≈ 1/3 of the page, the space currently used by the AI Pulse's
-        extra width). Pick the treatment that reads best.
+        Each preview shows what the LLM area would look like in the dashboard's narrow column (≈ 1/3
+        of the page, the space currently used by the AI Pulse's extra width). Pick the treatment
+        that reads best.
       </p>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <!-- Option 1 — Full cards stacked (the current lab cards) -->
         <div>
           <div class="text-[11px] font-mono uppercase tracking-wide text-[var(--muted)] mb-2 px-1">

@@ -289,7 +289,7 @@
                 chartTimeRange = range;
                 loadData();
               }}
-              class="px-1.5 py-0.5 text-[8px] rounded transition-colors"
+              class="px-2 py-1 text-[10px] rounded transition-colors min-w-[30px]"
               class:bg-accent={chartTimeRange === range}
               class:text-white={chartTimeRange === range}
               class:bg-canvas={chartTimeRange !== range}

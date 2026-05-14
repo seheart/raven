@@ -664,7 +664,7 @@
         >
           {passes.length} passing checks
         </summary>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 font-mono text-muted">
+        <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-1 font-mono text-muted">
           {#each passes as r (r.name)}
             <div class="flex items-baseline gap-2">
               <span class="text-success">✓</span>
