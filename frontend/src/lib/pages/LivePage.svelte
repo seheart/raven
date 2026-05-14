@@ -106,54 +106,62 @@
       <FreshnessBadge mode="live" since={lastUpdated} />
     {/snippet}
   </PageHeader>
-  <div class="live-page">
-    <div class="top-section">
-      <LiveStatusBar />
+  <div class="mb-4">
+    <LiveStatusBar />
+  </div>
+
+  <!-- Side-by-side at xl+ (1280px+). Below that — including the ~960 px
+       half-screen design center — the diff stacks below the change list
+       so neither column gets crushed. -->
+  <div class="grid grid-cols-1 xl:grid-cols-[minmax(320px,420px)_1fr] gap-4">
+    <!-- Left: Recent Changes -->
+    <div
+      class="bg-surface border border-border rounded-lg overflow-hidden flex flex-col min-w-[280px]"
+    >
+      <div class="flex items-center justify-between px-4 py-2 border-b border-border bg-canvas">
+        <span class="text-xs font-semibold text-muted uppercase tracking-wide">Recent Changes</span>
+        <span class="text-xs font-mono text-muted">{recentFiles.length}</span>
+      </div>
+      <div class="max-h-[480px] overflow-y-auto">
+        {#if loading}
+          <div class="text-sm text-muted font-sans p-4 text-center">Loading...</div>
+        {:else if recentFiles.length === 0}
+          <div class="p-4 text-center">
+            <div class="text-sm text-body font-sans mb-1">Waiting for file changes</div>
+            <div class="text-xs text-muted font-sans">
+              Edit any file in a tracked project — or let Claude Code do it — and it'll appear here
+              within a second, with a side-by-side diff below.
+            </div>
+          </div>
+        {:else}
+          {#each recentFiles as file (file.id || file.filepath || file.path)}
+            <button
+              class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-canvas transition-colors border-b border-border/40 last:border-b-0"
+              class:bg-canvas={(file.filepath || file.path) === selectedFile}
+              onclick={() => handleFileClick(file)}
+              aria-label="{getChangeType(file)} {getFileName(file)}"
+              aria-current={(file.filepath || file.path) === selectedFile ? 'true' : undefined}
+            >
+              <span class="text-xs font-mono font-bold w-4 flex-shrink-0 {getChangeClass(file)}"
+                >{getChangeType(file)}</span
+              >
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-mono text-body truncate">{getFileName(file)}</div>
+                <div class="text-xs font-mono text-muted truncate">{getFileDir(file)}</div>
+              </div>
+              <span class="text-xs font-mono text-muted flex-shrink-0"
+                >{timeAgo(file.timestamp)}</span
+              >
+            </button>
+          {/each}
+        {/if}
+      </div>
     </div>
 
-    <div class="main-layout">
-      <!-- Left: Recent Changes -->
-      <div class="changes-panel">
-        <div class="panel-header">
-          <span class="panel-title">Recent Changes</span>
-          <span class="panel-count">{recentFiles.length}</span>
-        </div>
-        <div class="file-list">
-          {#if loading}
-            <div class="empty-state">Loading...</div>
-          {:else if recentFiles.length === 0}
-            <div class="empty-state-block">
-              <div class="empty-title">Waiting for file changes</div>
-              <div class="empty-hint">
-                Edit any file in a tracked project — or let Claude Code do it — and it'll appear
-                here within a second, with a side-by-side diff on the right.
-              </div>
-            </div>
-          {:else}
-            {#each recentFiles as file (file.id || file.filepath || file.path)}
-              <button
-                class="file-item"
-                class:active={(file.filepath || file.path) === selectedFile}
-                onclick={() => handleFileClick(file)}
-                aria-label="{getChangeType(file)} {getFileName(file)}"
-                aria-current={(file.filepath || file.path) === selectedFile ? 'true' : undefined}
-              >
-                <span class="change-indicator {getChangeClass(file)}">{getChangeType(file)}</span>
-                <div class="file-info">
-                  <span class="file-name">{getFileName(file)}</span>
-                  <span class="file-dir">{getFileDir(file)}</span>
-                </div>
-                <span class="file-time">{timeAgo(file.timestamp)}</span>
-              </button>
-            {/each}
-          {/if}
-        </div>
-      </div>
-
-      <!-- Right: Diff Viewer -->
-      <div class="diff-panel">
-        <DiffViewer filePath={selectedFile} />
-      </div>
+    <!-- Right: Diff Viewer — needs a sensible min-height so it's usable
+         even when stacked below the list at narrow widths. -->
+    <div class="bg-surface border border-border rounded-lg overflow-hidden min-h-[420px]">
+      <DiffViewer filePath={selectedFile} />
     </div>
   </div>
 </PageLayout>

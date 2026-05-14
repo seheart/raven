@@ -595,8 +595,10 @@
   <div class="-mt-4 space-y-10">
     <!-- Hero — narrated summary. The trust pill, h1, and subtitle sit
          on a single tight stack so the eye lands on "Today" within the
-         first viewport-height even on shorter laptop screens. -->
-    <section class="flex flex-col lg:flex-row gap-8">
+         first viewport-height even on shorter laptop screens.
+         Aside splits off only at xl (1280px+) — at half-screen (~960px)
+         the narrative + context vessel stack so neither feels cramped. -->
+    <section class="flex flex-col xl:flex-row gap-8">
       <div class="flex-1 min-w-0 max-w-[48rem]">
         <!-- Presence pill + live-connection indicator. The pulsing dot
              doubles as WS-status (success when connected, warning when
@@ -693,7 +695,7 @@
       </div>
 
       <!-- Aside: context vessel + jump links -->
-      <aside class="lg:w-72 lg:flex-shrink-0 space-y-4">
+      <aside class="xl:w-72 xl:flex-shrink-0 space-y-4">
         <ContextVessel />
         <div class="bg-surface border border-border rounded-lg p-4">
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">
@@ -846,14 +848,18 @@
       </div>
     </section>
 
-    <!-- Two columns: activity + files -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Two columns: activity + files. Stacks single-column below xl
+         (matches Dashboard design center — half-screen views never sit
+         in cramped side-by-side lists). -->
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <!-- Recent activity -->
       <PageSection
         title="Recent activity"
         meta={activity.length ? `last ${Math.min(activity.length, 7)}` : ''}
       >
-        <div class="bg-surface border border-border rounded-lg p-1">
+        <!-- Bounded scroll on the list, not the card — Bloomberg-terminal
+             pattern. Card stays short and dense; the user scrolls within. -->
+        <div class="bg-surface border border-border rounded-lg p-1 max-h-[400px] overflow-y-auto">
           {#if activity.length === 0}
             <div class="p-4 text-sm text-muted italic">
               No recent activity. Start a Claude Code session and a green dot will light up here.
@@ -884,7 +890,7 @@
 
       <!-- Files touched today -->
       <PageSection title="Files Claude touched today" meta="{filesTodayCount} unique">
-        <div class="bg-surface border border-border rounded-lg p-1">
+        <div class="bg-surface border border-border rounded-lg p-1 max-h-[400px] overflow-y-auto">
           {#if filesToday.length === 0}
             <div class="p-4 text-sm text-muted italic">
               No file edits yet today. As Claude edits files, they'll show up here.

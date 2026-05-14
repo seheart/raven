@@ -183,8 +183,22 @@
   });
 </script>
 
+<!--
+  Header chrome.
+
+  RESPONSIVE.md: design center is half-screen (~960px), wide-screen is
+  the enhancement. The header row is `flex-wrap` so the project
+  dropdown and right-side pills can drop to a second row at narrow
+  widths instead of crushing the main tab strip. The main nav itself
+  uses `overflow-x-auto` + `whitespace-nowrap` as a final safety net so
+  tabs never get clipped or wrapped mid-label. Sub-tab row is the same
+  pattern.
+
+  Height is `min-h-12` (not fixed h-12) because the row may wrap to two
+  lines at narrow widths.
+-->
 <header class="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)] font-sans">
-  <div class="flex items-center gap-2 lg:gap-4 px-2 lg:px-3 py-2 h-12">
+  <div class="flex flex-wrap items-center gap-x-2 gap-y-1 lg:gap-x-4 px-2 lg:px-3 py-2 min-h-12">
     <!-- Logo -->
     <button
       onclick={e => handleNavClick(e, '/today')}
@@ -195,9 +209,16 @@
       <span class="hidden lg:inline">Raven</span>
     </button>
 
-    <!-- Main Navigation -->
+    <!--
+      Main Navigation. `min-w-0` lets flex shrink the nav so siblings
+      can keep their natural width; `overflow-x-auto` + per-button
+      `whitespace-nowrap` means tabs scroll horizontally inside the nav
+      rather than wrapping to a second line mid-label. At half-screen
+      this gives clean tab strip behavior even with the project filter
+      and pills present.
+    -->
     <nav
-      class="flex gap-0.5 lg:gap-1 flex-1 font-sans overflow-x-auto"
+      class="flex gap-0.5 lg:gap-1 flex-1 min-w-0 font-sans overflow-x-auto"
       aria-label="Main navigation"
     >
       {#each tabs as tab (tab.id)}

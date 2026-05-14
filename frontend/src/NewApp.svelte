@@ -129,7 +129,12 @@
   <!-- overflow-x:clip stops dense data pages from pushing the document
        wider than the viewport on mobile. Pages that need internal
        horizontal scroll wrap the offending element with overflow-x-auto. -->
-  <main class="pb-16 overflow-x-clip">
+  <!--
+    pb-20 (was pb-16): per RESPONSIVE.md rule 5 the footer nav uses
+    flex-wrap and may grow to two rows at narrow widths. pb-20 (5rem)
+    matches PageLayout.default and clears the wrapped footer height.
+  -->
+  <main class="pb-20 overflow-x-clip">
     <svelte:boundary>
       {#snippet failed(error, reset)}
         <div class="min-h-screen bg-[var(--bg)] p-6 pb-20 flex items-center justify-center">

@@ -453,13 +453,13 @@
 
   <!-- Status Overview -->
   {#if loading}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
       {#each Array(3) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
     </div>
   {:else}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Agents
@@ -489,13 +489,13 @@
 
   <!-- Agent Activity Charts -->
   {#if !loading && recentEvents.length > 0}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
       <!-- Agent Activity Over Time -->
       <section class="bg-surface border border-border rounded-lg p-5">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
           Agent Activity (Last 24h)
         </h3>
-        <div class="h-64 bg-canvas rounded p-3">
+        <div class="min-h-[200px] h-64 bg-canvas rounded p-3">
           <canvas id="agent-utilization-chart"></canvas>
         </div>
       </section>
@@ -505,7 +505,7 @@
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
           Event Distribution by Agent
         </h3>
-        <div class="h-64 bg-canvas rounded p-3">
+        <div class="min-h-[200px] h-64 bg-canvas rounded p-3">
           <canvas id="agent-distribution-chart"></canvas>
         </div>
       </section>
@@ -537,7 +537,9 @@
         </p>
       </div>
     {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto"
+      >
         {#each runningAgents as agent (agent.agent_name)}
           <div
             class="bg-canvas border border-border rounded-lg p-4 hover:border-accent transition-all"
@@ -598,7 +600,9 @@
         </p>
       </div>
     {:else}
-      <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+      <div
+        class="border-t border-b border-border font-mono text-sm overflow-x-auto max-h-[500px] overflow-y-auto"
+      >
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -749,7 +753,7 @@
         {/if}
       </div>
     {:else}
-      <div class="space-y-2">
+      <div class="space-y-2 max-h-[500px] overflow-y-auto">
         {#each filteredEvents as event, i (event.id || event.timestamp + ':' + i)}
           <div
             class="flex items-start gap-3 p-3 bg-canvas rounded hover:bg-surface-2 transition-all"

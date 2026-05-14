@@ -166,7 +166,7 @@
     </div>
 
     <!-- Summary Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div
         class="bg-surface border border-border rounded p-4"
         title="Activity in the selected window — file edits + AI tool calls combined."
@@ -213,14 +213,21 @@
           Per-Project Health
         </h3>
 
-        <div class="space-y-3">
+        <!-- Bounded so a long list of projects doesn't push everything else
+             off-screen. Rows wrap-flex below sm so the bar always has room. -->
+        <div class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
           {#each projectsData as project (project.project_name)}
-            <div class="flex items-center gap-4 p-3 bg-canvas border border-border rounded">
-              <div class="text-sm font-mono text-body w-32 truncate" title={project.project_name}>
+            <div
+              class="flex flex-wrap items-center gap-3 sm:gap-4 p-3 bg-canvas border border-border rounded"
+            >
+              <div
+                class="text-sm font-mono text-body w-full sm:w-32 truncate"
+                title={project.project_name}
+              >
                 {project.project_name}
               </div>
 
-              <div class="flex-1 flex items-center gap-3">
+              <div class="flex-1 min-w-[160px] flex items-center gap-3">
                 <div class="flex-1 h-2 bg-surface rounded overflow-hidden">
                   <div
                     class="h-full transition-all"
@@ -237,11 +244,11 @@
                 </span>
               </div>
 
-              <div class="text-xs font-mono text-muted w-20 text-right">
+              <div class="text-xs font-mono text-muted text-right whitespace-nowrap">
                 {project.error_count || 0} errors
               </div>
 
-              <span class="flex items-center gap-1.5 text-xs font-mono">
+              <span class="flex items-center gap-1.5 text-xs font-mono whitespace-nowrap">
                 <span
                   class="w-2 h-2 rounded-full"
                   style="background: {getSeverityColor(

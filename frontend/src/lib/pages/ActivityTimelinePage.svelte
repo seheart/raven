@@ -216,7 +216,7 @@
   {/if}
 
   <!-- Stats -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Events</div>
       <div class="text-sm font-mono text-body">{stats.total}</div>
@@ -287,7 +287,10 @@
       icon="◴"
     />
   {:else}
-    <div class="space-y-6">
+    <!-- Bounded scroller — timelines grow unbounded with use, and at
+         half-screen we want the user scrolling within the feed, not the
+         whole page. Sticky date headers still work inside the scroller. -->
+    <div class="max-h-[720px] overflow-y-auto space-y-6 pr-1">
       {#each groupedEvents as group, index (index)}
         <div class="relative">
           <!-- Date Header -->

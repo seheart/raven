@@ -341,7 +341,7 @@
 
   {#if loading && !displayRun}
     <!-- Loading skeleton -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
       {#each Array(4) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
@@ -360,7 +360,7 @@
     </EmptyState>
   {:else}
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Overall</div>
         <div class="flex items-center gap-2">
@@ -468,7 +468,7 @@
     {/if}
 
     <!-- Check Results by Category -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
       {#each categories as [category, checks] (category)}
         <div class="bg-surface border border-border rounded-lg p-5">
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">

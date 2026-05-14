@@ -405,13 +405,13 @@
 
   <!-- Summary Cards -->
   {#if loading}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
       {#each Array(5) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
     </div>
   {:else}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Agents
@@ -510,7 +510,7 @@
     </div>
 
     <!-- Agent Cards with Enhanced Details -->
-    <div class="space-y-4">
+    <div class="space-y-4 max-h-[500px] overflow-y-auto">
       {#each sortedStats as agent (agent.agent_name)}
         {@const config = getAgentConfig(agent.agent_name)}
         {@const mood = calculateMood(agent)}
@@ -562,7 +562,7 @@
           </div>
 
           <!-- Metrics Grid -->
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+          <div class="grid grid-cols-2 xl:grid-cols-6 gap-3 mb-4">
             <div class="bg-canvas border border-border rounded p-3">
               <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                 Events
@@ -614,13 +614,15 @@
           </div>
 
           <!-- Chart and Distribution -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
             <!-- Activity Breakdown Chart -->
             <div class="space-y-2">
               <div class="text-xs font-semibold text-muted uppercase tracking-wide">
                 Activity Breakdown
               </div>
-              <div class="h-40 flex items-center justify-center bg-canvas rounded p-2">
+              <div
+                class="min-h-[200px] h-40 flex items-center justify-center bg-canvas rounded p-2"
+              >
                 <canvas id="pie-{(agent.agent_name || 'unknown').replace(/[^a-zA-Z0-9]/g, '-')}"
                 ></canvas>
               </div>
@@ -636,7 +638,7 @@
               <div class="text-xs font-semibold text-muted uppercase tracking-wide">
                 Change Distribution
               </div>
-              <div class="h-40 flex flex-col justify-center">
+              <div class="min-h-[200px] h-40 flex flex-col justify-center">
                 <div class="flex h-8 rounded overflow-hidden bg-canvas mb-2">
                   {#if createRate > 0}
                     <div

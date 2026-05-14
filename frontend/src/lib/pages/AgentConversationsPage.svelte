@@ -536,7 +536,7 @@
   </PageHeader>
 
   <!-- Stats Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
         Total Conversations
@@ -583,16 +583,16 @@
         </button>
       </div>
       {#if showCharts}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <div class="bg-canvas border border-border rounded-lg p-5">
             <h4 class="text-xs font-semibold text-body mb-3">Event Type Distribution</h4>
-            <div class="h-[250px] relative">
+            <div class="min-h-[200px] h-[250px] relative">
               <canvas id="chart-type-breakdown"></canvas>
             </div>
           </div>
           <div class="bg-canvas border border-border rounded-lg p-5">
             <h4 class="text-xs font-semibold text-body mb-3">Top 10 Projects</h4>
-            <div class="h-[300px] relative">
+            <div class="min-h-[200px] h-[300px] relative">
               <canvas id="chart-project-distribution"></canvas>
             </div>
           </div>
@@ -813,134 +813,137 @@
         Showing {filteredConversations.length} of {stats.total} conversations
       </div>
 
-      {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
-        {#if groupBy !== 'none'}
-          <div
-            class="flex items-center gap-3 px-5 py-3 bg-surface-2 border border-border rounded-lg mb-3 mt-5"
-          >
-            <h3 class="m-0 text-sm font-semibold text-accent">{groupName}</h3>
-            <span class="text-xs text-muted font-mono">({groupConvs.length} conversations)</span>
-          </div>
-        {/if}
-
-        {#each groupConvs as conv (conv.id)}
-          <article
-            class="bg-surface border border-border rounded-lg overflow-hidden {getEventClass(
-              conv.event_type
-            ) === 'user'
-              ? 'border-l-4 border-l-accent'
-              : getEventClass(conv.event_type) === 'assistant'
-                ? 'border-l-4 border-l-info'
-                : getEventClass(conv.event_type) === 'tool-call'
-                  ? 'border-l-4 border-l-warning'
-                  : getEventClass(conv.event_type) === 'tool-result'
-                    ? 'border-l-4 border-l-success'
-                    : ''}"
-          >
-            <button
-              class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left font-inherit text-inherit hover:bg-canvas focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-[-2px] transition-colors"
-              onclick={() => toggleExpanded(conv.id)}
+      <div class="flex flex-col gap-3 max-h-[500px] overflow-y-auto">
+        {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
+          {#if groupBy !== 'none'}
+            <div
+              class="flex items-center gap-3 px-5 py-3 bg-surface-2 border border-border rounded-lg mb-3 mt-5"
             >
-              <div class="text-xs shrink-0">{getEventIcon(conv.event_type)}</div>
-              <div class="flex-1 min-w-0">
-                <div class="flex gap-2 mb-2 flex-wrap">
-                  <span class="text-xs font-semibold uppercase tracking-wide text-accent"
-                    >{conv.event_type}</span
-                  >
-                  {#if conv.file}
-                    <span
-                      class="text-xs px-2 py-0.5 rounded bg-canvas text-muted font-mono truncate max-w-[200px]"
-                      >{conv.file.split('/').slice(-2).join('/')}</span
-                    >
-                  {/if}
-                  {#if conv.project_name}
-                    <span class="text-xs px-2 py-0.5 rounded bg-canvas text-muted"
-                      >{conv.project_name}</span
-                    >
-                  {/if}
-                </div>
-                {#if viewMode === 'detailed' && conv.message}
-                  <div
-                    class="text-xs text-body leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis"
-                  >
-                    {truncateContent(conv.message, 120)}
-                  </div>
-                {/if}
-              </div>
-              <div class="text-right shrink-0">
-                <time class="text-xs text-muted block mb-1" datetime={conv.timestamp}
-                  >{formatTime(conv.timestamp)}</time
-                >
-                <div class="text-xs text-muted font-mono">#{conv.id}</div>
-              </div>
-              <span class="text-xs text-muted shrink-0 p-1">
-                {expandedConversations.includes(conv.id) ? '' : ''}
-              </span>
-            </button>
+              <h3 class="m-0 text-sm font-semibold text-accent">{groupName}</h3>
+              <span class="text-xs text-muted font-mono">({groupConvs.length} conversations)</span>
+            </div>
+          {/if}
 
-            {#if expandedConversations.includes(conv.id)}
-              <div class="border-t border-border p-5 bg-canvas">
-                {#if conv.message}
-                  <div class="mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                      <div class="text-xs font-semibold uppercase tracking-wide text-muted">
-                        Message
-                      </div>
-                      <button
-                        class="px-2 py-1 bg-surface border border-border rounded text-body font-mono text-xs cursor-pointer hover:border-accent transition-colors"
-                        onclick={() => copyToClipboard(conv.message, 'Message')}
+          {#each groupConvs as conv (conv.id)}
+            <article
+              class="bg-surface border border-border rounded-lg overflow-hidden {getEventClass(
+                conv.event_type
+              ) === 'user'
+                ? 'border-l-4 border-l-accent'
+                : getEventClass(conv.event_type) === 'assistant'
+                  ? 'border-l-4 border-l-info'
+                  : getEventClass(conv.event_type) === 'tool-call'
+                    ? 'border-l-4 border-l-warning'
+                    : getEventClass(conv.event_type) === 'tool-result'
+                      ? 'border-l-4 border-l-success'
+                      : ''}"
+            >
+              <button
+                class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left font-inherit text-inherit hover:bg-canvas focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-[-2px] transition-colors"
+                onclick={() => toggleExpanded(conv.id)}
+              >
+                <div class="text-xs shrink-0">{getEventIcon(conv.event_type)}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex gap-2 mb-2 flex-wrap">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-accent"
+                      >{conv.event_type}</span
+                    >
+                    {#if conv.file}
+                      <span
+                        class="text-xs px-2 py-0.5 rounded bg-canvas text-muted font-mono truncate max-w-[200px]"
+                        >{conv.file.split('/').slice(-2).join('/')}</span
                       >
-                        Copy
-                      </button>
-                    </div>
-                    <pre
-                      class="bg-surface border border-border rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{conv.message}</pre>
+                    {/if}
+                    {#if conv.project_name}
+                      <span class="text-xs px-2 py-0.5 rounded bg-canvas text-muted"
+                        >{conv.project_name}</span
+                      >
+                    {/if}
                   </div>
-                {/if}
-
-                {#if conv.file}
-                  <div class="mb-4">
-                    <div class="text-xs font-semibold uppercase tracking-wide text-muted mb-2">
-                      File
-                    </div>
+                  {#if viewMode === 'detailed' && conv.message}
                     <div
-                      class="text-sm font-mono text-body bg-surface border border-border rounded p-3 break-all"
+                      class="text-xs text-body leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis"
                     >
-                      {conv.file}
+                      {truncateContent(conv.message, 120)}
                     </div>
-                  </div>
-                {/if}
+                  {/if}
+                </div>
+                <div class="text-right shrink-0">
+                  <time class="text-xs text-muted block mb-1" datetime={conv.timestamp}
+                    >{formatTime(conv.timestamp)}</time
+                  >
+                  <div class="text-xs text-muted font-mono">#{conv.id}</div>
+                </div>
+                <span class="text-xs text-muted shrink-0 p-1">
+                  {expandedConversations.includes(conv.id) ? '' : ''}
+                </span>
+              </button>
 
-                <div
-                  class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-surface border border-border rounded text-xs"
-                >
-                  <div>
-                    <span class="text-muted">Agent</span>
-                    <span class="text-body font-mono ml-2">{conv.agent || 'Unknown'}</span>
-                  </div>
-                  {#if conv.session_id}
-                    <div>
-                      <span class="text-muted">Session</span>
-                      <span class="text-body font-mono ml-2">{conv.session_id.slice(0, 12)}...</span
+              {#if expandedConversations.includes(conv.id)}
+                <div class="border-t border-border p-5 bg-canvas">
+                  {#if conv.message}
+                    <div class="mb-4">
+                      <div class="flex justify-between items-center mb-2">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-muted">
+                          Message
+                        </div>
+                        <button
+                          class="px-2 py-1 bg-surface border border-border rounded text-body font-mono text-xs cursor-pointer hover:border-accent transition-colors"
+                          onclick={() => copyToClipboard(conv.message, 'Message')}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <pre
+                        class="bg-surface border border-border rounded p-3 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{conv.message}</pre>
+                    </div>
+                  {/if}
+
+                  {#if conv.file}
+                    <div class="mb-4">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-muted mb-2">
+                        File
+                      </div>
+                      <div
+                        class="text-sm font-mono text-body bg-surface border border-border rounded p-3 break-all"
                       >
+                        {conv.file}
+                      </div>
                     </div>
                   {/if}
-                  {#if conv.project_name}
+
+                  <div
+                    class="flex flex-wrap gap-x-6 gap-y-2 p-3 bg-surface border border-border rounded text-xs"
+                  >
                     <div>
-                      <span class="text-muted">Project</span>
-                      <span class="text-body font-mono ml-2">{conv.project_name}</span>
+                      <span class="text-muted">Agent</span>
+                      <span class="text-body font-mono ml-2">{conv.agent || 'Unknown'}</span>
                     </div>
-                  {/if}
-                  <div>
-                    <span class="text-muted">Timestamp</span>
-                    <span class="text-body font-mono ml-2">{formatDateTime(conv.timestamp)}</span>
+                    {#if conv.session_id}
+                      <div>
+                        <span class="text-muted">Session</span>
+                        <span class="text-body font-mono ml-2"
+                          >{conv.session_id.slice(0, 12)}...</span
+                        >
+                      </div>
+                    {/if}
+                    {#if conv.project_name}
+                      <div>
+                        <span class="text-muted">Project</span>
+                        <span class="text-body font-mono ml-2">{conv.project_name}</span>
+                      </div>
+                    {/if}
+                    <div>
+                      <span class="text-muted">Timestamp</span>
+                      <span class="text-body font-mono ml-2">{formatDateTime(conv.timestamp)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            {/if}
-          </article>
+              {/if}
+            </article>
+          {/each}
         {/each}
-      {/each}
+      </div>
 
       {#if hasMore}
         <div class="flex justify-center p-4">

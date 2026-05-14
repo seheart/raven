@@ -179,7 +179,7 @@
 
   <!-- Stats strip — matches /storage and /system patterns. Shows the
        at-a-glance plugin runtime health. -->
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Installed</div>
       <div class="text-sm font-mono text-body">{plugins.length}</div>

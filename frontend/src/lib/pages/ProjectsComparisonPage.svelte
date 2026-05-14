@@ -295,9 +295,13 @@
       description="Try adjusting your search or status filter."
     />
   {:else}
-    <!-- Table -->
-    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
-      <table class="w-full">
+    <!-- Table — horizontal scroll within container (7 cols is intrinsically
+         wide); vertical scroll within container so the summary tile stays
+         pinned below regardless of project count. -->
+    <div
+      class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[560px]"
+    >
+      <table class="w-full min-w-[720px]">
         <thead class="bg-canvas">
           <tr class="text-[11px] text-muted uppercase tracking-wide">
             <th
@@ -383,7 +387,7 @@
     </div>
 
     <!-- Summary -->
-    <div class="flex gap-6 mt-6 p-4 bg-surface border border-border rounded-lg">
+    <div class="flex flex-wrap gap-4 sm:gap-6 mt-6 p-4 bg-surface border border-border rounded-lg">
       <div class="text-xs font-mono">
         <strong class="text-accent text-sm">{filteredProjects.length}</strong>
         <span class="text-muted ml-1">displayed</span>

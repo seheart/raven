@@ -31,46 +31,68 @@
   });
 </script>
 
+<!--
+  Footer chrome.
+
+  RESPONSIVE.md rule 5: tagline hides below `md` and nav uses `flex-wrap` so
+  items reflow to a second row at narrow widths instead of crushing. The
+  outer row also wraps, so the brand block and nav can stack onto two rows
+  at half-screen widths (~768–960px). At wide widths everything sits on a
+  single row.
+
+  Footer is fixed-position; <main> in NewApp.svelte uses `pb-20` to clear
+  the wrapped two-row footer height.
+-->
 <footer
   class="fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] z-40"
 >
-  <div class="flex items-center justify-between px-4 py-2 text-sm font-mono">
-    <div class="flex items-center gap-4">
+  <div
+    class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 text-sm font-mono"
+  >
+    <div class="flex items-center gap-3 shrink-0">
       <span class="font-semibold text-[var(--accent)]">Raven v{version}</span>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <!-- Tagline hides below md (RESPONSIVE.md rule 5). Flavor, not content. -->
       <span
-        class="flex items-center gap-1.5 text-xs text-[var(--body)]"
+        class="hidden md:flex items-center gap-1.5 text-xs text-[var(--body)]"
         title="Raven is your AI's steady companion — always present, every session, every day."
       >
         <span class="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" aria-hidden="true"
         ></span>
-        <span class="hidden sm:inline">Always perched · your AI's steady companion</span>
-        <span class="sm:hidden">Always perched</span>
+        <span>Always perched · your AI's steady companion</span>
       </span>
     </div>
 
-    <nav class="flex items-center gap-4" aria-label="Footer navigation">
+    <!--
+      Footer nav. `flex-wrap` lets items reflow to a second row at narrow
+      widths. The pipe separators are hidden below md so wrapped rows
+      don't end with an orphan "|"; at md+ they re-appear when the nav
+      typically fits on one row anyway.
+    -->
+    <nav
+      class="flex flex-wrap items-center gap-x-3 gap-y-1 md:gap-x-4"
+      aria-label="Footer navigation"
+    >
       <button
         onclick={onAboutClick}
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
       >
         About
       </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         onclick={onDesignSystemClick}
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
       >
         Design
       </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         onclick={onRoadmapClick}
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
       >
         Roadmap
       </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         onclick={onDiagnosticClick}
         class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
@@ -78,7 +100,7 @@
       >
         Diagnostic
       </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <a
         href="https://github.com/seheart/raven/issues/new"
         target="_blank"
@@ -88,7 +110,7 @@
       >
         Feedback
       </a>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <a
         href="https://github.com/seheart/raven"
         target="_blank"
@@ -110,39 +132,18 @@
           />
         </svg>
       </a>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={onSettingsClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer flex items-center"
-        title="Settings"
-        aria-label="Settings"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
+      <!--
+        Settings + Theme stay together as the rightmost utility pair.
+        Wrapped as one inline-flex so they never split across rows.
+      -->
+      <span class="inline-flex items-center gap-3">
+        <button
+          onclick={onSettingsClick}
+          class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer flex items-center"
+          title="Settings"
+          aria-label="Settings"
         >
-          <circle cx="12" cy="12" r="3" />
-          <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-          />
-        </svg>
-      </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={toggleTheme}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer flex items-center gap-1.5 text-xs"
-        title="Switch to {isDark ? 'light' : 'dark'} theme"
-        aria-label="Switch to {isDark ? 'light' : 'dark'} theme"
-      >
-        {#if isDark}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -153,39 +154,70 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            ><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line
-              x1="12"
-              y1="21"
-              x2="12"
-              y2="23"
-            /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line
-              x1="18.36"
-              y1="18.36"
-              x2="19.78"
-              y2="19.78"
-            /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line
-              x1="4.22"
-              y1="19.78"
-              x2="5.64"
-              y2="18.36"
-            /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg
+            aria-hidden="true"
           >
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg
-          >
-        {/if}
-      </button>
-      <span class="text-[var(--muted)]" aria-hidden="true">|</span>
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+            />
+          </svg>
+        </button>
+        <button
+          onclick={toggleTheme}
+          class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer flex items-center gap-1.5 text-xs"
+          title="Switch to {isDark ? 'light' : 'dark'} theme"
+          aria-label="Switch to {isDark ? 'light' : 'dark'} theme"
+        >
+          {#if isDark}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line
+                x1="12"
+                y1="21"
+                x2="12"
+                y2="23"
+              /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line
+                x1="18.36"
+                y1="18.36"
+                x2="19.78"
+                y2="19.78"
+              /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line
+                x1="4.22"
+                y1="19.78"
+                x2="5.64"
+                y2="18.36"
+              /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg
+            >
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg
+            >
+          {/if}
+        </button>
+      </span>
+      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
+      <!--
+        Monitoring heartbeat — always visible. Lives at the end of the
+        nav so it sits in the bottom-right corner at all widths and stays
+        as the "is Raven listening?" signal even when the nav wraps.
+      -->
       <span
         class="flex items-center gap-2 text-xs {connected
           ? 'text-[var(--success)]'

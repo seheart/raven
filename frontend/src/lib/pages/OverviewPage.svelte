@@ -843,14 +843,17 @@
 </script>
 
 <PageLayout variant="dashboard">
-  <div class="h-[calc(100vh-6rem)] p-4 pb-2 flex flex-col">
-    <div class="mx-auto px-2 flex flex-col flex-1 min-h-0 w-full">
+  <!-- Narrow widths (<1280px) stack everything vertically with bounded
+       per-module heights — Bloomberg-terminal pattern. xl+ reclaims the
+       fixed-viewport flex layout so each row fills available height. -->
+  <div class="p-4 pb-2 xl:h-[calc(100vh-6rem)] xl:flex xl:flex-col">
+    <div class="mx-auto px-2 w-full xl:flex xl:flex-col xl:flex-1 xl:min-h-0">
       <div class="mb-3">
         <PageHeader size="medium" title="Dashboard" description="Real-time monitoring" />
       </div>
 
-      <!-- Event Feed + AI Pulse -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
+      <!-- Event Feed + AI Pulse + Active Models -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 mb-3 xl:flex-1 xl:min-h-0">
         <div class="bg-surface border border-border rounded-lg p-4 flex flex-col min-h-0">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Event Feed</h3>
@@ -859,7 +862,9 @@
               Live
             </span>
           </div>
-          <div class="space-y-0.5 overflow-y-auto flex-1">
+          <!-- Bounded height at narrow widths so the feed doesn't push
+               the page miles long; full-height at xl when stacked side-by-side. -->
+          <div class="space-y-0.5 overflow-y-auto max-h-[400px] xl:max-h-none xl:flex-1">
             {#if activityFeed.length === 0 && recentFiles.length === 0}
               <div class="text-center py-6 text-xs text-muted leading-relaxed">
                 <span class="inline-block idle-breathing">Waiting for activity</span>
@@ -921,13 +926,17 @@
             {/if}
           </div>
         </div>
-        <div>
+        <!-- AI Pulse — particle viz fills its container, so give it an
+             explicit min-height at narrow widths or it collapses to 0px
+             when stacked under Event Feed. -->
+        <div class="min-h-[280px] xl:min-h-0">
           <NebulaActivity />
         </div>
         <!-- Active Models column. GPU health lives in the global VitalsStrip
            below the header now, so this column is dedicated to active
-           models — scales cleanly as more models load. -->
-        <div class="flex flex-col min-h-0 overflow-auto">
+           models — scales cleanly as more models load. Bounded scroll at
+           narrow widths so a long model list doesn't push the page. -->
+        <div class="flex flex-col min-h-0 overflow-auto max-h-[400px] xl:max-h-none">
           <ActiveModelCard />
         </div>
       </div>
@@ -1085,11 +1094,13 @@
         </button>
       </div>
 
-      <!-- Sub-Agents + Latest Diff + Activity Trend -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 flex-1 min-h-0">
-        <!-- Agents — top-level + sub-agents in one list, most recent first -->
+      <!-- Agent Activity chart (full-width at narrow) + Latest Diff (full-width
+           at narrow) + Agents list. At xl+, these spread into 3 columns. -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 mb-3 xl:flex-1 xl:min-h-0">
+        <!-- Agents — top-level + sub-agents in one list, most recent first.
+             At narrow widths this slots last so the diff/chart get visual priority. -->
         <div
-          class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col"
+          class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col order-3 xl:order-1"
           onclick={() => navigate('/agents')}
           onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/agents')}
           role="link"
@@ -1100,7 +1111,8 @@
             <span class="text-[10px] text-muted">{allAgents.length} · →</span>
           </div>
           {#if allAgents.length > 0}
-            <div class="space-y-1 overflow-y-auto flex-1">
+            <!-- Bounded scroll at narrow widths; full-height at xl. -->
+            <div class="space-y-1 overflow-y-auto max-h-[400px] xl:max-h-none xl:flex-1">
               {#each allAgents.slice(0, 10) as agent (agent.key)}
                 <div class="flex items-center gap-2 py-0.5">
                   <span
@@ -1135,10 +1147,13 @@
           {/if}
         </div>
 
-        <!-- Latest Diff -->
+        <!-- Latest Diff — full-width at narrow widths so the code is
+             actually readable (was unreadably narrow squeezed into a thin
+             middle column at half-screen). order-2 keeps it in the middle
+             of the narrow stack: chart, diff, agents. -->
         {#if !latestDiffHidden}
           <div
-            class="bg-surface border border-border rounded-lg overflow-hidden flex flex-col min-h-0"
+            class="bg-surface border border-border rounded-lg overflow-hidden flex flex-col min-h-[260px] xl:min-h-0 order-2"
           >
             <div
               class="flex justify-between items-center gap-2 px-3 py-1.5 bg-canvas border-b border-border flex-shrink-0"
@@ -1199,12 +1214,16 @@
           </div>
         {/if}
 
-        <!-- Activity Trend -->
-        <div class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-0">
+        <!-- Activity Trend — chart needs a min-h or Chart.js collapses
+             when stacked at narrow widths. order-1 puts it first in the
+             narrow stack (above the diff and the agents list). -->
+        <div
+          class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-[220px] xl:min-h-0 order-1 xl:order-3"
+        >
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">
             Agent Activity (5m)
           </h3>
-          <div class="flex-1 min-h-0 relative">
+          <div class="flex-1 min-h-[200px] xl:min-h-0 relative">
             <canvas id="chart-trend"></canvas>
             {#if recentFiles.length === 0 && recentAgentEvents.length === 0}
               <div

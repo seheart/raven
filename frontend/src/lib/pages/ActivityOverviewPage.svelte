@@ -856,7 +856,7 @@
 
   <!-- Statistics Dashboard -->
   {#if !loading && activities.length > 0}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Activities
@@ -905,22 +905,28 @@
             Hide Charts
           </button>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-canvas border border-border rounded p-4" style="height: 250px;">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div
+            class="bg-canvas border border-border rounded p-4"
+            style="height: 250px; min-height: 250px;"
+          >
             <canvas id="chart-activity-types"></canvas>
           </div>
-          <div class="bg-canvas border border-border rounded p-4" style="height: 250px;">
+          <div
+            class="bg-canvas border border-border rounded p-4"
+            style="height: 250px; min-height: 250px;"
+          >
             <canvas id="chart-activities-per-session"></canvas>
           </div>
           <div
-            class="bg-canvas border border-border rounded p-4 md:col-span-2"
-            style="height: 320px;"
+            class="bg-canvas border border-border rounded p-4 xl:col-span-2"
+            style="height: 320px; min-height: 320px;"
           >
             <canvas id="chart-activities-by-hour"></canvas>
           </div>
           <div
-            class="bg-canvas border border-border rounded p-4 md:col-span-2"
-            style="height: 280px;"
+            class="bg-canvas border border-border rounded p-4 xl:col-span-2"
+            style="height: 280px; min-height: 280px;"
           >
             <canvas id="chart-cumulative-activities"></canvas>
           </div>
@@ -968,217 +974,228 @@
         {/snippet}
       </EmptyState>
     {:else if groupBySession && sessions.length > 0}
-      <!-- Session Grouped View -->
-      {#each sessions as session (session.id)}
-        <div class="bg-canvas border border-border rounded-lg overflow-hidden">
-          <button
-            onclick={() => toggleSession(session.id)}
-            class="w-full flex justify-between items-center p-5 bg-surface hover:bg-surface-2 transition-colors {collapsedSessions.has(
-              session.id
-            )
-              ? ''
-              : 'border-b border-border'}"
-          >
-            <div class="flex items-center gap-4 flex-1">
-              <span class="text-muted">{collapsedSessions.has(session.id) ? '' : ''}</span>
-              <div class="flex-1 text-left">
-                <div class="flex items-center gap-3 mb-2">
-                  <span class="text-sm font-semibold text-body font-mono"
-                    >Session: {session.id.substring(0, 12)}</span
-                  >
-                </div>
-                <div class="flex items-center gap-3 text-xs text-muted font-mono">
-                  <span> {formatDuration(session.duration)}</span>
-                  <span class="text-border">•</span>
-                  <span> {session.totalEvents} events</span>
-                  <span class="text-border">•</span>
-                  <span> {session.filesCount} files</span>
-                  <span class="text-border">•</span>
-                  <span> {session.agentCount} agent</span>
-                  <span class="text-border">•</span>
-                  <span> {session.systemCount} system</span>
+      <!-- Session Grouped View — bounded so a busy day doesn't push every
+           other card off the screen. The user scrolls within the feed. -->
+      <div class="max-h-[640px] overflow-y-auto space-y-4 pr-1">
+        {#each sessions as session (session.id)}
+          <div class="bg-canvas border border-border rounded-lg overflow-hidden">
+            <button
+              onclick={() => toggleSession(session.id)}
+              class="w-full flex justify-between items-center p-5 bg-surface hover:bg-surface-2 transition-colors {collapsedSessions.has(
+                session.id
+              )
+                ? ''
+                : 'border-b border-border'}"
+            >
+              <div class="flex items-center gap-4 flex-1">
+                <span class="text-muted">{collapsedSessions.has(session.id) ? '' : ''}</span>
+                <div class="flex-1 text-left">
+                  <div class="flex items-center gap-3 mb-2">
+                    <span class="text-sm font-semibold text-body font-mono"
+                      >Session: {session.id.substring(0, 12)}</span
+                    >
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-muted font-mono">
+                    <span> {formatDuration(session.duration)}</span>
+                    <span class="text-border">•</span>
+                    <span> {session.totalEvents} events</span>
+                    <span class="text-border">•</span>
+                    <span> {session.filesCount} files</span>
+                    <span class="text-border">•</span>
+                    <span> {session.agentCount} agent</span>
+                    <span class="text-border">•</span>
+                    <span> {session.systemCount} system</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <time class="text-sm text-muted font-mono">{formatTimestamp(session.startTime)}</time>
-          </button>
+              <time class="text-sm text-muted font-mono">{formatTimestamp(session.startTime)}</time>
+            </button>
 
-          {#if !collapsedSessions.has(session.id)}
-            <div class="p-6 bg-canvas space-y-3">
-              {#each session.activities as activity (activity.id + activity.category)}
-                {@const isExpanded = expandedActivity?.id === activity.id}
-                <div
-                  class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
-                    ? 'border-accent'
-                    : ''}"
-                >
-                  <button
-                    onclick={() => toggleActivity(activity)}
-                    class="w-full flex justify-between items-center p-4"
+            {#if !collapsedSessions.has(session.id)}
+              <div class="p-6 bg-canvas space-y-3">
+                {#each session.activities as activity (activity.id + activity.category)}
+                  {@const isExpanded = expandedActivity?.id === activity.id}
+                  <div
+                    class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
+                      ? 'border-accent'
+                      : ''}"
                   >
-                    <div class="flex items-center gap-4 flex-1 min-w-0">
-                      <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
-                      <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
-                        {getCategoryIcon(activity.category)}
-                      </span>
-                      <div class="flex-1 min-w-0 text-left">
-                        <div class="text-sm font-medium text-body truncate">
-                          {activity.description}
-                        </div>
-                        <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
-                          <span>{activity.type}</span>
-                          <span>•</span>
-                          <span>{formatTimestamp(activity.timestamp)}</span>
+                    <button
+                      onclick={() => toggleActivity(activity)}
+                      class="w-full flex justify-between items-center p-4"
+                    >
+                      <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
+                        <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
+                          {getCategoryIcon(activity.category)}
+                        </span>
+                        <div class="flex-1 min-w-0 text-left">
+                          <div class="text-sm font-medium text-body truncate">
+                            {activity.description}
+                          </div>
+                          <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
+                            <span>{activity.type}</span>
+                            <span>•</span>
+                            <span>{formatTimestamp(activity.timestamp)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                      <span class="text-sm text-muted font-mono"
-                        >{formatTimestamp(activity.timestamp)}</span
-                      >
-                      <span
-                        class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
-                      >
-                        {activity.category}
-                      </span>
-                    </div>
-                  </button>
+                      <div class="flex items-center gap-3">
+                        <span class="text-sm text-muted font-mono"
+                          >{formatTimestamp(activity.timestamp)}</span
+                        >
+                        <span
+                          class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
+                        >
+                          {activity.category}
+                        </span>
+                      </div>
+                    </button>
 
-                  {#if isExpanded}
-                    <div class="p-4 border-t border-border">
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div class="flex gap-3">
-                          <span class="text-xs text-muted font-semibold uppercase">ID:</span>
-                          <span class="text-sm text-body font-mono">{activity.id}</span>
+                    {#if isExpanded}
+                      <div class="p-4 border-t border-border">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div class="flex gap-3">
+                            <span class="text-xs text-muted font-semibold uppercase">ID:</span>
+                            <span class="text-sm text-body font-mono">{activity.id}</span>
+                          </div>
+                          <div class="flex gap-3">
+                            <span class="text-xs text-muted font-semibold uppercase">Type:</span>
+                            <span class="text-sm text-body font-mono">{activity.type}</span>
+                          </div>
+                          <div class="flex gap-3">
+                            <span class="text-xs text-muted font-semibold uppercase">Category:</span
+                            >
+                            <span class="text-sm text-body font-mono">{activity.category}</span>
+                          </div>
+                          <div class="flex gap-3">
+                            <span class="text-xs text-muted font-semibold uppercase"
+                              >Timestamp:</span
+                            >
+                            <span class="text-sm text-body font-mono">{activity.timestamp}</span>
+                          </div>
+                          {#if activity.target}
+                            <div class="flex gap-3 md:col-span-2">
+                              <span class="text-xs text-muted font-semibold uppercase">Target:</span
+                              >
+                              <span class="text-sm text-body font-mono">{activity.target}</span>
+                            </div>
+                          {/if}
                         </div>
-                        <div class="flex gap-3">
-                          <span class="text-xs text-muted font-semibold uppercase">Type:</span>
-                          <span class="text-sm text-body font-mono">{activity.type}</span>
-                        </div>
-                        <div class="flex gap-3">
-                          <span class="text-xs text-muted font-semibold uppercase">Category:</span>
-                          <span class="text-sm text-body font-mono">{activity.category}</span>
-                        </div>
-                        <div class="flex gap-3">
-                          <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
-                          <span class="text-sm text-body font-mono">{activity.timestamp}</span>
-                        </div>
-                        {#if activity.target}
-                          <div class="flex gap-3 md:col-span-2">
-                            <span class="text-xs text-muted font-semibold uppercase">Target:</span>
-                            <span class="text-sm text-body font-mono">{activity.target}</span>
+
+                        {#if activity.metadata && Object.keys(activity.metadata).length > 0}
+                          <div class="mt-4">
+                            <h4 class="text-xs text-muted uppercase font-semibold mb-2">
+                              Metadata
+                            </h4>
+                            <pre
+                              class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                                activity.metadata,
+                                null,
+                                2
+                              )}</pre>
                           </div>
                         {/if}
                       </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <!-- Flat List View — bounded scroller, same rationale as session view. -->
+      <div class="max-h-[640px] overflow-y-auto space-y-4 pr-1">
+        {#each activities as activity (activity.id + activity.category)}
+          {@const isExpanded = expandedActivity?.id === activity.id}
+          <div
+            class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
+              ? 'border-accent'
+              : ''}"
+          >
+            <button
+              onclick={() => toggleActivity(activity)}
+              class="w-full flex justify-between items-center p-4"
+            >
+              <div class="flex items-center gap-4 flex-1 min-w-0">
+                <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
+                <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
+                  {getCategoryIcon(activity.category)}
+                </span>
+                <div class="flex-1 min-w-0 text-left">
+                  <div class="text-sm font-medium text-body truncate">
+                    {activity.description}
+                  </div>
+                  <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
+                    <span>{activity.type}</span>
+                    <span>•</span>
+                    <span>{formatTimestamp(activity.timestamp)}</span>
+                    {#if activity.session_id}
+                      <span>•</span>
+                      <span class="text-accent font-semibold"
+                        >{activity.session_id.substring(0, 8)}</span
+                      >
+                    {/if}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-muted font-mono"
+                  >{formatTimestamp(activity.timestamp)}</span
+                >
+                <span
+                  class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
+                >
+                  {activity.category}
+                </span>
+              </div>
+            </button>
 
-                      {#if activity.metadata && Object.keys(activity.metadata).length > 0}
-                        <div class="mt-4">
-                          <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
-                          <pre
-                            class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
-                              activity.metadata,
-                              null,
-                              2
-                            )}</pre>
-                        </div>
-                      {/if}
+            {#if isExpanded}
+              <div class="p-4 border-t border-border">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div class="flex gap-3">
+                    <span class="text-xs text-muted font-semibold uppercase">ID:</span>
+                    <span class="text-sm text-body font-mono">{activity.id}</span>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="text-xs text-muted font-semibold uppercase">Type:</span>
+                    <span class="text-sm text-body font-mono">{activity.type}</span>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="text-xs text-muted font-semibold uppercase">Category:</span>
+                    <span class="text-sm text-body font-mono">{activity.category}</span>
+                  </div>
+                  <div class="flex gap-3">
+                    <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
+                    <span class="text-sm text-body font-mono">{activity.timestamp}</span>
+                  </div>
+                  {#if activity.target}
+                    <div class="flex gap-3 md:col-span-2">
+                      <span class="text-xs text-muted font-semibold uppercase">Target:</span>
+                      <span class="text-sm text-body font-mono">{activity.target}</span>
                     </div>
                   {/if}
                 </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/each}
-    {:else}
-      <!-- Flat List View -->
-      {#each activities as activity (activity.id + activity.category)}
-        {@const isExpanded = expandedActivity?.id === activity.id}
-        <div
-          class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
-            ? 'border-accent'
-            : ''}"
-        >
-          <button
-            onclick={() => toggleActivity(activity)}
-            class="w-full flex justify-between items-center p-4"
-          >
-            <div class="flex items-center gap-4 flex-1 min-w-0">
-              <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
-              <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
-                {getCategoryIcon(activity.category)}
-              </span>
-              <div class="flex-1 min-w-0 text-left">
-                <div class="text-sm font-medium text-body truncate">
-                  {activity.description}
-                </div>
-                <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
-                  <span>{activity.type}</span>
-                  <span>•</span>
-                  <span>{formatTimestamp(activity.timestamp)}</span>
-                  {#if activity.session_id}
-                    <span>•</span>
-                    <span class="text-accent font-semibold"
-                      >{activity.session_id.substring(0, 8)}</span
-                    >
-                  {/if}
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-sm text-muted font-mono">{formatTimestamp(activity.timestamp)}</span
-              >
-              <span
-                class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
-              >
-                {activity.category}
-              </span>
-            </div>
-          </button>
 
-          {#if isExpanded}
-            <div class="p-4 border-t border-border">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="flex gap-3">
-                  <span class="text-xs text-muted font-semibold uppercase">ID:</span>
-                  <span class="text-sm text-body font-mono">{activity.id}</span>
-                </div>
-                <div class="flex gap-3">
-                  <span class="text-xs text-muted font-semibold uppercase">Type:</span>
-                  <span class="text-sm text-body font-mono">{activity.type}</span>
-                </div>
-                <div class="flex gap-3">
-                  <span class="text-xs text-muted font-semibold uppercase">Category:</span>
-                  <span class="text-sm text-body font-mono">{activity.category}</span>
-                </div>
-                <div class="flex gap-3">
-                  <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
-                  <span class="text-sm text-body font-mono">{activity.timestamp}</span>
-                </div>
-                {#if activity.target}
-                  <div class="flex gap-3 md:col-span-2">
-                    <span class="text-xs text-muted font-semibold uppercase">Target:</span>
-                    <span class="text-sm text-body font-mono">{activity.target}</span>
+                {#if activity.metadata && Object.keys(activity.metadata).length > 0}
+                  <div class="mt-4">
+                    <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
+                    <pre
+                      class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                        activity.metadata,
+                        null,
+                        2
+                      )}</pre>
                   </div>
                 {/if}
               </div>
-
-              {#if activity.metadata && Object.keys(activity.metadata).length > 0}
-                <div class="mt-4">
-                  <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
-                  <pre
-                    class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
-                      activity.metadata,
-                      null,
-                      2
-                    )}</pre>
-                </div>
-              {/if}
-            </div>
-          {/if}
-        </div>
-      {/each}
-
+            {/if}
+          </div>
+        {/each}
+      </div>
       {#if hasMore}
         <div class="text-center pt-6">
           <button

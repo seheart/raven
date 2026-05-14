@@ -342,7 +342,7 @@
 
   <!-- Loading State -->
   {#if loading && systemMetrics.length === 0}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {#each Array(3) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
@@ -364,7 +364,7 @@
   {:else if activeTab === 'metrics'}
     <!-- METRICS TAB -->
     {#if latestMetrics}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <!-- System Metrics Card -->
         <div class="bg-surface border border-border rounded-lg p-5">
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
@@ -513,9 +513,9 @@
       <div>
         <!-- Chart Controls -->
         <div
-          class="bg-surface border border-border rounded-lg p-4 mb-6 flex justify-between items-center"
+          class="bg-surface border border-border rounded-lg p-4 mb-6 flex justify-between items-center flex-wrap gap-3"
         >
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 flex-wrap">
             <span class="text-sm text-muted">Time Range</span>
             <select
               bind:value={chartTimeRange}
@@ -539,7 +539,7 @@
               </select>
             {/if}
           </div>
-          <div class="flex gap-4 text-xs font-mono">
+          <div class="flex gap-4 text-xs font-mono flex-wrap">
             <span class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-accent"></span>CPU
             </span>
@@ -560,7 +560,7 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             CPU Usage Over Time
           </h3>
-          <div class="flex gap-3 h-48">
+          <div class="flex gap-3 min-h-[200px] h-48">
             <!-- Y-axis -->
             <div class="flex flex-col justify-between text-xs text-muted font-mono w-10 text-right">
               <span>100%</span>
@@ -614,7 +614,7 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Memory Usage Over Time
           </h3>
-          <div class="flex gap-3 h-48">
+          <div class="flex gap-3 min-h-[200px] h-48">
             <!-- Y-axis -->
             <div class="flex flex-col justify-between text-xs text-muted font-mono w-10 text-right">
               <span>100%</span>
@@ -668,7 +668,7 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Alert Thresholds
           </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <div>
               <label for="cpu-warning" class="text-xs text-muted block mb-2">CPU Warning (%)</label>
               <input
@@ -733,7 +733,7 @@
     {#if sortedCorrelations.length > 0}
       <div>
         <!-- Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
           <div class="bg-surface border border-border rounded p-4">
             <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
               Events Analyzed
@@ -769,7 +769,9 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
             File Changes by Resource Usage
           </h3>
-          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+          <div
+            class="border-t border-b border-border font-mono text-sm overflow-x-auto max-h-[500px] overflow-y-auto"
+          >
             <table class="w-full">
               <thead class="bg-canvas">
                 <tr class="text-[11px] text-muted uppercase tracking-wide">

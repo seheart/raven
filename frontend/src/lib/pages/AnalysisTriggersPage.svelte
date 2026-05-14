@@ -221,7 +221,7 @@
   {/if}
 
   <!-- Stats strip -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Rules</div>
       <div class="text-sm font-mono text-body">{triggers.length}</div>
@@ -269,7 +269,7 @@
         description="Add a [triggers.<name>] table to .raven/config.toml and click Reload config above."
       />
     {:else}
-      <div class="divide-y divide-[var(--border)]">
+      <div class="divide-y divide-[var(--border)] max-h-[500px] overflow-y-auto">
         {#each triggers as trigger (trigger.name)}
           {@const fire = fireSummary[trigger.name] || { count: 0, last: null }}
           <div class="px-5 py-4">
@@ -352,7 +352,7 @@
         description="Triggered events stream in here in real time as conditions in your rules are met."
       />
     {:else}
-      <ul class="divide-y divide-[var(--border)]">
+      <ul class="divide-y divide-[var(--border)] max-h-[400px] overflow-y-auto">
         {#each triggeredEvents.slice(0, 50) as event (event.id)}
           <li class="px-5 py-2.5 flex items-baseline gap-3 text-xs font-mono">
             <span class="text-muted/70 w-20 flex-shrink-0">{formatTimestamp(event.timestamp)}</span>

@@ -159,7 +159,7 @@
         <div class="px-5 py-3 text-xs text-muted font-mono">Loading…</div>
       {:else}
         <!-- Top row: the big-number tiles. -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-border">
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-px bg-border">
           <div class="bg-surface px-5 py-4">
             <div class="text-[11px] font-mono uppercase tracking-wide text-muted mb-1">
               Ingest rate
@@ -214,7 +214,7 @@
 
         <!-- Watcher lag + disk-full state. -->
         <div class="px-5 py-3 border-t border-border">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-mono">
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 text-sm font-mono">
             <div class="flex items-baseline justify-between gap-3">
               <span class="text-muted text-xs uppercase tracking-wide">Claude log lag</span>
               <span class={lagColorClass(internalMetrics.claude_log_watcher_lag_ms)}>
@@ -275,7 +275,7 @@
     </div>
 
     <!-- Overall Status -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Status</div>
         <div class="flex items-center gap-2">

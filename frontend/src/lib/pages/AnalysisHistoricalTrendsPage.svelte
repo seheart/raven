@@ -431,7 +431,7 @@
   </div>
 
   {#if loading}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       {#each Array(4) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
@@ -450,7 +450,7 @@
     />
   {:else}
     <!-- Summary Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Events
@@ -504,7 +504,7 @@
       </div>
 
       {#if showCharts}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <!-- Trends Over Time Chart -->
           <div class="bg-canvas border border-border rounded-lg p-4">
             <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">

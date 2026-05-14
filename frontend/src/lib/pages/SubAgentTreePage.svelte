@@ -139,14 +139,14 @@
   </PageHeader>
 
   {#if loading && sessions.length === 0}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
       {#each Array(3) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
     </div>
   {:else}
     <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Sub-Agents
@@ -167,11 +167,11 @@
       {/each}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
       <!-- Session List -->
       <div class="bg-surface border border-border rounded p-4">
         <h3 class="text-sm font-semibold text-heading mb-3">Sessions</h3>
-        <div class="space-y-1 max-h-96 overflow-y-auto">
+        <div class="space-y-1 max-h-[400px] overflow-y-auto">
           {#each sessions as session (session.session_id)}
             <button
               onclick={() => selectSession(session.session_id)}
@@ -199,7 +199,7 @@
       </div>
 
       <!-- Agent Tree -->
-      <div class="md:col-span-3 bg-surface border border-border rounded p-4">
+      <div class="xl:col-span-3 bg-surface border border-border rounded p-4">
         <h3 class="text-sm font-semibold text-heading mb-3">Agent Tree</h3>
 
         {#if treeLoading}
@@ -211,7 +211,7 @@
               : 'Select a session to view the agent tree'}
           </div>
         {:else}
-          <div class="space-y-1">
+          <div class="space-y-1 max-h-[500px] overflow-y-auto">
             {#each tree as node (node.agent_id)}
               {@render treeNode(node)}
             {/each}

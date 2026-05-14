@@ -544,7 +544,7 @@
     />
   {:else}
     <!-- Statistics Header -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Files</div>
         <div class="text-sm font-mono text-body">{stats.totalFiles}</div>
@@ -590,23 +590,24 @@
       </div>
     {/if}
 
-    <!-- Charts Section -->
+    <!-- Charts Section — single column at half-screen, two columns at xl+
+         so neither pie nor bar chart gets squashed below a usable width. -->
     {#if showCharts}
-      <div class="mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="mb-6 space-y-4">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div class="bg-surface border border-border rounded-lg p-4">
-            <div class="h-[200px]">
+            <div class="h-[200px] min-h-[200px]">
               <canvas id="chart-file-types"></canvas>
             </div>
           </div>
           <div class="bg-surface border border-border rounded-lg p-4">
-            <div class="h-[200px]">
+            <div class="h-[200px] min-h-[200px]">
               <canvas id="chart-most-changed"></canvas>
             </div>
           </div>
         </div>
         <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="h-[180px]">
+          <div class="h-[180px] min-h-[180px]">
             <canvas id="chart-changes-by-type"></canvas>
           </div>
         </div>
@@ -677,8 +678,9 @@
       </div>
     </div>
 
-    <!-- File List -->
-    <div class="space-y-2 mb-6">
+    <!-- File List — bounded so a thousand tracked files don't push the
+         filter bar off the screen. User scrolls within the list. -->
+    <div class="space-y-2 mb-6 max-h-[560px] overflow-y-auto pr-1">
       {#if filteredFiles.length === 0}
         <EmptyState
           size="compact"
@@ -727,7 +729,7 @@
                   </div>
                 {/if}
               </div>
-              <span class="text-sm text-muted font-sans">
+              <span class="hidden sm:inline text-sm text-muted font-sans">
                 {expandedFile === filepath ? 'Hide' : 'Show'} History
               </span>
             </button>

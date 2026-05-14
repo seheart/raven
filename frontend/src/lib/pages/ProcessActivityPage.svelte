@@ -209,7 +209,9 @@
     {/if}
 
     <!-- Agent Activity Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-4 max-h-[500px] overflow-y-auto"
+    >
       {#each agents as agent (agent.agent_name)}
         <div class="bg-surface border border-border rounded-lg p-3">
           <div class="flex items-center justify-between mb-2">
@@ -338,7 +340,7 @@
       </div>
 
       <!-- Chart -->
-      <div class="h-[200px]">
+      <div class="min-h-[200px] h-[200px]">
         <canvas id="latency-chart"></canvas>
       </div>
     </div>
@@ -346,7 +348,7 @@
     <!-- Recent Latency Table -->
     <div class="bg-surface border border-border rounded-lg p-3">
       <h3 class="text-[11px] font-semibold text-body mb-2">Recent API Calls</h3>
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table class="w-full text-[9px]">
           <thead>
             <tr class="text-muted border-b border-border">

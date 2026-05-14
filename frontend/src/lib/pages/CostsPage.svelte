@@ -318,7 +318,7 @@
   {/if}
 
   {#if loading && !summary.total_requests}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       {#each Array(4) as _, i (i)}
         <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
       {/each}
@@ -328,7 +328,7 @@
          figure as the headline (curiosity-relevant: "what would this
          cost on API?"), but it's labeled and subtitled so the user
          can't mistake it for actual spend. -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
       {#if isApi}
         <div class="bg-surface border border-border rounded p-4">
           <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
@@ -391,7 +391,7 @@
       {@const ratioColor =
         hitRatio >= 60 ? 'text-success' : hitRatio >= 30 ? 'text-warning' : 'text-muted'}
       {@const savedTokenEquivalent = cRead * 0.9}
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-6">
         <div class="bg-surface border border-border rounded p-4">
           <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             Cache Hit Ratio
@@ -423,12 +423,12 @@
     {/if}
 
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="md:col-span-2 bg-surface border border-border rounded p-4">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+      <div class="xl:col-span-2 bg-surface border border-border rounded p-4">
         <h3 class="text-sm font-semibold text-heading mb-3">
           {isApi ? 'Cost Over Time' : 'Tokens Over Time'}
         </h3>
-        <div class="h-48">
+        <div class="h-48 min-h-[200px]">
           {#if timeline.length > 0}
             <canvas bind:this={costChartCanvas}></canvas>
           {:else}
@@ -442,7 +442,7 @@
       </div>
       <div class="bg-surface border border-border rounded p-4">
         <h3 class="text-sm font-semibold text-heading mb-3">By Model</h3>
-        <div class="h-48">
+        <div class="h-48 min-h-[200px]">
           {#if byModel.length > 0}
             <canvas bind:this={modelChartCanvas}></canvas>
           {:else}

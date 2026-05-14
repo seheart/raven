@@ -185,7 +185,7 @@
     <div class="text-sm text-muted text-center py-12">Loading storage data...</div>
   {:else if storage}
     <!-- Top Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Project disk
@@ -261,71 +261,73 @@
       {:else if projectDisk && projectDisk.rows.length === 0}
         <div class="text-xs text-muted text-center py-6">No projects to scan.</div>
       {:else}
-        <table class="w-full text-xs font-mono">
-          <thead class="text-muted uppercase tracking-wide">
-            <tr class="border-b border-border">
-              <th class="text-left py-2 font-normal">Project</th>
-              <th class="text-right py-2 font-normal w-32">Disk</th>
-              <th class="text-right py-2 font-normal hidden md:table-cell w-20">Files</th>
-              <th class="text-left py-2 font-normal hidden md:table-cell w-1/3"> Source size </th>
-              <th class="text-right py-2 font-normal w-28">DB stored</th>
-              <th class="text-left py-2 font-normal hidden lg:table-cell w-1/4">
-                Raven tracking size
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each sortedDiskRows as row (row.project_name)}
-              <tr class="border-b border-border/60 hover:bg-canvas/60 transition-colors">
-                <td class="py-2 pr-2">
-                  <div class="text-body truncate max-w-[18rem]">{row.project_name}</div>
-                  {#if row.path}
-                    <div class="text-[10px] text-muted truncate max-w-[18rem]" title={row.path}>
-                      {row.path}
-                    </div>
-                  {:else}
-                    <div class="text-[10px] text-warning">unconfigured (DB-only)</div>
-                  {/if}
-                </td>
-                <td class="py-2 pr-2 text-right text-body tabular-nums">
-                  {row.path_exists
-                    ? row.disk_bytes != null
-                      ? formatBytes(row.disk_bytes)
-                      : '—'
-                    : row.path
-                      ? 'missing'
-                      : '—'}
-                </td>
-                <td class="py-2 pr-2 text-right text-muted tabular-nums hidden md:table-cell">
-                  {row.disk_files != null ? formatNumber(row.disk_files) : '—'}
-                </td>
-                <td class="py-2 pr-2 hidden md:table-cell">
-                  {#if row.disk_bytes != null}
-                    <div class="h-1.5 bg-canvas rounded overflow-hidden border border-border">
-                      <div
-                        class="h-full bg-accent transition-all"
-                        style="width: {((row.disk_bytes / maxDiskBytes) * 100).toFixed(1)}%"
-                      ></div>
-                    </div>
-                  {/if}
-                </td>
-                <td class="py-2 pr-2 text-right text-body tabular-nums">
-                  {formatBytes(row.db_bytes)}
-                </td>
-                <td class="py-2 pr-2 hidden lg:table-cell">
-                  {#if row.db_bytes > 0}
-                    <div class="h-1.5 bg-canvas rounded overflow-hidden border border-border">
-                      <div
-                        class="h-full bg-success/70 transition-all"
-                        style="width: {((row.db_bytes / maxDbBytes) * 100).toFixed(1)}%"
-                      ></div>
-                    </div>
-                  {/if}
-                </td>
+        <div class="max-h-[500px] overflow-y-auto">
+          <table class="w-full text-xs font-mono">
+            <thead class="text-muted uppercase tracking-wide sticky top-0 bg-surface">
+              <tr class="border-b border-border">
+                <th class="text-left py-2 font-normal">Project</th>
+                <th class="text-right py-2 font-normal w-32">Disk</th>
+                <th class="text-right py-2 font-normal hidden md:table-cell w-20">Files</th>
+                <th class="text-left py-2 font-normal hidden md:table-cell w-1/3"> Source size </th>
+                <th class="text-right py-2 font-normal w-28">DB stored</th>
+                <th class="text-left py-2 font-normal hidden lg:table-cell w-1/4">
+                  Raven tracking size
+                </th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {#each sortedDiskRows as row (row.project_name)}
+                <tr class="border-b border-border/60 hover:bg-canvas/60 transition-colors">
+                  <td class="py-2 pr-2">
+                    <div class="text-body truncate max-w-[18rem]">{row.project_name}</div>
+                    {#if row.path}
+                      <div class="text-[10px] text-muted truncate max-w-[18rem]" title={row.path}>
+                        {row.path}
+                      </div>
+                    {:else}
+                      <div class="text-[10px] text-warning">unconfigured (DB-only)</div>
+                    {/if}
+                  </td>
+                  <td class="py-2 pr-2 text-right text-body tabular-nums">
+                    {row.path_exists
+                      ? row.disk_bytes != null
+                        ? formatBytes(row.disk_bytes)
+                        : '—'
+                      : row.path
+                        ? 'missing'
+                        : '—'}
+                  </td>
+                  <td class="py-2 pr-2 text-right text-muted tabular-nums hidden md:table-cell">
+                    {row.disk_files != null ? formatNumber(row.disk_files) : '—'}
+                  </td>
+                  <td class="py-2 pr-2 hidden md:table-cell">
+                    {#if row.disk_bytes != null}
+                      <div class="h-1.5 bg-canvas rounded overflow-hidden border border-border">
+                        <div
+                          class="h-full bg-accent transition-all"
+                          style="width: {((row.disk_bytes / maxDiskBytes) * 100).toFixed(1)}%"
+                        ></div>
+                      </div>
+                    {/if}
+                  </td>
+                  <td class="py-2 pr-2 text-right text-body tabular-nums">
+                    {formatBytes(row.db_bytes)}
+                  </td>
+                  <td class="py-2 pr-2 hidden lg:table-cell">
+                    {#if row.db_bytes > 0}
+                      <div class="h-1.5 bg-canvas rounded overflow-hidden border border-border">
+                        <div
+                          class="h-full bg-success/70 transition-all"
+                          style="width: {((row.db_bytes / maxDbBytes) * 100).toFixed(1)}%"
+                        ></div>
+                      </div>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       {/if}
     </div>
 

@@ -244,7 +244,7 @@
     />
   {:else}
     <!-- Results Header -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Results</div>
         <div class="text-sm font-mono text-body">
@@ -271,8 +271,9 @@
       </div>
     </div>
 
-    <!-- Results List -->
-    <div class="space-y-3">
+    <!-- Results List — bounded so big result sets scroll within the page
+         instead of dwarfing it. Plays well with the existing filter chips. -->
+    <div class="space-y-3 max-h-[640px] overflow-y-auto pr-1">
       {#each filteredResults as result, i (result.id || result.timestamp + ':' + i)}
         <div
           class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"

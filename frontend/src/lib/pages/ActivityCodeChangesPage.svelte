@@ -256,7 +256,7 @@
   {/if}
 
   <!-- Stats -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Changes</div>
       <div class="text-sm font-mono text-body">{stats.total}</div>
@@ -312,7 +312,11 @@
         : "This page logs every file create, edit, or delete Raven has seen across your tracked projects. Make any edit — by hand or via Claude Code — and it'll stream in within a second."}
     />
   {:else}
-    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+    <!-- Bounded so the table doesn't scroll the whole page when there are
+         hundreds of events; user scrolls within the list, Bloomberg-style. -->
+    <div
+      class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[600px]"
+    >
       <table class="w-full">
         <thead class="bg-canvas">
           <tr class="text-[11px] text-muted uppercase tracking-wide">

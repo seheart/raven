@@ -102,7 +102,7 @@
     </div>
   {:else}
     <!-- Summary Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Models</div>
         <div class="text-sm font-mono text-body">{models.length}</div>
@@ -140,7 +140,7 @@
           this slow or worse), and <strong class="text-body">max</strong> is the worst single call. Lower
           is better.
         </p>
-        <div class="space-y-1">
+        <div class="space-y-1 max-h-[400px] overflow-y-auto">
           {#each latencyByModel as l (l.model)}
             <div
               class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 text-[11px] font-mono py-1 border-b border-border last:border-b-0"
@@ -163,7 +163,7 @@
         description="Run `ollama run llama3` (or any local model) and it'll appear here with live token rate, VRAM use, and request stats. Hosted models from Claude / OpenAI show up automatically when you call them via Claude Code."
       />
     {:else}
-      <div class="space-y-4">
+      <div class="space-y-4 max-h-[500px] overflow-y-auto">
         {#each models as model (model.name)}
           <div class="bg-surface border border-border rounded-lg overflow-hidden">
             <!-- Model Header -->
@@ -208,7 +208,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-px bg-border">
+            <div class="grid grid-cols-2 xl:grid-cols-7 gap-px bg-border">
               <div class="bg-surface p-4 text-center">
                 <div class="text-lg font-bold font-mono text-accent">
                   {formatNumber(model.total_events)}

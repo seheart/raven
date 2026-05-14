@@ -185,7 +185,7 @@
     </div>
 
     <!-- Timeline -->
-    <div class="space-y-6">
+    <div class="space-y-6 max-h-[500px] overflow-y-auto">
       {#each groupedEntries as group (group.date)}
         <!-- Date header -->
         <div class="flex items-center gap-3">
