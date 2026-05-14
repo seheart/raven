@@ -186,3 +186,15 @@ class InternalMetrics {
 }
 
 export const internalMetrics = new InternalMetrics();
+
+// Subscribe to sqlite-retry outcomes via the observer hook. The hook keeps
+// `utils/sqlite-retry.ts` from importing services/ (utils-pure rule).
+import { registerRetryObserver } from '../utils/sqlite-retry.js';
+registerRetryObserver({
+  onWriteAttempt(success) {
+    internalMetrics.recordWriteAttempt(success);
+  },
+  onWriteRetry() {
+    internalMetrics.recordWriteRetry();
+  }
+});

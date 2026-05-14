@@ -4,12 +4,13 @@ import { test, expect } from '@playwright/test';
  * Navigation E2E
  *
  * Verifies the canonical chrome — header tabs, sub-tabs, footer, and theme
- * toggle — against the current UI. The earlier version of this file referenced
- * a long-removed nav (Overview/Safety/Agents/Activity/Analysis/System) and was
- * rewritten when the test scheme was modernised.
+ * toggle — against the current UI. The May 2026 IA refactor reduced the
+ * header to five top-level tabs (Dashboard / Activity / Agents / Insights /
+ * System); Code Changes / Analysis / History are gone, with their content
+ * rehomed under Activity, Agents, and Insights.
  */
 
-const TOP_TABS = ['Dashboard', 'Insights', 'Analysis', 'Code Changes', 'History', 'System'];
+const TOP_TABS = ['Dashboard', 'Activity', 'Agents', 'Insights', 'System'];
 
 test.describe('Header navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,10 +22,13 @@ test.describe('Header navigation', () => {
   });
 
   test('renders the Raven logo and brand', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /Go to Dashboard/i })).toBeVisible();
+    // Logo aria-label is "Go to Today" — the root route id is still 'today'
+    // so existing /today links keep working even though the tab now reads
+    // "Dashboard".
+    await expect(page.getByRole('button', { name: /Go to Today/i })).toBeVisible();
   });
 
-  test('renders all 6 top-level tabs', async ({ page }) => {
+  test('renders all 5 top-level tabs', async ({ page }) => {
     for (const label of TOP_TABS) {
       await expect(
         page.getByRole('button', { name: label, exact: true }).first()
@@ -32,29 +36,24 @@ test.describe('Header navigation', () => {
     }
   });
 
-  test('Dashboard tab routes to /overview', async ({ page }) => {
+  test('Dashboard tab routes to /today', async ({ page }) => {
     await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
-    await expect(page).toHaveURL(/\/overview$/);
+    await expect(page).toHaveURL(/\/today$/);
   });
 
   test('Insights tab routes to /insights', async ({ page }) => {
     await page.getByRole('button', { name: 'Insights', exact: true }).click();
-    await expect(page).toHaveURL(/\/insights$/);
+    await expect(page).toHaveURL(/\/insights(\/|$)/);
   });
 
-  test('Analysis tab routes to /analysis', async ({ page }) => {
-    await page.getByRole('button', { name: 'Analysis', exact: true }).click();
-    await expect(page).toHaveURL(/\/analysis(\/|$)/);
+  test('Activity tab routes to /activity', async ({ page }) => {
+    await page.getByRole('button', { name: 'Activity', exact: true }).click();
+    await expect(page).toHaveURL(/\/activity(\/|$)/);
   });
 
-  test('Code Changes tab routes to /live', async ({ page }) => {
-    await page.getByRole('button', { name: 'Code Changes', exact: true }).first().click();
-    await expect(page).toHaveURL(/\/live$/);
-  });
-
-  test('History tab routes to /history', async ({ page }) => {
-    await page.getByRole('button', { name: 'History', exact: true }).click();
-    await expect(page).toHaveURL(/\/history(\/|$)/);
+  test('Agents tab routes to /agents', async ({ page }) => {
+    await page.getByRole('button', { name: 'Agents', exact: true }).first().click();
+    await expect(page).toHaveURL(/\/agents(\/|$)/);
   });
 
   test('System tab routes to /system', async ({ page }) => {
@@ -62,10 +61,10 @@ test.describe('Header navigation', () => {
     await expect(page).toHaveURL(/\/system(\/|$)/);
   });
 
-  test('clicking the logo returns to /overview', async ({ page }) => {
+  test('clicking the logo returns to /today', async ({ page }) => {
     await page.getByRole('button', { name: 'System', exact: true }).first().click();
-    await page.getByRole('button', { name: /Go to Dashboard/i }).click();
-    await expect(page).toHaveURL(/\/overview$/);
+    await page.getByRole('button', { name: /Go to Today/i }).click();
+    await expect(page).toHaveURL(/\/today$/);
   });
 });
 
@@ -84,26 +83,31 @@ test.describe('Sub-navigation', () => {
     await expect(subnav.getByRole('button', { name: 'Storage', exact: true })).toBeVisible();
   });
 
-  test('History has sub-tabs (Activity Log, Timeline, File Browser)', async ({ page }) => {
-    await page.getByRole('button', { name: 'History', exact: true }).click();
+  test('Activity has sub-tabs (Live, Timeline, Files)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Activity', exact: true }).click();
     const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await expect(subnav.getByRole('button', { name: 'Activity Log', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Live', exact: true })).toBeVisible();
     await expect(subnav.getByRole('button', { name: 'Timeline', exact: true })).toBeVisible();
-    await expect(subnav.getByRole('button', { name: 'File Browser', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Files', exact: true })).toBeVisible();
   });
 
-  test('Analysis has sub-tabs (Token Usage, Models, Performance)', async ({ page }) => {
-    await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+  test('Agents has sub-tabs (Stats, Models, Performance)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Agents', exact: true }).first().click();
     const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await expect(subnav.getByRole('button', { name: 'Token Usage', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Stats', exact: true })).toBeVisible();
     await expect(subnav.getByRole('button', { name: 'Models', exact: true })).toBeVisible();
     await expect(subnav.getByRole('button', { name: 'Performance', exact: true })).toBeVisible();
   });
 
-  test('Dashboard, Insights, and Code Changes have no sub-tabs', async ({ page }) => {
-    for (const label of ['Dashboard', 'Insights', 'Code Changes']) {
+  test('Dashboard, Insights, and Activity all expose a sub-nav', async ({ page }) => {
+    // Post-refactor every top-level tab except a few labs has at least one
+    // sub-tab — the previous "no sub-tab" trio (Dashboard, Insights, Code
+    // Changes) doesn't exist anymore. Surface the new contract instead.
+    for (const label of ['Dashboard', 'Insights', 'Activity']) {
       await page.getByRole('button', { name: label, exact: true }).first().click();
-      await expect(page.getByRole('navigation', { name: /Sub navigation/i })).toHaveCount(0);
+      await expect(
+        page.getByRole('navigation', { name: /Sub navigation/i })
+      ).toBeVisible();
     }
   });
 
@@ -126,7 +130,11 @@ test.describe('Footer', () => {
   });
 
   test('shows the Raven version', async ({ page }) => {
-    await expect(page.locator('footer').getByText(/^Raven v\d+\.\d+\.\d+$/)).toBeVisible();
+    // /api/health populates the version pill asynchronously — give it a
+    // generous window on cold-started test backends.
+    await expect(page.locator('footer').getByText(/^Raven v\d+\.\d+\.\d+$/)).toBeVisible({
+      timeout: 15000
+    });
   });
 
   test('shows the live monitoring indicator', async ({ page }) => {
@@ -135,9 +143,12 @@ test.describe('Footer', () => {
     ).toBeVisible();
   });
 
-  test('has About / System / Design / Roadmap nav links', async ({ page }) => {
+  test('has About / Design / Roadmap / Diagnostic nav links', async ({ page }) => {
+    // Footer nav post-refactor: About / Design / Roadmap / Diagnostic /
+    // Feedback / GitHub / Settings / theme / monitoring indicator. The old
+    // "System" footer link was dropped — System lives in the header tabs.
     const footer = page.locator('footer');
-    for (const label of ['About', 'System', 'Design', 'Roadmap']) {
+    for (const label of ['About', 'Design', 'Roadmap', 'Diagnostic']) {
       await expect(footer.getByRole('button', { name: label, exact: true })).toBeVisible();
     }
   });

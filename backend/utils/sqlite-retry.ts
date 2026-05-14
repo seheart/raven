@@ -17,9 +17,30 @@
 
 import { logger } from './logger.js';
 import { markDiskFull, markWriteSuccess } from './disk-state.js';
-import { internalMetrics } from '../services/internal-metrics.js';
 
 const BACKOFFS_MS = [10, 50, 200] as const;
+
+/**
+ * Tiny observer hook so internal-metrics (or any other observer) can record
+ * outcomes without this util importing from `services/` (which would violate
+ * the utils-pure architecture rule).
+ */
+export interface RetryObserver {
+  onWriteAttempt(success: boolean): void;
+  onWriteRetry(): void;
+}
+
+const observers: RetryObserver[] = [];
+export function registerRetryObserver(o: RetryObserver): void {
+  observers.push(o);
+}
+
+function notifyAttempt(success: boolean) {
+  for (const o of observers) o.onWriteAttempt(success);
+}
+function notifyRetry() {
+  for (const o of observers) o.onWriteRetry();
+}
 
 /** Sync variant — better-sqlite3 is synchronous. */
 export function retryWrite<T>(fn: () => T, label = 'sqlite write'): T {
@@ -29,7 +50,7 @@ export function retryWrite<T>(fn: () => T, label = 'sqlite write'): T {
       const result = fn();
       // Clears the disk-full flag if it was set — proves writes are working again.
       markWriteSuccess();
-      internalMetrics.recordWriteAttempt(true);
+      notifyAttempt(true);
       return result;
     } catch (err) {
       lastErr = err;
@@ -40,14 +61,14 @@ export function retryWrite<T>(fn: () => T, label = 'sqlite write'): T {
         const e = err instanceof Error ? err : new Error(String(err));
         logger.error(`💾 DISK FULL (${label}): ${e.message}`);
         markDiskFull(e);
-        internalMetrics.recordWriteAttempt(false);
+        notifyAttempt(false);
         throw err;
       }
       if (code !== 'SQLITE_BUSY' || attempt >= BACKOFFS_MS.length) {
-        internalMetrics.recordWriteAttempt(false);
+        notifyAttempt(false);
         throw err;
       }
-      internalMetrics.recordWriteRetry();
+      notifyRetry();
       const delay = BACKOFFS_MS[attempt];
       // Block synchronously — better-sqlite3 callers expect a synchronous
       // return value, and the retry window is bounded (10+50+200 = 260ms).

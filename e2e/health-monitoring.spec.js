@@ -69,17 +69,23 @@ test.describe('Health API contract', () => {
     expect(data.uptime).toBeGreaterThanOrEqual(0);
   });
 
-  test('GET /api/health-checks returns status + summary', async ({ request }) => {
+  test('GET /api/health-checks returns aggregated results', async ({ request }) => {
+    // /api/health-checks 308-redirects to /api/health/comprehensive
+    // (HealthChecker.runAll()). The response is a flat aggregate —
+    // { healthy, total, passed, failed, criticalFailed, warnings, results } —
+    // not the older { status, summary: { total, passed, failed } } shape
+    // that this contract previously asserted.
     const r = await request.get(`${BACKEND}/api/health-checks`, { timeout: 30000 });
     expect(r.ok()).toBeTruthy();
     const data = await r.json();
-    expect(data).toHaveProperty('status');
-    expect(data).toHaveProperty('summary');
-    expect(data.summary).toMatchObject({
+    expect(data).toMatchObject({
+      healthy: expect.any(Boolean),
       total: expect.any(Number),
       passed: expect.any(Number),
       failed: expect.any(Number)
     });
+    expect(Array.isArray(data.results)).toBe(true);
+    expect(data.total).toBeGreaterThanOrEqual(0);
   });
 
   test('GET /api/health/projects returns projects + counters', async ({ request }) => {

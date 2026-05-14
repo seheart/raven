@@ -6,7 +6,7 @@
    * a one-sentence summary narrated by the local model.
    */
   import { onMount, onDestroy } from 'svelte';
-  import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
+  import { PageLayout, PageSection } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import TokenStream from '../components/today/TokenStream.svelte';
   import ContextVessel from '../components/today/ContextVessel.svelte';

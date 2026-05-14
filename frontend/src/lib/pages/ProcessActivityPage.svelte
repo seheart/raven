@@ -10,7 +10,6 @@
   import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
-  import { formatRelativeTime } from '../timeFormat.js';
   import { logger } from '../logger.js';
   import {
     createChart,
