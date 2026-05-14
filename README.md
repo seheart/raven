@@ -1,24 +1,26 @@
 # Raven
 
-> Local-first AI agent monitoring for developers. See what your coding agent is doing — and what it's costing you — in real time, on your machine.
+> Local-first observability for AI coding agents. See what Claude Code, Codex, and local Ollama models are doing on your machine — in real time, with full provenance, without anything leaving the host.
 
-Raven watches your Claude Code (and other AI coding) sessions live. It tracks file changes, agent activity, and token spend across all your projects from a single dashboard. Nothing leaves your machine — no telemetry, no cloud, no account.
+Raven tails your Claude Code (and Codex, and Ollama) sessions live. It records every file change, agent event, and token spend across every project to a single SQLite file, scores diffs for risk, and renders dashboards in your browser. No telemetry, no cloud, no account.
+
+Pre-1.0 — public preview at **`0.5.0`**. The wiring is solid; rough edges are honest.
 
 ## Why
 
-If you've ever stared at a Claude Code session wondering _what just happened_ — which files it touched, how much you spent, whether the diff is safe to ship — Raven is the answer. It's the dashboard your AI coding workflow has been missing.
+If you've ever stared at a Claude Code session wondering _what just happened_ — which files it touched, how much you spent, whether the diff is safe to ship — Raven is the answer. It's the dashboard your AI coding workflow has been missing, and it runs entirely on your hardware.
 
 ## Quick start
 
 Requirements: **Node 18+**, Linux or macOS, and (optionally) [Ollama](https://ollama.com) for local-LLM narration.
 
-The fastest way to try it — no clone, no install:
+Fastest path — no clone, no install:
 
 ```bash
 npx raven-monitor
 ```
 
-Raven launches in single-port mode and watches the directory you invoked it from. Data persists under `~/.raven`. The browser opens automatically at <http://localhost:9000>.
+Raven launches on `http://localhost:9000` and watches the directory you invoked it from. Data persists under `~/.raven/`. The browser opens automatically.
 
 **From source** (for hacking on Raven itself):
 
@@ -29,36 +31,36 @@ npm install
 ./start.sh
 ```
 
-The first thing you'll see is the **Today** view: cost so far, narrative beats about your week, recent activity in plain English, and the files Claude touched today.
-
-To stop or restart from source:
+In dev mode the data dir is `.raven/` inside the repo. To stop or restart:
 
 ```bash
 ./stop.sh
 ./restart.sh
 ```
 
+The first thing you'll see is the **Dashboard** view: cost so far, narrative beats about your week, recent activity in plain English, and the files Claude touched today.
+
 ## What you get
 
-- **Live cost ticker** — token spend ticking up in real time, paired with a token stream showing each inference resolving as it lands.
-- **Today landing view** — narrative beats ("Back on atf after 4 days — welcome back.", "This week, raven has been your main focus."), recent activity in plain English, files touched today, full-width cost hero with hourly sparkline.
-- **Persistent agent heartbeat** — always-visible dot in the header that breathes when thinking, ticks when executing, falls still when idle.
-- **Active models card** — live VRAM-resident Ollama models alongside cloud agents (Claude Code, Codex), with per-state activity rhythms and connection counts.
-- **Inline diff scoring** — every change Claude makes gets risk-scored (hardcoded credentials, token prefixes, `eval`, `--no-verify`, `.env` edits, PEM keys) with gutter pills + per-file severity badges.
+- **Live cost ticker** — token spend ticking up in real time, paired with a per-inference stream as calls land.
+- **Dashboard landing view** — narrative beats ("Back on atf after 4 days — welcome back."), recent activity in plain English, files touched today, a full-width cost hero with an hourly sparkline.
+- **Persistent agent heartbeat** — always-visible dot in the header: breathes when thinking, ticks when executing, falls still when idle.
+- **Active models card** — VRAM-resident Ollama models alongside cloud agents (Claude Code, Codex), with per-state activity rhythms and connection counts.
+- **Inline diff scoring** — every change Claude makes gets risk-scored (hardcoded credentials, token prefixes, `eval`, `--no-verify`, `.env` edits, PEM keys) with gutter pills and per-file severity badges.
 - **Local-LLM narrated insights** — daily digests, code reviews, and project-health summaries narrated by a local Ollama model. Zero data leaves your machine.
-- **Token usage analytics** — by model, by project, by session. API billing or Claude Max subscription mode.
+- **Token usage analytics** — by model, by project, by session. API-billing or Claude Max subscription mode.
 - **Anomaly detection** — 7-day rolling p50/p95 baselines per model; flags any model running ≥2× normal cost or latency.
-- **Reflection loops** — milestone modals (first session, week-1, month-1, anniversaries), Monday weekly digest, year-end Wrapped, "you've come a long way" before/after panel.
-- **Plugin sandbox** — drop `.js` files into `.raven/plugins/` and subscribe to events with a 50ms-budgeted vm context. No `require`, no fs, no network.
+- **Looking Back (Wrapped)** — year-end scrollable card stack — top model, top project, biggest day, peak hour.
+- **Plugin sandbox** — drop `.js` files into `.raven/plugins/` and subscribe to events via a 50ms-budgeted `vm` context. No `require`, no `fs`, no network.
 - **Trigger rules** — configurable alerts for large deletions, high CPU, runaway sessions.
 
 ## How it works
 
-1. Raven runs on `localhost:9000` (frontend) and `:9100` (backend).
-2. A file watcher tails your project directories and records every edit, create, and delete in a SQLite database under `.raven/db/raven.db`.
-3. A Claude log parser tails Claude Code's JSONL output to attribute events to sessions, projects, and tools.
+1. Backend listens on `:9100`, frontend (dev) on `:9000`. Both bind to `127.0.0.1`.
+2. A file watcher tails your project directories and records every edit/create/delete in a SQLite database at `.raven/db/raven.db` (dev) or `~/.raven/db/raven.db` (installed).
+3. A Claude/Codex log parser tails their JSONL output and attributes events to sessions, projects, and tools.
 4. A transparent Ollama proxy on `:11434` observes any tool that talks to local Ollama — no per-app config required.
-5. Everything is rendered in a Svelte 5 + Tailwind UI with WebSocket push for live updates.
+5. Everything renders in a Svelte 5 + Tailwind v4 UI with Socket.IO push for live updates.
 
 No data ever leaves the host. The only outbound traffic is what your AI agents themselves make — Raven just observes.
 
@@ -75,22 +77,21 @@ backend/         Node.js + Express + TypeScript (port 9100)
 .raven/db/       SQLite — events, agent_events, token_usage, insights
 ```
 
-The backend is split into ~30 route files and ~15 repositories under a strict dependency-cruiser policy. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full breakdown.
+The backend is ~30 route files and ~15 repositories under a strict dependency-cruiser policy. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full breakdown.
 
 ## Pages
 
-| Section          | What's there                                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| **Today**        | First-run view: cost hero + sparkline, narrative beats, recent activity, files touched, token stream  |
-| **Dashboard**    | Power-user overview: live metrics, file feed, agent status, anomaly banner                            |
-| **Insights**     | Local-LLM narrated summaries, code reviews, daily digests, before/after panel                         |
-| **Analysis**     | Token usage, sub-agents, models, performance, historical trends, conversations, triggers              |
-| **Code Changes** | Live diff viewer with inline risk annotations + per-file severity                                     |
-| **History**      | Activity log, timeline, file browser, projects comparison, health, search                             |
-| **System**       | Architecture, hardware, installed Ollama models, errors, storage, plugins, projects                   |
-| **Wrapped**      | Year-end Spotify-Wrapped-style scrollable card stack — top model, top project, biggest day, peak hour |
-| **About**        | Hero, principles, decisions audit trail (live from `DECISIONS.md`), telemetry, manifest               |
-| **Roadmap**      | Phased plan toward public launch — what's queued, what's open, what just shipped                      |
+Five top-level tabs. Each has its own sub-navigation.
+
+| Tab           | Sub-tabs                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| **Dashboard** | Overview · Narrative                                                                                |
+| **Activity**  | Overview · Live · Changes · Timeline · Files · Projects · Health · Search                           |
+| **Agents**    | Monitor · Stats · Conversations · Sub-Agents · Sessions · Network · Models · Performance            |
+| **Insights**  | Overview · Costs · Trends · Looking Back                                                            |
+| **System**    | Overview · Code Health · Health Monitor · Safety · Errors · Projects · Storage · Plugins · Triggers |
+
+Meta pages reachable from the footer: **About** (this hero, principles, decisions audit trail from `DECISIONS.md`, telemetry, manifest), **Design** (the design-system reference), **Roadmap** (phased plan toward 1.0), **Diagnostic** (run all health checks in one place).
 
 ## Configuration
 
@@ -107,18 +108,20 @@ cooldown_seconds = 60
 
 Environment knobs:
 
-- `OLLAMA_URL` — defaults to `http://127.0.0.1:11435` (transparent-proxy backend)
-- `RAVEN_INSIGHTS_DISABLED=1` — turn off local-LLM narration
+- `OLLAMA_URL` — upstream Ollama backend (default `http://127.0.0.1:11435`)
 - `TRANSPARENT_OLLAMA_PORT` — proxy port (default `11434`, Ollama's default)
-- `RAVEN_DEV_DISABLE_AUTH=true` — local-only dev, skip auth
-- `RETENTION_EVENT_DAYS` — high-churn tables (events, agent_events, …) keep N days (default 7)
-- `RETENTION_METRICS_DAYS` — slower-moving tables (token_usage, insights, …) keep N days (default 30)
+- `RAVEN_INSIGHTS_DISABLED=1` — turn off local-LLM narration
+- `RAVEN_DEV_DISABLE_AUTH=true` — local-only dev, skip auth middleware
+- `RAVEN_DIR` — override the data directory (default: `.raven/` in dev, `~/.raven/` installed)
+- `WATCH_PATH` — override the directory being watched
+- `RETENTION_EVENT_DAYS` — high-churn tables keep N days (default 7)
+- `RETENTION_METRICS_DAYS` — slower-moving tables keep N days (default 30)
 - `RETENTION_SNAPSHOT_DAYS` — snapshot files keep N days (default 7)
 
 ## Tech stack
 
 - **Frontend:** Svelte 5 (runes), Tailwind CSS v4, Chart.js, Socket.IO client
-- **Backend:** Node.js, Express 4, TypeScript, better-sqlite3, Socket.IO
+- **Backend:** Node.js, Express, TypeScript, better-sqlite3, Socket.IO
 - **Monitoring:** Chokidar (file watching), Claude/Codex JSONL parsing, transparent Ollama proxy
 - **Testing:** Jest (backend), Vitest (frontend), Playwright (E2E)
 - **Governance:** Knip (dead-code), dependency-cruiser (architecture rules), type-coverage ratchet
@@ -130,14 +133,14 @@ Environment knobs:
 ./stop.sh            # Stop both
 ./restart.sh         # Restart both
 
-cd backend  && npm test           # Jest
-cd frontend && npm test           # Vitest
-npm run e2e                       # Playwright
+cd backend  && npm test    # Jest
+cd frontend && npm test    # Vitest
+npm run e2e                # Playwright
 ```
 
 ## API
 
-Backend exposes a REST API on `:9100`. The complete schema is auto-generated via `npm run openapi:dump` and consumed by the frontend through `frontend/src/lib/typedApi.js`. A few highlights:
+The backend exposes a REST API on `:9100`. The full schema is auto-generated via `npm run openapi:dump` and consumed by the frontend through `frontend/src/lib/typedApi.js`. A few highlights:
 
 - `GET /api/today/narrative` — today + week per-project breakdowns, longest session, returning-to projects
 - `GET /api/costs/summary?start=<iso>` — cost totals over a window
@@ -146,6 +149,10 @@ Backend exposes a REST API on `:9100`. The complete schema is auto-generated via
 - `POST /api/insights/generate/summary` — request a fresh narration
 
 WebSocket events: `system-metrics`, `file-changed`, `agent-event`, `trigger-fired`, `model-loaded`, `analysis-progress`.
+
+## Feedback
+
+File a bug or share an idea on GitHub: [seheart/raven/issues](https://github.com/seheart/raven/issues). There's no in-app form, no phone-home, no second site — that's the canonical channel.
 
 ## Contributing
 

@@ -102,7 +102,7 @@ cd raven && npm install`
   {
     step: '03',
     title: 'Open the dashboard',
-    body: 'Defaults to localhost-only. To expose on LAN, set RAVEN_HOST=0.0.0.0 — but read the security model first.',
+    body: 'Bound to 127.0.0.1 — the dashboard is reachable only from this machine. LAN/cloud exposure is intentionally not on the roadmap.',
     code: 'open http://localhost:9000'
   }
 ];
@@ -307,8 +307,9 @@ export const RESOLVED_DECISIONS = [
   {
     q: 'Local-only or networked?',
     decision:
-      "Bind to 127.0.0.1 by default. LAN exposure is opt-in via RAVEN_HOST=0.0.0.0; documented as 'you trust every host on the bound network.' Cloud is not on the roadmap.",
-    alternatives: 'Per-instance API key, mTLS between dev machines, hosted aggregator.',
+      'Bind to 127.0.0.1, full stop. LAN exposure is not exposed as a config knob — adding it would mean designing auth, audit, and a threat model we are not ready to ship. Cloud is not on the roadmap.',
+    alternatives:
+      'A RAVEN_HOST=0.0.0.0 escape hatch (rejected — the friction is doing real work here; an SSO proxy is the supported path for LAN).',
     livesAt: 'backend/server.ts'
   },
   {
