@@ -1,499 +1,285 @@
-# Raven Architecture
+# Architecture
 
-**Version:** 0.6.0
-**Architecture:** Web Application (Client-Server)
-**Status:** Production Ready
+How Raven actually fits together. Pairs with the [README](../README.md) for the
+elevator-pitch version and with [DECISIONS.md](../DECISIONS.md) for the "why"
+behind the load-bearing choices.
 
----
+Pre-1.0. Single-host, single-user, bound to `127.0.0.1`. If a thing here looks
+overbuilt for a single machine, see the decisions file — most of it is honest
+scope reduction, not eager generalization.
 
-## 🏗️ System Overview
+## The five tiers
 
-Raven is a **web-based** AI agent monitoring tool with a client-server architecture:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    CLIENT BROWSER                       │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │         Svelte Frontend (Port 5173)              │  │
-│  │  - Dashboard, Metrics, Agents, Triggers UI       │  │
-│  │  - Real-time updates via Socket.IO               │  │
-│  └──────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           │ HTTP + WebSocket
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│              Node.js Backend (Port 3030)                │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  Express Server                                  │  │
-│  │  - REST API (21 endpoints)                       │  │
-│  │  - Socket.IO WebSocket server                    │  │
-│  │  - File watcher (chokidar)                       │  │
-│  │  - Metrics collector (systeminformation)         │  │
-│  │  - Trigger engine (TOML config)                  │  │
-│  └──────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│              SQLite Database (.raven/db/)               │
-│  - events                                               │
-│  - agent_events                                         │
-│  - raven_metrics                                        │
-│  - process_metrics                                      │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📂 Project Structure
+Raven is a one-way pipeline. Events come in from the left, get persisted in
+the middle, and push out to the browser on the right. Nothing in the right-hand
+stages can write back to the left.
 
 ```
-raven/
-├── backend/                    # Node.js Express Server
-│   ├── server.js              # Main server (Express + Socket.IO)
-│   ├── db.js                  # SQLite database wrapper
-│   ├── metrics-collector.js   # System metrics (CPU, memory)
-│   ├── trigger-engine.js      # Alert trigger system
-│   ├── package.json           # Node.js dependencies
-│   └── node_modules/          # Dependencies (132 packages)
-│
-├── frontend/                   # Svelte Web Application
-│   ├── src/
-│   │   ├── App.svelte         # Main app with tab navigation
-│   │   ├── lib/               # UI components (18 Svelte files)
-│   │   │   ├── Dashboard.svelte
-│   │   │   ├── AgentsPanel.svelte
-│   │   │   ├── MetricsPanel.svelte
-│   │   │   ├── SessionReplay.svelte
-│   │   │   ├── TriggersPanel.svelte
-│   │   │   └── ...
-│   │   └── main.js
-│   ├── package.json
-│   └── vite.config.js
-│
-├── .raven/                     # Runtime data
-│   ├── config.toml            # Configuration file
-│   ├── db/raven.db           # SQLite database
-│   └── snapshots/            # File snapshots
-│
-├── docs/                       # Documentation (10 files)
-├── scripts/                    # Build and test scripts
-└── test_workspace/            # Test directory for monitoring
+Watchers ──► SQLite ──► Triggers ──► Insights (optional) ──► Broadcaster ──► Frontend
 ```
 
----
+### 1. Watchers
 
-## 🎯 Tech Stack
+Tail external producers and turn them into normalized events.
 
-### Backend (Node.js)
+- **Does:** tail Claude Code and Codex JSONL session logs; watch each registered
+  project tree with chokidar; observe Ollama via the transparent proxy; restart
+  themselves with exponential backoff on transient failure.
+- **Doesn't:** edit anything, hold persistent state in memory, run subprocesses
+  against your repo. File positions are checkpointed to disk so a restart
+  resumes mid-stream instead of replaying.
+- **Implementation:**
+  - `backend/modules/watcher.ts` (FileWatcher, chokidar-based)
+  - `backend/services/claude-log-watcher.ts`
+  - `backend/services/codex-log-watcher.ts`
+  - `backend/services/ollama-log-watcher.ts`
+  - `backend/modules/transparent-ollama-proxy.ts`
 
-| Component | Technology | Version | Purpose |
-|-----------|-----------|---------|---------|
-| **Runtime** | Node.js | 20+ | JavaScript runtime |
-| **Framework** | Express | 4.21.2 | HTTP server & REST API |
-| **WebSockets** | Socket.IO | 4.8.1 | Real-time bidirectional events |
-| **Database** | better-sqlite3 | 11.8.1 | SQLite database wrapper |
-| **File Watching** | chokidar | 4.0.3 | File system monitoring |
-| **Metrics** | systeminformation | 5.27.11 | System metrics collection |
-| **Config** | toml | 3.0.0 | TOML configuration parsing |
-| **UUID** | uuid | 11.0.5 | Session ID generation |
-| **CORS** | cors | 2.8.5 | Cross-origin resource sharing |
+When a watcher hits an error it can't shrug off, it bumps a `restartAttempts`
+counter and schedules a backoff retry. After five failed attempts it sets
+`permanentlyFailed = true`, which surfaces as `subsystems.watcher.status =
+"down"` in `/api/health`.
 
-### Frontend (Svelte)
+### 2. SQLite
 
-| Component | Technology | Version | Purpose |
-|-----------|-----------|---------|---------|
-| **Framework** | Svelte | Latest | Reactive UI framework |
-| **Build Tool** | Vite | Latest | Fast development server |
-| **WebSocket Client** | Socket.IO Client | Latest | Real-time event handling |
-| **HTTP Client** | Fetch API | Native | REST API calls |
-| **Testing** | Vitest | Latest | Unit testing |
+The source of truth. One file under `.raven/db/raven.db`, WAL mode, full SQL
+exposed to anyone with read access to the file.
 
----
+- **Does:** persist every event with timestamp + agent + model + session +
+  project + path + bytes; keep rollup tables in sync via SQL triggers; reclaim
+  freed pages with incremental vacuum.
+- **Doesn't:** encrypt (filesystem permissions are the boundary), replicate,
+  encode anything in opaque blobs.
+- **Implementation:** `backend/db.ts` (RavenDB class, `initializeSchema()`).
 
-## 🔌 Communication Protocols
+Repository layer in `backend/repositories/*` is the only thing allowed to
+import `better-sqlite3` directly (see the dependency-cruiser policy below).
 
-### REST API (HTTP)
+### 3. Trigger engine
 
-**Base URL:** `http://localhost:3030/api`
+Cheap deterministic rules over the event stream.
 
-**Endpoints (21):**
+- **Does:** match each event against rules in `.raven/config.toml`; emit
+  `trigger_fired` events with a name, message, and severity; honor per-rule
+  cooldowns so a noisy condition doesn't spam the UI.
+- **Doesn't:** call any LLM, block the writer (runs after persistence), auto-
+  resolve anything.
+- **Implementation:** `backend/trigger-engine.ts`. Rule shape lives in
+  `.raven/config.toml`; see [README — Configuration](../README.md#configuration).
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/session-id` | Get current session ID |
-| GET | `/api/dashboard-stats` | Dashboard statistics |
-| GET | `/api/top-modified-files` | Most edited files |
-| GET | `/api/longest-edits` | Largest code changes |
-| GET | `/api/agents-status` | Active agents status |
-| GET | `/api/agent-events` | Agent telemetry events |
-| GET | `/api/events-by-agent/:agent` | Events for specific agent |
-| GET | `/api/agent-stats` | Agent statistics |
-| GET | `/api/system-metrics` | System CPU/memory metrics |
-| GET | `/api/process-metrics/:agent` | Per-process metrics |
-| GET | `/api/metrics-stats` | Metrics aggregations |
-| GET | `/api/performance-correlations` | Correlation analysis |
-| GET | `/api/tracked-files` | List of monitored files |
-| GET | `/api/events-by-session/:sessionId` | Events by session |
-| GET | `/api/triggers-config` | Trigger configuration |
-| GET | `/api/triggered-events` | Fired trigger events |
-| GET | `/api/trigger-stats` | Trigger statistics |
-| POST | `/api/triggers-reload` | Reload trigger config |
-| POST | `/api/triggers-clear-cooldowns` | Clear trigger cooldowns |
-| POST | `/telemetry` | Send agent telemetry event |
-| GET | `/health` | Health check endpoint |
+### 4. Insights (optional)
 
-### WebSocket (Socket.IO)
+Local-LLM narration. Off if Ollama isn't running.
 
-**URL:** `ws://localhost:3030`
+- **Does:** narrate sessions, summarize anomalies, score nuanced diffs through
+  a local model (default `qwen2.5-coder`); skip entirely if the Ollama circuit
+  breaker is open.
+- **Doesn't:** call cloud LLMs, block trigger output, send anything off-host.
+- **Implementation:** `backend/services/insights-service.ts`. Set
+  `RAVEN_INSIGHTS_DISABLED=1` to kill it outright.
 
-**Events:**
+The breaker (`backend/utils/circuit-breaker.ts`) trips after 3 consecutive
+failures and stays open for 30s. While open, every insight call fast-fails
+with `CircuitOpenError` — the user sees a degraded chip in `/api/health`'s
+`subsystems.ollama` block, not a stalled UI.
 
-| Event | Direction | Purpose |
-|-------|-----------|---------|
-| `agent-event` | Server → Client | New telemetry event |
-| `agent-stats` | Server → Client | Updated agent statistics |
-| `metrics-update` | Server → Client | System metrics update |
-| `trigger-fired` | Server → Client | Alert triggered |
-| `file-changed` | Server → Client | File system change |
+### 5. Broadcaster
 
----
+Push real-time updates to every connected dashboard.
 
-## 💾 Database Schema
+- **Does:** emit Socket.IO events (`file-changed`, `agent-event`,
+  `trigger-fired`, `model-loaded`, `system-metrics`, `analysis-progress`,
+  `health-alert`) to all connected clients; coalesce bursts into ~2s windows.
+- **Doesn't:** authenticate (single host, no users), buffer indefinitely,
+  reach outside `localhost`.
+- **Implementation:** Socket.IO server set up in `backend/server.ts`; bindings
+  in `backend/services/event-bus-bindings.ts`.
 
-**File:** `.raven/db/raven.db` (SQLite 3)
+### Frontend
 
-### Table: `events`
+Svelte 5 + Tailwind v4. Renders the dashboards from REST + Socket.IO.
 
-File system change events.
+- **Does:** subscribe to the broadcaster, render the dashboards, theme via CSS
+  variables on `:root` (see DECISIONS.md on the dark-theme flip).
+- **Doesn't:** phone home, require sign-in, write to your repo.
+- **Implementation:** `frontend/src/lib/pages/*`.
 
-```sql
-CREATE TABLE events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT NOT NULL,
-    filepath TEXT,
-    change_type TEXT,
-    diff TEXT,
-    cpu REAL,
-    mem REAL,
-    session_id TEXT,
-    file_hash TEXT,
-    event_size INTEGER
-);
+## Schema map
+
+All tables live in `.raven/db/raven.db`. Created by `RavenDB.initializeSchema()`
+in `backend/db.ts`.
+
+Retention windows are tunable. See the
+[README — Configuration](../README.md#configuration) for the env vars
+(`RETENTION_EVENT_DAYS`, `RETENTION_METRICS_DAYS`, `RETENTION_SNAPSHOT_DAYS`).
+The defaults in `server.ts` are `0` (kept forever) for events and metrics, and
+`7` days for snapshot files — user preference is to keep historical data unless
+disk pressure forces a trim.
+
+### Event ingestion (high-churn)
+
+| Table              | Purpose                                                  | Primary key   | Retention                       |
+| ------------------ | -------------------------------------------------------- | ------------- | ------------------------------- |
+| `events`           | File system change events                                | `id` AUTOINCR | high-churn — trim window opt-in |
+| `agent_events`     | Claude/Codex/Ollama telemetry events                     | `id` AUTOINCR | high-churn — trim window opt-in |
+| `file_events`      | (via `file_events_repository`, projection over `events`) | n/a           | derived                         |
+| `syntax_errors`    | Syntax errors detected on a file change                  | `id` AUTOINCR | high-churn                      |
+| `pattern_warnings` | Pattern-match findings (eval, hard-coded creds)          | `id` AUTOINCR | high-churn                      |
+| `api_latency`      | Per-request latency for Claude/Ollama calls              | `id` AUTOINCR | high-churn                      |
+| `diff_annotations` | Per-line risk findings tied to a single event            | `id` AUTOINCR | high-churn                      |
+| `diff_risk_scores` | LLM-generated risk scores for a diff                     | `id` AUTOINCR | high-churn                      |
+
+### Aggregates (lifetime, trigger-maintained)
+
+These survive the retention sweep. Triggers on `events` / `agent_events` keep
+them current atomically with each insert, so a 7-day events trim doesn't
+collapse the lifetime odometers on the dashboard.
+
+| Table              | Purpose                                             | Primary key    | Retention |
+| ------------------ | --------------------------------------------------- | -------------- | --------- |
+| `project_stats`    | Per-project event counters + first/last seen        | `project_name` | lifetime  |
+| `file_stats`       | Per-filepath rollup (mods, creates, edits, deletes) | `filepath`     | lifetime  |
+| `event_type_stats` | Per-change_type counter for dashboard header        | `change_type`  | lifetime  |
+
+Triggers (declared in `db.ts`): `bump_project_stats_events`,
+`bump_project_stats_agent_events`, `bump_file_stats_events`,
+`bump_event_type_stats_events`. All are `INSERT … ON CONFLICT DO UPDATE`, so
+they're single-statement and atomic with the source insert. Each rollup is
+backfilled once at boot from surviving rows if its row count is zero.
+
+### Telemetry (slow-moving)
+
+| Table             | Purpose                                     | Primary key   | Retention          |
+| ----------------- | ------------------------------------------- | ------------- | ------------------ |
+| `raven_metrics`   | System CPU/memory/network, sampled          | `id` AUTOINCR | slow — trim opt-in |
+| `process_metrics` | Per-agent CPU/memory/FD/thread snapshots    | `id` AUTOINCR | slow — trim opt-in |
+| `gpu_metrics`     | nvidia-smi snapshots (one row per GPU)      | `id` AUTOINCR | slow — trim opt-in |
+| `token_usage`     | Per-request input/output/cache tokens + USD | `id` AUTOINCR | slow — trim opt-in |
+| `app_errors`      | Application error log (frontend + backend)  | `id` AUTOINCR | slow               |
+| `test_results`    | Jest/Vitest/Playwright run results          | `id` AUTOINCR | slow               |
+
+### Insights + self-analysis (lifetime)
+
+| Table             | Purpose                                   | Primary key   | Retention |
+| ----------------- | ----------------------------------------- | ------------- | --------- |
+| `insights`        | Local-LLM narrations + structured digests | `id` TEXT     | lifetime  |
+| `analysis_runs`   | Self-analysis (code health) run header    | `id` AUTOINCR | lifetime  |
+| `analysis_checks` | Per-check rows for an analysis run        | `id` AUTOINCR | cascade   |
+| `subagent_tree`   | Sub-agent parent/child tree per session   | `id` AUTOINCR | lifetime  |
+
+### Config (JSON, not SQLite)
+
+Two pieces of state intentionally live outside the DB so they're trivially
+diffable:
+
+- `~/.raven/host.json` — host identity (host_id, host_name).
+- `~/.raven/projects.json` — registered projects + watcher paths.
+- `~/.raven/log-positions-claude.json` and `…-codex.json` — log tailer offsets
+  (so a restart resumes mid-file).
+- `.raven/config.toml` — trigger rules.
+
+## Directory layout
+
+```
+backend/
+  routes/         REST handlers, one file per concern, all wired in routes/index.ts
+  repositories/   SQLite access layer — only place allowed to import better-sqlite3
+  services/       File/log watchers, Ollama proxy, insights, plugins, health
+  modules/        EventBus, GitMonitor, diff engine, transparent Ollama proxy
+  middleware/     auth, errorHandler, security/Helmet, performance, rate-limit
+  utils/          Pure helpers — logger, circuit-breaker, disk-state, sqlite-retry
+  migrations/     Numbered, idempotent DB migrations (rare — schema is mostly in db.ts)
+
+frontend/src/lib/
+  pages/          One Svelte component per route — Dashboard, Activity, Agents, etc.
+  components/     Shared UI — insights/, layout/, live/, llm-lab/, pulse-shapes/, today/, ui/
+  services/       websocket.js — single Socket.IO client wired to typedApi
+  stores/         settingsStore, notificationHistory
+  utils/          chartUtils, helpers, formatUsd, markdown, router.svelte.js
+  content/        Static page copy as data — about.js, roadmap.js, design.js
+
+scripts/          Operator scripts — claude-telemetry-bridge.js, nightly-test-run.sh, etc.
+e2e/              Playwright specs covering the navigation + main views
+docs/             This directory — architecture, troubleshooting, plugins, etc.
 ```
 
-### Table: `agent_events`
-
-AI agent telemetry events.
-
-```sql
-CREATE TABLE agent_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT NOT NULL,
-    agent TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    file TEXT,
-    lines_changed INTEGER,
-    duration_ms INTEGER,
-    message TEXT NOT NULL,
-    metadata TEXT,
-    session_id TEXT
-);
-```
-
-### Table: `raven_metrics`
-
-System-wide metrics (CPU, memory, network).
-
-```sql
-CREATE TABLE raven_metrics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT NOT NULL,
-    cpu_percent REAL NOT NULL,
-    memory_percent REAL NOT NULL,
-    memory_used_mb INTEGER NOT NULL,
-    memory_total_mb INTEGER NOT NULL,
-    network_rx_bytes INTEGER,
-    network_tx_bytes INTEGER,
-    session_id TEXT
-);
-```
-
-### Table: `process_metrics`
-
-Per-process metrics for AI agents.
-
-```sql
-CREATE TABLE process_metrics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT NOT NULL,
-    agent_name TEXT NOT NULL,
-    pid INTEGER NOT NULL,
-    cpu_usage REAL NOT NULL,
-    memory_mb INTEGER NOT NULL,
-    virtual_memory_mb INTEGER NOT NULL,
-    disk_read_bytes INTEGER,
-    disk_write_bytes INTEGER,
-    status TEXT,
-    session_id TEXT
-);
-```
-
----
-
-## 🔧 Configuration
-
-**File:** `.raven/config.toml`
-
-```toml
-[monitoring]
-watch_path = "../test_workspace"
-ignore_patterns = ["**/node_modules/**", "**/.git/**"]
-debounce_ms = 50
-max_events = 1000
-
-[database]
-db_path = "db/raven.db"
-
-[snapshots]
-enabled = true
-retention_days = 7
-max_snapshot_size_mb = 10
-
-[metrics]
-enabled = true
-interval_seconds = 2
-cpu_threshold = 80.0
-memory_threshold = 85.0
-
-[triggers.large_edit]
-file = "*.js"
-lines_changed = ">100"
-action = "log"
-message = "Large edit detected: {file} ({lines_changed} lines)"
-cooldown_seconds = 60
-```
-
----
-
-## 🚀 Deployment
-
-### Development
-
-```bash
-# Terminal 1: Start backend
-cd backend
-npm install
-npm start
-
-# Terminal 2: Start frontend
-cd frontend
-npm install
-npm run dev
-
-# Access: http://localhost:5173
-```
-
-### Production
-
-**Option 1: Separate processes**
-```bash
-# Backend
-cd backend && npm install
-pm2 start server.js --name raven-backend
-
-# Frontend
-cd frontend && npm install && npm run build
-# Serve dist/ with nginx or Apache
-```
-
-**Option 2: Backend serves frontend**
-```bash
-# Build frontend
-cd frontend && npm run build
-
-# Copy dist/ to backend/public/
-mkdir -p backend/public
-cp -r frontend/dist/* backend/public/
-
-# Configure Express to serve static files
-# (Add to server.js: app.use(express.static('public')))
-
-# Start combined server
-cd backend && npm start
-```
-
-### Environment Variables
-
-```bash
-# Backend
-PORT=3030                    # Server port
-NODE_ENV=production          # Production mode
-DB_PATH=.raven/db/raven.db  # Database path
-
-# Frontend
-VITE_API_URL=http://localhost:3030  # API base URL
-```
-
----
-
-## 📊 Performance Characteristics
-
-### Resource Usage
-
-| Metric | Typical | Peak |
-|--------|---------|------|
-| Backend Memory | 50-80 MB | 120 MB |
-| Frontend Memory | 30-50 MB | 80 MB |
-| Database Size | 5-10 MB | 50 MB (with snapshots) |
-| CPU Usage | 2-5% | 15% (during file changes) |
-
-### Scalability Limits
-
-- **File Events:** ~1000 events/sec max throughput
-- **WebSocket Clients:** 100+ concurrent connections
-- **Database:** Millions of events (SQLite limit: 281 TB)
-- **Metrics Sampling:** 5-second intervals (configurable)
-
----
-
-## 🔐 Security Considerations
-
-### Current Implementation
-
-- ✅ CORS enabled (localhost:5173)
-- ✅ JSON payload limit (50 MB)
-- ⚠️ No authentication (localhost only)
-- ⚠️ No HTTPS (development)
-
-### Production Recommendations
-
-1. **Add Authentication:**
-   - JWT tokens
-   - API keys for telemetry endpoint
-
-2. **Enable HTTPS:**
-   - SSL/TLS certificates
-   - Redirect HTTP to HTTPS
-
-3. **Secure Database:**
-   - File permissions (chmod 600)
-   - Regular backups
-
-4. **Rate Limiting:**
-   - Prevent telemetry spam
-   - DOS protection
-
----
-
-## ⚡ Feature Modules
-
-### File Watcher (`chokidar`)
-
-Monitors `test_workspace/` for file changes:
-- Detects: create, modify, delete, rename
-- Debounced: 50ms (configurable)
-- Ignores: node_modules, .git, target, dist
-- Generates diffs on modify events
-
-### Metrics Collector (`systeminformation`)
-
-Collects system metrics every 2 seconds:
-- CPU usage (%)
-- Memory usage (%, MB)
-- Network I/O (bytes)
-- Process-specific metrics (per-agent)
-
-### Trigger Engine (`trigger-engine.js`)
-
-Evaluates rules from `.raven/config.toml`:
-- File patterns (e.g., "*.js > 100 lines")
-- Agent events (e.g., "claude > 5000ms")
-- System metrics (e.g., "CPU > 80%")
-- Cooldown mechanism (prevents spam)
-
-### Real-time Events (Socket.IO)
-
-Broadcasts events to all connected clients:
-- File changes
-- Agent events
-- Metrics updates
-- Trigger alerts
-
----
-
-## 🧪 Testing
-
-### Backend Tests
-
-```bash
-cd backend
-npm test  # (if test suite exists)
-```
-
-### Frontend Tests
-
-```bash
-cd frontend
-npm test
-```
-
-**Existing Tests:**
-- `keyboardService.test.js` - 10 tests
-- `EventFeed.test.js` - 8 tests
-- `MetricsPanel.test.js` - 4 tests
-
----
-
-## 🔄 Original Plan vs Reality
-
-### Architecture
-
-- ✅ Web application (browser-based)
-- ✅ Node.js Express backend
-- ✅ Svelte frontend with Vite
-- ✅ Real-time WebSocket communication
-- ✅ SQLite database
-- ✅ Cross-platform via browser
-
-### Why Web-Based?
-
-**Advantages of Web Architecture:**
-1. **Easier deployment** - Standard web hosting
-2. **Cross-platform** - Works on any OS with browser
-3. **Remote access** - Can monitor from any device
-4. **Faster iteration** - Hot reload during development
-5. **No installation** - Just visit URL
-6. **Lightweight** - No desktop runtime required
-
----
-
-## 🔮 Future Enhancements
-
-### Short-term
-- [ ] Add authentication (JWT)
-- [ ] Enable HTTPS
-- [ ] Docker containerization
-- [ ] Health monitoring dashboard
-
-### Long-term
-- [ ] Multi-workspace support
-- [ ] Cloud sync (opt-in)
-- [ ] Team collaboration features
-- [ ] VS Code extension integration
-- [ ] Plugin system for custom integrations
-
----
-
-## 📞 Support
-
-- **Documentation:** See [docs/](docs/) directory
-- **Issues:** GitHub Issues
-- **Architecture Questions:** See this file
-
----
-
-**Last Updated:** 2025-10-18
-**Version:** 0.6.0
-**Architecture:** Web Application (Node.js + Svelte)
+## Dependency policy
+
+`backend/.dependency-cruiser.cjs` encodes the architecture rules as lint. The
+load-bearing ones:
+
+- **`no-circular`** (error) — Circular deps make refactors risky; rejected.
+- **`better-sqlite3-only-in-data-layer`** (error) — Only `db.ts`, `database/`,
+  `repositories/`, `scripts/`, `migrations/`, and `run-migrations.js` may
+  import `better-sqlite3`. Everything else goes through a repository.
+- **`no-raw-sql-in-routes`** (error) — `routes/*.ts` cannot import
+  `better-sqlite3` at all. Pair with the ESLint `no-restricted-syntax` rule
+  that catches `db.db.prepare()` patterns (depcruise only sees imports).
+- **`middleware-no-routes`** (error) — `middleware/` is a lower layer than
+  `routes/` and must not import from it.
+- **`routes-not-coupled`** (warn) — `routes/*.ts` cannot import each other.
+  `routes/index.ts` is the wiring aggregator and is exempt.
+- **`utils-pure`** (warn) — `utils/` is leaf-level. No imports from
+  `services/`, `routes/`, or `middleware/`.
+- **`not-to-test`** (error) — Production code cannot import test files.
+- **`no-non-package-json-deps`** (error) — Every import is declared in
+  `package.json`.
+
+Run it: `cd backend && npx depcruise --config .dependency-cruiser.cjs .`.
+
+## Boot sequence
+
+What `./start.sh` actually does, in order:
+
+1. **Clean up.** Kill any stale `node dist/server.js` / `vite` processes and
+   any leftover listeners on ports 9100 / 9000.
+2. **Build if needed.** If `backend/dist/` is missing, run `npm run build` in
+   `backend/`.
+3. **Start backend** (`node backend/dist/server.js`) in the background, logging
+   to `/tmp/raven-backend.log`, PID to `/tmp/raven-backend.pid`. Inherits
+   `OLLAMA_URL`, `TRANSPARENT_OLLAMA_PORT`, and `RAVEN_INSIGHTS_DISABLED` from
+   the env (with documented defaults).
+4. **Start frontend** (`npm run dev` in `frontend/`) in the background, logging
+   to `/tmp/raven-frontend.log`, PID to `/tmp/raven-frontend.pid`.
+5. **Wait for backend health.** Poll `GET /api/health` until
+   `"status":"healthy"` (up to 30s). Bail if it doesn't come up.
+6. **Wait for frontend.** Poll `http://localhost:9000` until it responds (up
+   to 10s).
+7. **Warm caches.** Fire 28 parallel `curl`s at endpoints the first page load
+   would hit (`/api/dashboard-stats`, `/api/system-metrics`, `/api/projects`,
+   `/api/sessions`, etc.) so first-paint isn't paying the cold-cache cost.
+   Skip with `SKIP_HEALTH_CHECKS=1`.
+8. **Open browser.** `xdg-open http://localhost:9000`. Suppressed with
+   `RAVEN_NO_OPEN=1` or on restart (cold start only).
+
+`initializeSchema()` (called by the `RavenDB` constructor on first connection)
+is idempotent: every `CREATE TABLE` and `CREATE INDEX` is `IF NOT EXISTS`,
+legacy columns are added with `ALTER TABLE` only when `PRAGMA table_info`
+shows them missing, and the rollup-table backfills are guarded by
+`SELECT COUNT(*) = 0`. Safe to run on every boot.
+
+## Failure-mode behavior
+
+Raven leans into "degrade visibly" rather than "crash on first error". The
+load-bearing pieces:
+
+- **Circuit breakers** for unreliable external services (today: Ollama). Defaults
+  to 3 consecutive failures → open for 30s; recovery is a half-open probe.
+  Source: `backend/utils/circuit-breaker.ts`.
+- **SQLite write retry** with exponential backoff (10ms / 50ms / 200ms) on
+  `SQLITE_BUSY`. `ENOSPC` and `SQLITE_FULL` skip retry and flip the disk-full
+  flag immediately. Source: `backend/utils/sqlite-retry.ts`.
+- **Disk-state singleton.** When the retry helper sees `ENOSPC`, it sets a
+  process-lifetime flag; `/api/health`'s `subsystems.disk.status` flips to
+  `"down"`; write-dependent routes can return 503 instead of crashing. The
+  next successful write clears the flag. Source: `backend/utils/disk-state.ts`.
+- **Watcher auto-restart.** Both `FileWatcher` and the log watchers track
+  `restartAttempts`, retry with exponential backoff, and set
+  `permanentlyFailed = true` after five attempts. State surfaces in
+  `/api/health`'s `subsystems.watcher`, `…claude_log_watcher`,
+  `…codex_log_watcher`.
+- **Plugin sandbox failures** are logged to the plugin's own log buffer and
+  bumped against a timeout counter. Five timeouts auto-disables the plugin.
+  See [PLUGINS.md](PLUGINS.md).
+
+User-visible symptoms and how to read them: [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

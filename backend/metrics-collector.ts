@@ -176,11 +176,18 @@ export class MetricsCollector {
   }
 
   /**
-   * Read Linux /proc details for a process
+   * Read Linux /proc details for a process. macOS / BSDs have no /proc, so we
+   * short-circuit with zeros — the downstream metric is just an enrichment and
+   * the row stays valid without it. (Without this guard the function still
+   * "worked" via the inner catches, but emitted ENOENT noise on every tick on
+   * non-Linux hosts.)
    */
   private async getLinuxProcessDetails(
     pid: number
   ): Promise<{ threadCount: number; fdCount: number }> {
+    if (process.platform !== 'linux') {
+      return { threadCount: 0, fdCount: 0 };
+    }
     try {
       // Thread count from /proc/<pid>/stat field 20 (1-indexed)
       let threadCount = 0;

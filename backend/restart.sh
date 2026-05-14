@@ -19,6 +19,19 @@ API_RATE_LIMIT_MAX="${API_RATE_LIMIT_MAX:-500}"
 TELEMETRY_RATE_LIMIT_MAX="${TELEMETRY_RATE_LIMIT_MAX:-5000}"
 LOG_FILE="/tmp/raven-backend.log"
 
+# Cross-platform "is this TCP port in use?". `ss` is Linux iproute2 (preferred,
+# fast); `lsof` covers macOS. Returns 0 if a process is listening on $1.
+port_in_use() {
+  local p="$1"
+  if command -v ss &>/dev/null; then
+    ss -tln 2>/dev/null | grep -q ":${p} "
+  elif command -v lsof &>/dev/null; then
+    lsof -iTCP:"${p}" -sTCP:LISTEN -P 2>/dev/null | grep -q LISTEN
+  else
+    return 1
+  fi
+}
+
 echo -e "${YELLOW}═══════════════════════════════════════${NC}"
 echo -e "${YELLOW}  Raven Backend Clean Restart${NC}"
 echo -e "${YELLOW}═══════════════════════════════════════${NC}"
@@ -31,7 +44,7 @@ pkill -f "node dist/server.js" 2>/dev/null && echo -e "${GREEN}✓${NC} Killed e
 # Step 2: Wait for port to be freed
 echo -e "${YELLOW}[2/4]${NC} Waiting for port ${PORT} to be freed..."
 for i in {1..10}; do
-    if ! ss -tln | grep -q ":${PORT} "; then
+    if ! port_in_use "${PORT}"; then
         echo -e "${GREEN}✓${NC} Port ${PORT} is free"
         break
     fi
@@ -60,7 +73,7 @@ node dist/server.js > "${LOG_FILE}" 2>&1 &
 
 # Wait a moment and verify it started
 sleep 2
-if ss -tln | grep -q ":${PORT} "; then
+if port_in_use "${PORT}"; then
     echo -e "${GREEN}✓${NC} Backend started successfully"
     echo ""
     echo -e "${GREEN}═══════════════════════════════════════${NC}"

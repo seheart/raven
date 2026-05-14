@@ -109,30 +109,33 @@ stop_spin "${GREEN}✓${NC}" "Servers launched"
 
 # ── Wait for backend ────────────────────────────────
 # Capture the full health JSON once; reuse for status + session_id below.
+# Poll at 100ms — backend boots in ~1s, so 500ms granularity was wasting
+# up to a full half-second on every cold start. Cap unchanged (30s total).
 start_spin "Backend booting..."
 BACKEND_HEALTH=""
-for i in {1..60}; do
+for i in {1..300}; do
   BACKEND_HEALTH=$(curl -s http://localhost:9100/api/health 2>/dev/null || true)
   if echo "$BACKEND_HEALTH" | grep -q '"status":"healthy"'; then
     stop_spin "${GREEN}✓${NC}" "Backend ready"
     break
   fi
-  sleep 0.5
-  if [ $i -eq 60 ]; then
+  sleep 0.1
+  if [ $i -eq 300 ]; then
     stop_spin "${RED}✗${NC}" "Backend failed (check /tmp/raven-backend.log)"
     exit 1
   fi
 done
 
 # ── Wait for frontend ──────────────────────────────
+# Poll at 100ms — vite usually serves in 1-2s. Cap unchanged (10s total).
 start_spin "Frontend booting..."
-for i in {1..20}; do
+for i in {1..100}; do
   if curl -s http://localhost:9000 > /dev/null 2>&1; then
     stop_spin "${GREEN}✓${NC}" "Frontend ready"
     break
   fi
-  sleep 0.5
-  if [ $i -eq 20 ]; then
+  sleep 0.1
+  if [ $i -eq 100 ]; then
     stop_spin "${RED}✗${NC}" "Frontend failed (check /tmp/raven-frontend.log)"
     exit 1
   fi
@@ -183,7 +186,16 @@ SESSION_INFO=$(echo "$BACKEND_HEALTH" | grep -o '"session_id":"[^"]*"' | cut -d'
 echo ""
 echo -e "  ${GREEN}${BOLD}Raven is running${NC}"
 echo ""
+# `hostname -I` is GNU-only (gives all non-loopback IPs); macOS' BSD hostname
+# rejects -I with usage error. Try Linux form first, then fall back to a
+# `ipconfig getifaddr` probe on the common macOS interfaces. Empty is fine —
+# the LAN line is only displayed when non-empty.
 LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -z "$LAN_IP" ] && command -v ipconfig &>/dev/null; then
+  for iface in en0 en1 en2; do
+    LAN_IP=$(ipconfig getifaddr "$iface" 2>/dev/null) && [ -n "$LAN_IP" ] && break
+  done
+fi
 echo -e "  ${DIM}Frontend${NC}  http://localhost:9000"
 if [ -n "$LAN_IP" ]; then
 echo -e "  ${DIM}LAN${NC}       http://${LAN_IP}:9000"
@@ -195,7 +207,13 @@ echo -e "  ${DIM}Stop${NC}      raven stop"
 echo -e "  ${DIM}Restart${NC}   raven restart"
 echo ""
 
-# Auto-open Raven in the browser
-if [ -z "$RAVEN_NO_OPEN" ] && command -v xdg-open &>/dev/null; then
-  xdg-open "http://localhost:9000" >/dev/null 2>&1 &
+# Auto-open Raven in the browser. macOS uses `open`; Linux uses `xdg-open`.
+# Either is best-effort — if neither is on PATH we just stay silent so headless
+# / SSH sessions don't error out.
+if [ -z "$RAVEN_NO_OPEN" ]; then
+  if [[ "$OSTYPE" == "darwin"* ]] && command -v open &>/dev/null; then
+    open "http://localhost:9000" >/dev/null 2>&1 &
+  elif command -v xdg-open &>/dev/null; then
+    xdg-open "http://localhost:9000" >/dev/null 2>&1 &
+  fi
 fi

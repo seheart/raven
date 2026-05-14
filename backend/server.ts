@@ -51,6 +51,7 @@ import { startRetentionCleanup, scheduleDaily } from './services/retention-clean
 import { installGracefulShutdown } from './services/graceful-shutdown.js';
 import { startTransparentOllamaProxy } from './services/transparent-ollama-proxy.js';
 import { onDiskStateChange, getDiskState } from './utils/disk-state.js';
+import { internalMetrics } from './services/internal-metrics.js';
 import { createLocalModelCallbacks } from './services/local-model-callbacks.js';
 import { startIdleDetection } from './services/idle-detection.js';
 import { createErrorsRepository } from './repositories/errors-repository.js';
@@ -110,11 +111,18 @@ const io = new SocketIOServer(httpServer, {
 // without making the UI feel stale. The repository memoizes its `totals()` for
 // 2s, so the route and broadcast share results.
 let agentStatsBroadcastTimer: NodeJS.Timeout | null = null;
+let agentStatsBroadcastPending = 0;
 const AGENT_STATS_BROADCAST_MS = 2000;
 function scheduleAgentStatsBroadcast(): void {
+  // Track buffered (coalesced) messages — surfaces back-pressure on the
+  // broadcaster. Each call bumps; the timer flush resets to zero.
+  agentStatsBroadcastPending++;
+  internalMetrics.setBroadcastQueueDepth(agentStatsBroadcastPending);
   if (agentStatsBroadcastTimer) return;
   agentStatsBroadcastTimer = setTimeout(() => {
     agentStatsBroadcastTimer = null;
+    agentStatsBroadcastPending = 0;
+    internalMetrics.setBroadcastQueueDepth(0);
     io.emit('agent-stats', agentEventsRepository.totals());
   }, AGENT_STATS_BROADCAST_MS);
   agentStatsBroadcastTimer.unref();
@@ -401,6 +409,9 @@ const codexLogWatcher = new CodexLogWatcher(
   logger,
   { positionsFile: join(RAVEN_DIR, 'log-positions-codex.json') }
 );
+// Hand watcher handles to InternalMetrics so getSnapshot() can compute lag
+// without each watcher needing to push timestamps. Watchers expose health().
+internalMetrics.setLogWatchers(claudeLogWatcher, codexLogWatcher);
 const ollamaLogWatcher = new OllamaLogWatcher(
   createAgentEventHandler({ agentName: 'Ollama', agentType: 'ollama', colorKey: 'ollama' }),
   logger,
@@ -541,9 +552,11 @@ if (existsSync(frontendDistPath)) {
 
 io.on('connection', socket => {
   logger.info('🔌 WebSocket client connected:', socket.id);
+  internalMetrics.setClientsConnected(io.engine.clientsCount);
 
   socket.on('disconnect', () => {
     logger.info('🔌 WebSocket client disconnected:', socket.id);
+    internalMetrics.setClientsConnected(io.engine.clientsCount);
   });
 });
 

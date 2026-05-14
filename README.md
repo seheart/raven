@@ -114,9 +114,9 @@ Environment knobs:
 - `RAVEN_DEV_DISABLE_AUTH=true` — local-only dev, skip auth middleware
 - `RAVEN_DIR` — override the data directory (default: `.raven/` in dev, `~/.raven/` installed)
 - `WATCH_PATH` — override the directory being watched
-- `RETENTION_EVENT_DAYS` — high-churn tables keep N days (default 7)
-- `RETENTION_METRICS_DAYS` — slower-moving tables keep N days (default 30)
-- `RETENTION_SNAPSHOT_DAYS` — snapshot files keep N days (default 7)
+- `RETENTION_EVENT_DAYS` — high-churn tables (events, agent_events, …) keep N days. **Default `0` = keep forever.** Set to a positive integer to enable nightly retention sweeps.
+- `RETENTION_METRICS_DAYS` — slower-moving tables (token_usage, insights, …) keep N days. **Default `0` = keep forever.**
+- `RETENTION_SNAPSHOT_DAYS` — snapshot files keep N days. Default `7`.
 
 ## Tech stack
 

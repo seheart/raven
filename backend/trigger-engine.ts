@@ -17,6 +17,7 @@ import { promisify } from 'util';
 import { logger } from './utils/logger.js';
 import toml from 'toml';
 import { EventBus, TriggerFiredEvent } from './modules/eventBus.js';
+import { internalMetrics } from './services/internal-metrics.js';
 import type { Server as SocketIOServer } from 'socket.io';
 
 const execFileAsync = promisify(execFile);
@@ -172,6 +173,7 @@ cooldown_seconds = 300
    */
   evaluate(event: TriggerEvent): TriggeredEventRecord[] {
     const results: TriggeredEventRecord[] = [];
+    const evalStart = performance.now();
 
     for (const [name, trigger] of this.triggers) {
       if (this.shouldTrigger(trigger, event)) {
@@ -230,6 +232,7 @@ cooldown_seconds = 300
     // Trim expired cooldown entries to prevent unbounded map growth
     this.trimExpiredCooldowns();
 
+    internalMetrics.recordTriggerLatency(performance.now() - evalStart);
     return results;
   }
 

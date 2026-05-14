@@ -3,6 +3,7 @@ import os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import type { RavenDB } from '../db.js';
+import { internalMetrics } from '../services/internal-metrics.js';
 
 const execFileP = promisify(execFile);
 
@@ -26,6 +27,7 @@ const ROUTE_SUMMARIES: Record<string, string> = {
   '/api/analysis/code-health': 'Self-analysis (code health) runs',
   '/api/session-activity': 'Conversation timeline',
   '/api/system': 'System introspection (this page)',
+  '/api/system/internal-metrics': 'Raven self-metrics (ingest / triggers / WS / DB)',
   '/ollama': 'Ollama proxy with telemetry'
 };
 
@@ -134,6 +136,12 @@ export function createSystemRouter(deps: SystemDeps): Router {
   // Default also pinned to 127.0.0.1 to dodge the IPv6 ::1 trap on Linux.
   const resolveOllamaUrl = () =>
     deps.ollamaUrl || process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
+
+  // Self-metrics — diagnostic counters from InternalMetrics. Snapshot is
+  // cheap (no DB hits); polled at ~5s from the System health panel.
+  router.get('/internal-metrics', (_req: Request, res: Response) => {
+    return res.json(internalMetrics.getSnapshot());
+  });
 
   router.get('/tables', (_req: Request, res: Response) => {
     try {

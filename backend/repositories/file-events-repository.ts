@@ -4,6 +4,7 @@
 
 import type { RavenDB } from '../db.js';
 import { retryWrite } from '../utils/sqlite-retry.js';
+import { internalMetrics } from '../services/internal-metrics.js';
 
 interface FileEventListParams {
   limit: number;
@@ -263,6 +264,7 @@ export function createFileEventsRepository(db: RavenDB): FileEventsRepository {
           ),
         'events.insert'
       );
+      internalMetrics.recordIngest();
       return Number(result.lastInsertRowid);
     },
 

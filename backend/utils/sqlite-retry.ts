@@ -17,6 +17,7 @@
 
 import { logger } from './logger.js';
 import { markDiskFull, markWriteSuccess } from './disk-state.js';
+import { internalMetrics } from '../services/internal-metrics.js';
 
 const BACKOFFS_MS = [10, 50, 200] as const;
 
@@ -28,6 +29,7 @@ export function retryWrite<T>(fn: () => T, label = 'sqlite write'): T {
       const result = fn();
       // Clears the disk-full flag if it was set — proves writes are working again.
       markWriteSuccess();
+      internalMetrics.recordWriteAttempt(true);
       return result;
     } catch (err) {
       lastErr = err;
@@ -38,11 +40,14 @@ export function retryWrite<T>(fn: () => T, label = 'sqlite write'): T {
         const e = err instanceof Error ? err : new Error(String(err));
         logger.error(`💾 DISK FULL (${label}): ${e.message}`);
         markDiskFull(e);
+        internalMetrics.recordWriteAttempt(false);
         throw err;
       }
       if (code !== 'SQLITE_BUSY' || attempt >= BACKOFFS_MS.length) {
+        internalMetrics.recordWriteAttempt(false);
         throw err;
       }
+      internalMetrics.recordWriteRetry();
       const delay = BACKOFFS_MS[attempt];
       // Block synchronously — better-sqlite3 callers expect a synchronous
       // return value, and the retry window is bounded (10+50+200 = 260ms).

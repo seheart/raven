@@ -25,8 +25,8 @@ heading is treated as the note.
 
 ### Local-only or networked?
 
-**Decision:** Bind to 127.0.0.1 by default. LAN exposure is opt-in via `RAVEN_HOST=0.0.0.0`; documented as "you trust every host on the bound network." Cloud is not on the roadmap.
-**Alternatives:** Per-instance API key, mTLS between dev machines, hosted aggregator.
+**Decision:** Bind to 127.0.0.1, full stop. LAN exposure is intentionally not a config knob — exposing it would mean designing auth, audit, and a threat model we are not ready to ship. The supported path for LAN access is an SSO-aware reverse proxy in front. Cloud is not on the roadmap.
+**Alternatives:** A `RAVEN_HOST=0.0.0.0` escape hatch (rejected — the friction is doing real work here), per-instance API key, mTLS between dev machines, hosted aggregator.
 **Lives at:** backend/server.ts
 
 ### Auth on or off?

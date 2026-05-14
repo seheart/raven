@@ -6,6 +6,7 @@
 
 import type { RavenDB } from '../db.js';
 import { retryWrite } from '../utils/sqlite-retry.js';
+import { internalMetrics } from '../services/internal-metrics.js';
 
 interface LastProjectForAgent {
   project: string | null;
@@ -437,6 +438,7 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
           ),
         'agent_events.insert'
       );
+      internalMetrics.recordIngest();
       return Number(result.lastInsertRowid);
     },
 
