@@ -1,0 +1,83 @@
+# Raven release workflow.
+#
+# Triggered when a `v*` tag is pushed (e.g. `v0.5.1`, `v1.0.0`).
+# Builds the backend + frontend, runs `npm pack` to produce the publishable
+# tarball, and attaches it to a GitHub Release.
+#
+# Manual npm publish on purpose — no NPM_TOKEN secret is configured.
+# To enable auto-publish later, add an NPM_TOKEN repo secret and uncomment
+# the `Publish to npm` step below.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # required for softprops/action-gh-release to create the release
+
+jobs:
+  release:
+    name: Build and publish GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      # `prepublishOnly` in the root package.json runs `npm run build:all`,
+      # but we run an explicit build here so we can see it in its own step
+      # and so `npm pack` doesn't double-build.
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: npm pack (creates raven-monitor-*.tgz)
+        id: pack
+        run: |
+          tarball=$(npm pack --silent)
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          ls -lh "$tarball"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}  # e.g. v1.0.0-rc.1 => prerelease
+          files: ${{ steps.pack.outputs.tarball }}
+
+      # To enable npm publishing automatically, add an NPM_TOKEN secret in
+      # repo settings and uncomment this step. Until then, publish manually:
+      #   git checkout v<tag> && npm publish
+      #
+      # - name: Publish to npm
+      #   run: npm publish --access public
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

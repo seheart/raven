@@ -495,8 +495,8 @@
     <LoadingState message="Loading agent statistics..." />
   {:else if agentStats.length === 0}
     <EmptyState
-      title="No agent statistics available"
-      description="Agent activity will appear here once detected by Raven."
+      title="No agent stats yet"
+      description="This page summarises how each AI tool you use (Claude Code, Cursor, Codex, Ollama models) has been working — events, file changes, mood, and style. Run Claude Code in any tracked project and stats start accumulating within seconds; older sessions are imported from your Claude logs on Raven startup."
     />
   {:else if filteredStats.length === 0}
     <EmptyState

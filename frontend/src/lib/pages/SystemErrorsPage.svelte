@@ -102,7 +102,12 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Errors" description="{total} total errors logged">
+  <PageHeader
+    title="Errors"
+    description={total === 0
+      ? 'Backend errors and unhandled exceptions land here. A clean list means everything Raven has been asked to do has succeeded.'
+      : `${total} total ${total === 1 ? 'error' : 'errors'} logged. Click a row to see the request body, stack, and severity.`}
+  >
     {#snippet actions()}
       <div class="flex items-center gap-2">
         {#if total > 0}
@@ -164,8 +169,8 @@
     </div>
   {:else if errors.length === 0}
     <EmptyState
-      title="No errors logged"
-      description="When Raven's backend hits a 4xx/5xx response or an unhandled exception, it shows up here with the request body and stack. A quiet list is a healthy sign."
+      title="No errors detected"
+      description="Raven's backend hasn't logged any 4xx/5xx responses or unhandled exceptions. If something fails — an API call, a parser, an analysis run — it'll appear here with the request body, stack, and severity. An empty list is the healthy state."
       icon="✓"
     />
   {:else}

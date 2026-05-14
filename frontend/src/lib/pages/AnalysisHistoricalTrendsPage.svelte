@@ -384,7 +384,10 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Historical Trends" description="Activity patterns over time">
+  <PageHeader
+    title="Historical Trends"
+    description="How your file activity changes over time, bucketed by hour, day, or week. Pick a window and see the shape of your weeks."
+  >
     {#snippet actions()}
       <div class="flex items-center gap-3 flex-wrap">
         <FreshnessBadge mode="polled" since={lastUpdate} />
@@ -442,9 +445,8 @@
     />
   {:else if initialized && trends.length === 0}
     <EmptyState
-      size="compact"
-      title="No activity data for the selected period"
-      description="Try selecting a longer time range"
+      title="No activity in this window yet"
+      description="Historical trends bucket file events by hour, day, or week so you can see how your activity changes over time. Once Raven has watched a few file edits, this fills in. Try a longer time range, or come back after a Claude Code session — events show up within seconds of being captured."
     />
   {:else}
     <!-- Summary Stats -->

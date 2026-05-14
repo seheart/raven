@@ -306,10 +306,10 @@
     </div>
   {:else if filteredEvents.length === 0}
     <EmptyState
-      title="No changes found"
+      title="No code changes captured yet"
       description={searchQuery || selectedType !== 'all'
-        ? 'Try adjusting your filters'
-        : 'Waiting for code changes to be detected'}
+        ? 'No changes match your search or type filter. Try clearing them, or set the type back to All.'
+        : "This page logs every file create, edit, or delete Raven has seen across your tracked projects. Make any edit — by hand or via Claude Code — and it'll stream in within a second."}
     />
   {:else}
     <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">

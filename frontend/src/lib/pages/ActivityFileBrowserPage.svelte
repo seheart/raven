@@ -538,7 +538,10 @@
       <p class="text-sm text-muted font-sans">Loading tracked files...</p>
     </div>
   {:else if files.length === 0}
-    <EmptyState title="No files tracked yet" description="Edit files to start tracking" />
+    <EmptyState
+      title="No files watched yet"
+      description="Raven adds files to this list the first time anything edits, creates, or deletes them in one of your tracked projects. Open Claude Code in a project under ~/Projects (or wherever you point Raven) and make any change — it'll appear here within a second."
+    />
   {:else}
     <!-- Statistics Header -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

@@ -7,6 +7,7 @@
     RefreshButton,
     TabButton,
     DataFetchError,
+    EmptyState,
     FreshnessBadge
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -428,7 +429,15 @@
           {isApi ? 'Cost Over Time' : 'Tokens Over Time'}
         </h3>
         <div class="h-48">
-          <canvas bind:this={costChartCanvas}></canvas>
+          {#if timeline.length > 0}
+            <canvas bind:this={costChartCanvas}></canvas>
+          {:else}
+            <div
+              class="flex items-center justify-center h-full text-sm text-muted text-center px-4"
+            >
+              No usage in this window yet — the chart fills in as requests come through.
+            </div>
+          {/if}
         </div>
       </div>
       <div class="bg-surface border border-border rounded p-4">
@@ -549,14 +558,14 @@
     {/if}
 
     {#if !loading && summary.total_requests === 0}
-      <div class="bg-surface border border-border rounded p-12 text-center">
-        <div class="text-4xl mb-4">💰</div>
-        <h3 class="text-lg font-semibold text-heading mb-2">No token usage recorded yet</h3>
-        <p class="text-sm text-muted">
-          Token usage will appear here as Claude Code sessions run. Historical data from existing
-          logs is imported on startup.
-        </p>
-      </div>
+      <EmptyState
+        title="No token usage in this window"
+        description={timeRange === 'today'
+          ? "Nothing's been billed today yet. Start a Claude Code session — every API call its model makes shows up here within a minute. Older sessions are imported from Claude's logs on startup."
+          : timeRange === 'all'
+            ? "Raven hasn't seen any API requests yet. Run a Claude Code session in a tracked project — usage is parsed from its session logs automatically."
+            : "No requests in the selected window. Try a longer range or 'All' to see imported historical data."}
+      />
     {/if}
   {/if}
 </PageLayout>

@@ -122,7 +122,13 @@
           {#if loading}
             <div class="empty-state">Loading...</div>
           {:else if recentFiles.length === 0}
-            <div class="empty-state">No file changes detected yet</div>
+            <div class="empty-state-block">
+              <div class="empty-title">Waiting for file changes</div>
+              <div class="empty-hint">
+                Edit any file in a tracked project — or let Claude Code do it — and it'll appear
+                here within a second, with a side-by-side diff on the right.
+              </div>
+            </div>
           {:else}
             {#each recentFiles as file (file.id || file.filepath || file.path)}
               <button

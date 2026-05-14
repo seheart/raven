@@ -5,7 +5,7 @@
   import { formatUsd } from '../utils/formatUsd.js';
   import { getSubagentTypeColor } from '../utils/agentBrand.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, FreshnessBadge } from '../components/ui/index.js';
+  import { RefreshButton, EmptyState, FreshnessBadge } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -221,12 +221,11 @@
     </div>
 
     {#if stats.total === 0}
-      <div class="bg-surface border border-border rounded p-12 text-center mt-6">
-        <div class="text-4xl mb-4">🌳</div>
-        <h3 class="text-lg font-semibold text-heading mb-2">No sub-agent activity recorded</h3>
-        <p class="text-sm text-muted">
-          Sub-agent trees will appear here when Claude Code spawns agents via the Agent tool.
-        </p>
+      <div class="mt-6">
+        <EmptyState
+          title="No sub-agent activity yet"
+          description="When Claude Code delegates work via its Task tool (Explore, general-purpose sub-agents, etc.) the parent/child tree appears here with each sub-agent's duration, model, and tool calls. Sub-agents only spawn when a Claude session asks for one — they aren't always used."
+        />
       </div>
     {/if}
   {/if}

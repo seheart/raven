@@ -1,7 +1,12 @@
 <script>
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, FreshnessBadge } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    EmptyState,
+    FreshnessBadge
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { formatDateOnly, formatDateTime } from '../timeFormat.js';
   /**
@@ -796,9 +801,12 @@
       <p class="text-sm text-muted">Loading conversations...</p>
     </div>
   {:else if filteredConversations.length === 0}
-    <div class="text-center p-12 text-muted">
-      <p class="text-sm">No conversations found</p>
-    </div>
+    <EmptyState
+      title={stats.total === 0 ? 'No conversations captured yet' : 'No conversations match'}
+      description={stats.total === 0
+        ? "Raven parses Claude Code's local session files (~/.claude/projects) and lists each conversation here with token counts, tool calls, and timing. Start a Claude Code session in any tracked project — it'll appear within a few seconds of the first message."
+        : 'Try clearing your search or filters above. There are conversations in the system, just none matching the current selection.'}
+    />
   {:else}
     <div class="flex flex-col gap-3">
       <div class="text-xs text-muted py-2">

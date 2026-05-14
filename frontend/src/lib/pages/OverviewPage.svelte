@@ -1204,8 +1204,18 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">
             Agent Activity (5m)
           </h3>
-          <div class="flex-1 min-h-0">
+          <div class="flex-1 min-h-0 relative">
             <canvas id="chart-trend"></canvas>
+            {#if recentFiles.length === 0 && recentAgentEvents.length === 0}
+              <div
+                class="absolute inset-0 flex flex-col items-center justify-center text-center px-3 leading-relaxed pointer-events-none"
+              >
+                <span class="text-xs text-muted">No activity in the last 5 minutes</span>
+                <span class="text-[10px] text-muted/70 mt-1"
+                  >The line will start drawing as soon as files change or a Claude tool call fires.</span
+                >
+              </div>
+            {/if}
           </div>
         </div>
       </div>

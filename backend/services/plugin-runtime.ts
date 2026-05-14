@@ -143,40 +143,113 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
     }
   }
 
-  function buildSandboxGlobals(p: LoadedPlugin): Record<string, unknown> {
+  /**
+   * Build a single hardened host-side dispatcher and a sandbox-side preamble
+   * that wires `raven` and `console` to it from inside the sandbox.
+   *
+   * Why this shape (versus injecting `{ raven, console }` directly):
+   *   - Any host-realm function visible inside the sandbox leaks the host's
+   *     Function constructor through `.constructor` (and through
+   *     `Object.getPrototypeOf(fn).constructor`). Host Function ignores
+   *     codeGeneration:{strings:false}, so a plugin could do
+   *     `console.log.constructor("return process")()` and escape.
+   *   - The fix: keep exactly ONE host bridge function reachable during
+   *     setup, build the user-facing API as plain sandbox-realm functions
+   *     that close over it, then `delete globalThis.__bridge` so nothing
+   *     plugin-callable holds a reference to a host function.
+   *   - The bridge itself is frozen with `.constructor` overridden to
+   *     `undefined`, but the more important protection is that the plugin
+   *     never sees it after the preamble runs.
+   *   - Standard globals (Math/JSON/Date/RegExp/Map/Set/Array/Object/
+   *     String/Number/Boolean/Symbol/Error/parseInt/parseFloat/isNaN/
+   *     isFinite/etc) come from the sandbox realm's own intrinsics, so
+   *     their `.constructor` resolves to the sandbox Function which DOES
+   *     honor codeGeneration:{strings:false}.
+   */
+  type BridgeOp =
+    | { op: 'on'; type: string; handler: (event: unknown) => void }
+    | { op: 'trigger'; name: string; payload: Record<string, unknown> | undefined }
+    | { op: 'log' | 'warn' | 'error'; message: string };
+  function buildBridge(p: LoadedPlugin): (call: BridgeOp) => void {
     const api = buildApi(p);
-    return {
-      // Constrained API surface
-      raven: api,
-      // Curated standard globals (no require, no fs, no process, no fetch)
-      Math,
-      JSON,
-      Date,
-      RegExp,
-      Map,
-      Set,
-      Array,
-      Object,
-      String,
-      Number,
-      Boolean,
-      Symbol,
-      Error,
-      TypeError,
-      RangeError,
-      isNaN,
-      isFinite,
-      parseInt,
-      parseFloat,
-      // console forwards to api.log so plugins can use either style
-      console: {
-        log: (...a: unknown[]) => api.log(...a),
-        warn: (...a: unknown[]) => api.warn(...a),
-        error: (...a: unknown[]) => api.error(...a),
-        info: (...a: unknown[]) => api.log(...a)
+    const bridge = (call: BridgeOp): void => {
+      try {
+        switch (call.op) {
+          case 'on':
+            api.on(call.type as PluginEventType, call.handler);
+            return;
+          case 'trigger':
+            api.trigger(call.name, call.payload);
+            return;
+          case 'log':
+            api.log(call.message);
+            return;
+          case 'warn':
+            api.warn(call.message);
+            return;
+          case 'error':
+            api.error(call.message);
+            return;
+        }
+      } catch (err) {
+        appendLog(p, 'error', `bridge failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     };
+    // Harden the bridge: `.constructor` set to undefined as a belt-and-
+    // suspenders defense in case a future change accidentally leaves it
+    // reachable. The real protection is removing it from globalThis below.
+    Object.defineProperty(bridge, 'constructor', {
+      value: undefined,
+      writable: false,
+      configurable: false
+    });
+    Object.freeze(bridge);
+    return bridge;
   }
+
+  // Runs once per plugin context. Wires `raven` and `console` as sandbox-
+  // native functions that close over the bridge, then deletes __bridge so
+  // plugin code cannot reach the host function.
+  const SANDBOX_PREAMBLE = `
+    'use strict';
+    (function () {
+      var b = __bridge;
+      function stringifyArgs(args) {
+        var parts = [];
+        for (var i = 0; i < args.length; i++) {
+          var v = args[i];
+          if (typeof v === 'string') parts.push(v);
+          else {
+            try { parts.push(JSON.stringify(v)); } catch (e) { parts.push(String(v)); }
+          }
+        }
+        return parts.join(' ');
+      }
+      var raven = {
+        on: function (type, handler) {
+          if (typeof handler !== 'function') return;
+          b({ op: 'on', type: String(type), handler: handler });
+        },
+        trigger: function (name, payload) {
+          b({ op: 'trigger', name: String(name), payload: payload });
+        },
+        log: function () { b({ op: 'log', message: stringifyArgs(arguments) }); },
+        warn: function () { b({ op: 'warn', message: stringifyArgs(arguments) }); },
+        error: function () { b({ op: 'error', message: stringifyArgs(arguments) }); }
+      };
+      var console = {
+        log: raven.log,
+        warn: raven.warn,
+        error: raven.error,
+        info: raven.log
+      };
+      Object.defineProperty(globalThis, 'raven', { value: raven, writable: false, configurable: false });
+      Object.defineProperty(globalThis, 'console', { value: console, writable: false, configurable: false });
+      // Drop the host-realm bridge from globalThis so it's no longer reachable
+      // by plugin code. The closure inside raven.* still has it.
+      delete globalThis.__bridge;
+    })();
+  `;
 
   function loadOne(file: string): LoadedPlugin | null {
     const abs = join(pluginsDir, file);
@@ -205,13 +278,29 @@ export function createPluginRuntime(pluginsDir: string): PluginRuntime {
       handlers: new Map()
     };
 
-    // Build the sandbox AFTER we have the plugin object so the API can
-    // reference the correct `p` via closure.
-    const globals = buildSandboxGlobals(plugin);
-    plugin.context = createContext(globals, {
+    // Build the sandbox AFTER we have the plugin object so the bridge can
+    // reference the correct `p` via closure. The sandbox base uses a null
+    // prototype so `globalThis.constructor` doesn't fall back to the host
+    // Object/Function chain — see buildBridge for the full rationale.
+    const sandbox: Record<string, unknown> = Object.create(null);
+    sandbox.__bridge = buildBridge(plugin);
+    plugin.context = createContext(sandbox, {
       name: `plugin:${name}`,
       codeGeneration: { strings: false, wasm: false }
     });
+
+    // Install raven/console as sandbox-native wrappers, then drop the
+    // host-realm __bridge from globalThis. After this preamble runs, no
+    // host function is reachable by name from plugin code.
+    try {
+      const preamble = new Script(SANDBOX_PREAMBLE, { filename: '__raven_preamble__' });
+      preamble.runInContext(plugin.context, { timeout: 200, displayErrors: true });
+    } catch (err) {
+      plugin.last_error = err instanceof Error ? err.message : String(err);
+      appendLog(plugin, 'error', `preamble failed: ${plugin.last_error}`);
+      logger.warn(`[plugin] ${name} preamble failed: ${plugin.last_error}`);
+      return plugin;
+    }
 
     try {
       const script = new Script(source, { filename: file });

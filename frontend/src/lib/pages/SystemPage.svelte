@@ -448,6 +448,17 @@
           </div>
         {/if}
       </PageSection>
+    {:else}
+      <PageSection title="07 // Installed Models" meta="none pulled yet">
+        <ProseBlock>
+          <p class="text-sm text-body font-sans mb-1">No Ollama models installed yet.</p>
+          <p class="text-xs text-muted font-mono">
+            Pull one with <code>ollama pull llama3.2</code> (or any model from
+            <code>ollama.com/library</code>) and refresh — Raven will list it here with a fit
+            assessment against your usable VRAM.
+          </p>
+        </ProseBlock>
+      </PageSection>
     {/if}
 
     <!-- 08 // Provisioning -->

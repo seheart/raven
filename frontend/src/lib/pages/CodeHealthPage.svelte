@@ -349,9 +349,8 @@
   {:else if !displayRun}
     <!-- No data state -->
     <EmptyState
-      icon="🔍"
-      title="No Analysis Yet"
-      description="The first automated analysis will run shortly, or you can trigger one now."
+      title="No analysis run yet"
+      description="Code Health runs linters, type-checkers, tests, and security scans against your codebase on demand and shows you what passed, warned, or failed. Click Run Now to start — the first run takes 30 seconds to a few minutes depending on your project size."
     >
       {#snippet actions()}
         <ToolbarButton variant="primary" onClick={triggerAnalysis} disabled={triggering}>

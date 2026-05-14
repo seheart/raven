@@ -138,6 +138,26 @@
   font-size: var(--text-base);
 }
 
+.live-page .empty-state-block {
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.live-page .empty-state-block .empty-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.live-page .empty-state-block .empty-hint {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
 @media (max-width: 900px) {
   .live-page .main-layout {
     grid-template-columns: 1fr;
