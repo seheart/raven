@@ -134,20 +134,39 @@ export function chartGradient(ctx, opts = {}) {
  * and it'll do the right thing — read chartArea from the Chart.js
  * context and build a gradient anchored to the visible plot region. On
  * the first paint (before chartArea is laid out) it returns the solid
- * primary color so the chart doesn't flicker. Pass `{color: '#hex'}` to
- * gradient a non-brand series.
+ * primary color so the chart doesn't flicker. For a non-brand series use
+ * `chartFillFor('#hex')`.
+ *
+ * Arity is fixed at 1 on purpose: Chart.js invokes scriptables as
+ * `fn(context, optionsProxy)`, and that options proxy resolves every
+ * scriptable property on access — iterating it (e.g. `...opts`) would
+ * re-enter `backgroundColor` and trip Chart.js's recursion guard.
  */
-export function chartFill(scriptCtx, opts = {}) {
+export function chartFill(scriptCtx) {
+  return _resolveFill(scriptCtx, undefined);
+}
+
+/**
+ * Factory for a `chartFill` variant that paints with a specific base
+ * color instead of the brand primary. Use for non-brand series:
+ *
+ *   backgroundColor: chartFillFor('#22c55e'),
+ */
+export function chartFillFor(color) {
+  return scriptCtx => _resolveFill(scriptCtx, color);
+}
+
+function _resolveFill(scriptCtx, color) {
   try {
     const ctx = scriptCtx?.chart?.ctx;
     const area = scriptCtx?.chart?.chartArea;
-    if (!ctx) return opts.color || getChartColors().primary || '#d97757';
-    return chartGradient(ctx, { y0: area?.top, y1: area?.bottom, ...opts });
+    if (!ctx) return color || getChartColors().primary || '#d97757';
+    return chartGradient(ctx, { y0: area?.top, y1: area?.bottom, color });
   } catch (err) {
     if (typeof console !== 'undefined' && console.warn) {
       console.warn('[chartFill] fallback to solid:', err);
     }
-    return opts.color || '#d97757';
+    return color || '#d97757';
   }
 }
 
