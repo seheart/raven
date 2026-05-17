@@ -2,6 +2,8 @@
 
 > Local-first observability for AI coding agents. See what Claude Code, Codex, and local Ollama models are doing on your machine — in real time, with full provenance, without anything leaving the host.
 
+![Raven dashboard — event feed, AI pulse, active models, agent activity](docs/images/dashboard.png)
+
 Raven tails your Claude Code (and Codex, and Ollama) sessions live. It records every file change, agent event, and token spend across every project to a single SQLite file, scores diffs for risk, and renders dashboards in your browser. No telemetry, no cloud, no account.
 
 Pre-1.0 — public preview at **`0.5.0`**. The wiring is solid; rough edges are honest.
