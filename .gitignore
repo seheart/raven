@@ -7,6 +7,7 @@
 /.raven/*.log
 /.raven/raven.db
 /.raven/projects.json
+/.raven/projects.json.bak
 /.raven/log-positions-*.json
 /.raven/host.json
 /.raven/peers.json
