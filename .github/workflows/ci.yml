@@ -31,19 +31,11 @@ env:
 
 jobs:
   backend:
-    name: Backend (${{ matrix.os }})
-    # Cross-platform matrix. README claims Linux + macOS support; the matrix
-    # makes us prove it on every PR instead of taking the claim on faith.
-    # macos-14 is the free Apple Silicon runner. We deliberately don't run
-    # e2e or frontend builds on macOS — those are covered by the Linux jobs
-    # below and doubling them up would just spend Actions minutes for no
-    # extra signal. The backend is the layer that pokes at /proc, journalctl,
-    # nvidia-smi, pgrep, etc., so it's where macOS divergence actually shows.
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-14]
-    runs-on: ${{ matrix.os }}
+    name: Backend (ubuntu-latest)
+    # macOS coverage was dropped from the per-PR matrix: macos-14 bills at 10×
+    # and was burning ~30% of this repo's Actions budget. Re-add as a weekly
+    # cron in a separate workflow if you want to keep proving cross-platform.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
