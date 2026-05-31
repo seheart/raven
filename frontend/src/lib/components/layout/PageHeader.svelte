@@ -26,15 +26,21 @@
   At narrow widths (<lg), the collapsed Header strip already shows
   "<TabLabel> › <SubTabLabel>" as a breadcrumb, making the page header
   redundant. We keep title + description in the DOM (sr-only) for screen
-  readers and document outline, and reveal them visually at lg+. Actions
-  stay visible at all widths so the refresh / filter controls remain.
+  readers and document outline, and reveal them visually at lg+.
+
+  NOTE: use `max-lg:sr-only` (hide ONLY below lg) rather than
+  `sr-only lg:not-sr-only`. The latter relies on `not-sr-only` winning the
+  cascade at lg, which a project-level unlayered `.sr-only` rule defeats — so
+  the title stayed hidden at every width. `max-lg:sr-only` applies no hiding
+  class at lg+ at all, so nothing can override it. Actions stay visible at all
+  widths so the refresh / filter controls remain.
 -->
 {#if size === 'compact'}
   <header class="flex items-center justify-between gap-4">
     <div class="min-w-0 flex-1">
-      <h1 class="sr-only lg:not-sr-only text-sm font-semibold text-body">{title}</h1>
+      <h1 class="max-lg:sr-only text-sm font-semibold text-body">{title}</h1>
       {#if description}
-        <p class="sr-only lg:not-sr-only text-[10px] text-muted lg:mt-0.5">{description}</p>
+        <p class="max-lg:sr-only text-[10px] text-muted lg:mt-0.5">{description}</p>
       {/if}
     </div>
     {#if actions}
@@ -44,11 +50,11 @@
 {:else if size === 'medium'}
   <header class="flex items-center justify-between gap-4">
     <div class="flex items-center gap-3 min-w-0 flex-1">
-      <h1 class="sr-only lg:not-sr-only text-xl font-bold text-heading tracking-[-0.025em]">
+      <h1 class="max-lg:sr-only text-xl font-bold text-heading tracking-[-0.025em]">
         {title}
       </h1>
       {#if description}
-        <span class="sr-only lg:not-sr-only text-xs text-muted font-sans">{description}</span>
+        <span class="max-lg:sr-only text-xs text-muted font-sans">{description}</span>
       {/if}
     </div>
     {#if actions}
@@ -58,13 +64,11 @@
 {:else}
   <header class="flex items-start justify-between gap-4">
     <div class="min-w-0 flex-1">
-      <h1
-        class="sr-only lg:not-sr-only text-2xl font-bold text-heading tracking-[-0.025em] lg:mb-1"
-      >
+      <h1 class="max-lg:sr-only text-2xl font-bold text-heading tracking-[-0.025em] lg:mb-1">
         {title}
       </h1>
       {#if description}
-        <p class="sr-only lg:not-sr-only text-sm text-muted font-sans">{description}</p>
+        <p class="max-lg:sr-only text-sm text-muted font-sans">{description}</p>
       {/if}
     </div>
     {#if actions}

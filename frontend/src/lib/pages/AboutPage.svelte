@@ -168,6 +168,7 @@
 <PageLayout>
   <div class="space-y-12">
     <StatusBar
+      prompt="RAVEN.ABOUT"
       label="v{MANIFEST.find(m => m.k === 'Version')?.v} · {MANIFEST.find(m => m.k === 'License')
         ?.v} · Local-First"
     />
@@ -179,14 +180,24 @@
 
         <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
 
-        <div class="mt-6 space-y-2 text-sm font-mono">
-          <div class="flex items-baseline gap-3">
-            <span class="text-muted w-32 flex-shrink-0">What it is</span>
-            <span class="text-body flex-1 min-w-0">{HERO.whatItIs}</span>
-          </div>
-          <div class="flex items-baseline gap-3">
-            <span class="text-muted w-32 flex-shrink-0">What it does</span>
-            <span class="text-body flex-1 min-w-0">{HERO.whatItDoes}</span>
+        <!-- Hero meta — the "Hero meta block" pattern (label + value rows in
+         one bordered card), matching System/Design rather than floating rows. -->
+        <div class="mt-6 bg-surface border border-border rounded-lg p-4">
+          <div class="space-y-2 text-sm font-mono">
+            <div
+              class="flex items-baseline gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0"
+            >
+              <span class="text-muted uppercase tracking-wide text-xs w-28 flex-shrink-0"
+                >What it is</span
+              >
+              <span class="text-body flex-1 min-w-0">{HERO.whatItIs}</span>
+            </div>
+            <div class="flex items-baseline gap-3 last:border-b-0 last:pb-0">
+              <span class="text-muted uppercase tracking-wide text-xs w-28 flex-shrink-0"
+                >What it does</span
+              >
+              <span class="text-body flex-1 min-w-0">{HERO.whatItDoes}</span>
+            </div>
           </div>
         </div>
 
@@ -550,14 +561,13 @@
       </ProseBlock>
       <div class="flex flex-wrap gap-2">
         <LinkButton href="https://github.com/seheart/raven" external variant="primary" size="sm">
-          [ ★ Star on GitHub ]
+          ★ Star on GitHub
         </LinkButton>
         <LinkButton href="https://github.com/seheart/raven/issues/new" external size="sm">
-          [ Send feedback ]
+          Send feedback
         </LinkButton>
-        <LinkButton href="#sect-quickstart" size="sm">[ Quick start ↑ ]</LinkButton>
-        <LinkButton href="/today" size="sm">[ Today → ]</LinkButton>
-        <LinkButton href="/system" size="sm">[ System ]</LinkButton>
+        <LinkButton href="/today" size="sm">Open Today →</LinkButton>
+        <LinkButton href="#sect-quickstart" size="sm">Quick start ↑</LinkButton>
       </div>
     </PageSection>
 
