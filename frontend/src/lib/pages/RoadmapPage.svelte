@@ -284,6 +284,16 @@
     }
   }
 
+  // T-shirt sizing legend. Rendered with the SAME badge chips that appear on
+  // each roadmap item, so the legend teaches the badges directly.
+  const SIZES = [
+    { k: 'XS', v: 'typo · copy tweak' },
+    { k: 'S', v: '~1 day refactor' },
+    { k: 'M', v: '2–3 day feature' },
+    { k: 'L', v: 'week-long initiative' },
+    { k: 'XL', v: '2+ weeks · multi-phase' }
+  ];
+
   // Phase header rendering — kept inline (not a component) so the
   // page reads like a single document.
   const phases = [
@@ -342,26 +352,44 @@
       {/snippet}
     </StatusBar>
 
-    <!-- Hero — full-width; size legend + counts inline below. -->
-    <div class="space-y-4 max-w-[48rem]">
-      <PageHeader
-        title="Roadmap"
-        description="Phased toward a public launch focused on new Claude Code users. Each section is a phase of work; sections only render while they have items left. Sizing is t-shirts (XS–XL); priority within a phase is top-down."
-      />
+    <!-- Hero — prose, an at-a-glance count strip, then the sizing legend. -->
+    <div class="space-y-5">
+      <div class="max-w-[48rem]">
+        <PageHeader
+          title="Roadmap"
+          description="Phased toward a public launch focused on new Claude Code users. Each section is a phase of work; sections only render while they have items left. Priority within a phase is top-down."
+        />
+      </div>
 
-      <!-- Size legend + counts (was a right-rail aside) -->
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-muted">
-        <span class="uppercase tracking-wide text-muted/70">Sizes:</span>
-        {#each [{ k: 'XS', v: 'typo · copy tweak' }, { k: 'S', v: '~1 day refactor' }, { k: 'M', v: '2–3 day feature' }, { k: 'L', v: 'week-long initiative' }, { k: 'XL', v: '2+ weeks · multi-phase' }] as row, i (row.k)}
-          <span><span class="text-accent font-semibold">{row.k}</span> {row.v}</span>
-          {#if i < 4}<span class="text-muted/40">·</span>{/if}
+      <!-- Count strip — matches the System page's vital-stats idiom. -->
+      <div class="grid grid-cols-3 gap-3 max-w-[36rem]">
+        {#each [{ k: 'Queued', v: totalQueued, tone: 'text-heading' }, { k: 'Blocks launch', v: publicLaunch.length, tone: publicLaunch.length > 0 ? 'text-warning' : 'text-success' }, { k: 'Open questions', v: open.length, tone: 'text-heading' }] as stat (stat.k)}
+          <div class="bg-surface border border-border rounded-lg p-3">
+            <div class="text-[11px] font-mono uppercase tracking-wide text-muted mb-1">
+              {stat.k}
+            </div>
+            <div class="text-2xl font-mono font-semibold tabular-nums {stat.tone}">{stat.v}</div>
+          </div>
         {/each}
       </div>
-      <div class="text-[11px] font-mono text-muted">
-        <span class="text-body">{totalQueued}</span>
-        {totalQueued === 1 ? 'item' : 'items'} queued ·
-        <span class="text-body">{publicLaunch.length}</span>
-        {publicLaunch.length === 1 ? 'blocks' : 'block'} public launch
+
+      <!-- Sizing legend — the same badge chips used on every item below. -->
+      <div class="bg-surface border border-border rounded-lg p-4 max-w-[48rem]">
+        <div class="text-[11px] font-mono uppercase tracking-wide text-muted mb-3">
+          Sizing · t-shirts
+        </div>
+        <div class="flex flex-wrap gap-x-5 gap-y-2.5">
+          {#each SIZES as row (row.k)}
+            <div class="flex items-center gap-2">
+              <span
+                class="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded {sizeBadgeClass(
+                  row.k
+                )}">{row.k}</span
+              >
+              <span class="text-xs font-sans text-muted">{row.v}</span>
+            </div>
+          {/each}
+        </div>
       </div>
     </div>
 
