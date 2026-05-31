@@ -17,7 +17,7 @@
 import fs from 'fs';
 import path from 'path';
 import chokidar, { type FSWatcher } from 'chokidar';
-import { homedir } from 'os';
+import { homedir, tmpdir } from 'os';
 
 interface MinimalLogger {
   debug: (msg: string, meta?: object) => void;
@@ -754,6 +754,17 @@ export class ClaudeLogWatcher {
     const sessionId = path.basename(parts[1], '.jsonl');
 
     const projectPath = projectDirName.replace(/^-/, '/').replace(/-/g, '/');
+
+    // Skip sessions whose working directory is a temp dir. These are throwaway
+    // sessions (notably the session-activity route test, which writes a fixture
+    // under a mkdtemp dir inside ~/.claude/projects). Without this they get
+    // ingested as bogus projects — the mkdtemp suffix becomes a 6-char "project"
+    // name like "0rcsnZ" once the dash-decoding strips the prefix segments.
+    const tmp = tmpdir();
+    if (projectPath === tmp || projectPath.startsWith(tmp.replace(/\/$/, '') + '/')) {
+      return null;
+    }
+
     const projectName = path.basename(projectPath);
 
     return {
