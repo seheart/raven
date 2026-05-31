@@ -230,8 +230,8 @@
           <LinkButton href="https://github.com/seheart/raven/issues/new" external>
             Send feedback
           </LinkButton>
-          <span class="ml-auto text-xs font-mono text-muted">MIT · no agreement to sign</span>
         </div>
+        <p class="mt-2 text-xs font-mono text-muted">MIT · no agreement to sign</p>
       </div>
     </section>
 
