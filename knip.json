@@ -37,7 +37,7 @@
       "ignoreBinaries": ["open", "dot"]
     },
     "frontend": {
-      "entry": ["src/NewApp.svelte"],
+      "entry": ["src/NewApp.svelte", "src/lib/components/layout/index.js"],
       "project": ["src/**/*.{js,ts,svelte}"],
       "ignore": ["dist/**", "src/test/**", "src/mocks/**", "src/**/*.test.{js,ts}"],
       "ignoreDependencies": ["chart.js", "dompurify", "mermaid", "msw", "prettier-plugin-svelte"]
