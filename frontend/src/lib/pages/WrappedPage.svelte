@@ -178,24 +178,6 @@
     const colorVar = seq[idx % seq.length];
     return `--card-color: var(${colorVar});`;
   }
-
-  /** @param {string} iso */
-  function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
-
-  function spanLabel(p) {
-    if (!p) return '';
-    const d = p.span_days;
-    if (d >= 350) return `your year with Raven`;
-    if (d >= 28) return `your last ${d} days`;
-    if (d > 1) return `your first ${d} days`;
-    return `your first day`;
-  }
 </script>
 
 <svelte:head>
@@ -230,39 +212,6 @@
       </p>
     </div>
   {:else if payload}
-    <!-- Side rail: window label + dot indicators. Fixed so it floats on
-         every card. Each dot is a focusable button so keyboard users can
-         tab to it; click smooth-scrolls to that card. -->
-    <aside class="rail" aria-label="Looking Back navigation">
-      <div class="rail-window">
-        <span class="rail-window-label">{spanLabel(payload)}</span>
-        <span class="rail-window-range"
-          >{fmtDate(payload.window_start)} – {fmtDate(payload.window_end)}</span
-        >
-      </div>
-      <div class="rail-dots" role="tablist">
-        {#each payload.cards as card, i (card.id)}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeIdx === i}
-            aria-label="Go to {card.label}"
-            class="rail-dot"
-            class:is-active={activeIdx === i}
-            onclick={() => scrollToCard(i)}
-          ></button>
-        {/each}
-      </div>
-      <div class="rail-counter">
-        <span class="rail-counter-num">{String(activeIdx + 1).padStart(2, '0')}</span>
-        <span class="rail-counter-sep">/</span>
-        <span class="rail-counter-tot">{String(payload.cards.length).padStart(2, '0')}</span>
-      </div>
-      <!-- Discoverability: the global keydown handler hijacks space / arrows
-           to advance cards, so tell the user that's possible. -->
-      <div class="rail-hint">space / ↑ ↓ to move</div>
-    </aside>
-
     <!-- Narrow-width progress strip — sticky to the top of the scroll
          region. Replaces the side rail (which is hidden below xl) so
          users still see where they are in the card sequence. -->
@@ -395,98 +344,6 @@
     font-size: 1rem;
     line-height: 1.6;
     margin: 0;
-  }
-
-  /* Side rail. Fixed positioning + a small responsive breakpoint hide on
-     narrow screens (the dots become a top progress strip if we ever want
-     mobile, but for now we just keep them inline at the right). */
-  .rail {
-    position: fixed;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 30;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1rem;
-    pointer-events: none;
-  }
-  .rail > * {
-    pointer-events: auto;
-  }
-  .rail-window {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    text-align: right;
-    gap: 0.15rem;
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-  }
-  .rail-window-label {
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text);
-    font-weight: 600;
-  }
-  .rail-window-range {
-    color: var(--muted);
-  }
-  .rail-dots {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-  .rail-dot {
-    appearance: none;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: transparent;
-    padding: 0;
-    cursor: pointer;
-    transition:
-      background 0.18s ease,
-      border-color 0.18s ease,
-      transform 0.18s ease;
-  }
-  .rail-dot:hover {
-    border-color: var(--chart-1);
-  }
-  .rail-dot.is-active {
-    background: var(--chart-1);
-    border-color: var(--chart-1);
-    transform: scale(1.3);
-  }
-  .rail-counter {
-    font-family: var(--font-mono, monospace);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
-  .rail-counter-num {
-    color: var(--chart-1);
-    font-weight: 600;
-  }
-  .rail-hint {
-    font-family: var(--font-mono, monospace);
-    font-size: 9px;
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    text-align: right;
-    max-width: 7rem;
-  }
-
-  /* Hide rail below xl (1280px) — at half-screen / tablet widths the
-     fixed rail overlaps the card-inner content. Cards already scroll-snap
-     so the dots are decorative; users can wheel/swipe between cards
-     without them. */
-  @media (max-width: 1279px) {
-    .rail {
-      display: none;
-    }
   }
 
   /* Card. One per viewport. The tone CSS variable on the section sets a
