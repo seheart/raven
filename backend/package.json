@@ -72,7 +72,7 @@
     "socket.io-client": "^4.8.1",
     "supertest": "^7.0.0",
     "type-coverage": "^2.29.7",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "overrides": {
     "validator": "^13.15.20",
