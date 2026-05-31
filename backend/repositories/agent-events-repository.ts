@@ -134,7 +134,8 @@ export interface AgentEventsRepository {
   conversations(
     eventType: string | undefined,
     limit: number,
-    offset: number
+    offset: number,
+    project?: string
   ): {
     conversations: unknown[];
     total: number;
@@ -322,20 +323,10 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
   // messages can be tens of KB. Detail endpoints can fetch full text by id.
   const CONVERSATION_COLS = `id, timestamp, agent, event_type, file, lines_changed, duration_ms,
     SUBSTR(message, 1, 500) as message, metadata, session_id, project_name`;
-  const conversationsAllStmt = db.db.prepare(
-    `SELECT ${CONVERSATION_COLS} FROM agent_events
-     WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')
-     ORDER BY timestamp DESC LIMIT ? OFFSET ?`
-  );
-  const conversationsByTypeStmt = db.db.prepare(
-    `SELECT ${CONVERSATION_COLS} FROM agent_events
-     WHERE event_type = ?
-     ORDER BY timestamp DESC LIMIT ? OFFSET ?`
-  );
-  const conversationsTotalStmt = db.db.prepare(
-    `SELECT COUNT(*) as total FROM agent_events
-     WHERE event_type IN ('user_message', 'assistant_text', 'tool_call', 'tool_result')`
-  );
+  // Conversation rows are built dynamically (below) so the event-type and
+  // project filters can compose. Both filter values are bound parameters; only
+  // the static column list / type allow-list are interpolated.
+  const CONVERSATION_TYPES = "'user_message', 'assistant_text', 'tool_call', 'tool_result'";
   const conversationStatsTotalStmt = db.db.prepare(
     `SELECT COUNT(*) as total FROM agent_events
      WHERE event_type IN ('conversation', 'user_message', 'assistant_text', 'tool_call', 'tool_result')`
@@ -483,12 +474,32 @@ export function createAgentEventsRepository(db: RavenDB): AgentEventsRepository 
       return attributionStmt.all() as AgentAttributionRow[];
     },
 
-    conversations(eventType, limit, offset) {
-      const filterAll = !eventType || eventType === 'all';
-      const conversations = filterAll
-        ? conversationsAllStmt.all(limit, offset)
-        : conversationsByTypeStmt.all(eventType, limit, offset);
-      const totalRow = conversationsTotalStmt.get() as { total: number } | undefined;
+    conversations(eventType, limit, offset, project) {
+      const where: string[] = [];
+      const filterParams: unknown[] = [];
+
+      if (eventType && eventType !== 'all') {
+        where.push('event_type = ?');
+        filterParams.push(eventType);
+      } else {
+        where.push(`event_type IN (${CONVERSATION_TYPES})`);
+      }
+      if (project && project !== 'all') {
+        where.push('project_name = ?');
+        filterParams.push(project);
+      }
+      const whereSql = where.join(' AND ');
+
+      const conversations = db.db
+        .prepare(
+          `SELECT ${CONVERSATION_COLS} FROM agent_events
+           WHERE ${whereSql}
+           ORDER BY timestamp DESC LIMIT ? OFFSET ?`
+        )
+        .all(...filterParams, limit, offset);
+      const totalRow = db.db
+        .prepare(`SELECT COUNT(*) as total FROM agent_events WHERE ${whereSql}`)
+        .get(...filterParams) as { total: number } | undefined;
       return { conversations, total: totalRow?.total ?? 0 };
     },
 

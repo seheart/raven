@@ -487,6 +487,12 @@
   });
 
   onMount(async () => {
+    // Deep-link support: ?project=<name> pre-filters to one project (e.g. when
+    // arriving from a "see details" link on the Health page).
+    const urlProject = new URLSearchParams(window.location.search).get('project');
+    if (urlProject && urlProject !== 'all') {
+      filterProject = urlProject;
+    }
     await loadConversations();
     setupWebSocket();
 
@@ -628,15 +634,27 @@
         <option value="tool_result">Tool Results</option>
       </select>
 
+      <!-- One-way value (not bind:value): a deep-link sets filterProject before
+           the project options have loaded, and bind:value would snap it back to
+           "all" on first render. -->
       <select
         class="px-3 py-2 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer"
-        bind:value={filterProject}
-        onchange={loadConversations}
+        value={filterProject}
+        onchange={e => {
+          filterProject = e.currentTarget.value;
+          loadConversations();
+        }}
       >
         <option value="all">All Projects</option>
         {#each Object.keys(stats?.by_project || {}) as project (project)}
           <option value={project}>{project} ({stats?.by_project?.[project] || 0})</option>
         {/each}
+        <!-- Guarantee the active filter always has a matching <option>. Without
+             this, a deep-link (?project=X) sets filterProject before stats
+             load, and bind:value would snap it back to "all" on first render. -->
+        {#if filterProject !== 'all' && !(filterProject in (stats?.by_project || {}))}
+          <option value={filterProject}>{filterProject}</option>
+        {/if}
       </select>
 
       <label

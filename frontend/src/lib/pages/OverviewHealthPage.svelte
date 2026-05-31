@@ -5,6 +5,7 @@
   import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import { RefreshButton, LoadingState, DataFetchError } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
+  import { navigate } from '../utils/router.svelte.js';
   /**
    * Project Health Details Page
    * Comprehensive health analysis for a single project
@@ -37,26 +38,7 @@
     if (overallScore >= 40) return 'poor';
     return 'critical';
   });
-  const scoreColor = $derived(getScoreColor(overallScore));
-
-  // Returns a CSS var — used only for the dynamic health-bar fill where the
-  // color is set via inline style (Tailwind can't express a runtime width
-  // + color pair).
-  function getScoreColor(score) {
-    if (score >= 90) return 'var(--success)';
-    if (score >= 75) return 'var(--info)';
-    if (score >= 60) return 'var(--warning)';
-    return 'var(--error)';
-  }
-
-  // Utility-class variants for static text/dots — keeps semantic colors out
-  // of inline styles (matches SystemPage's methodTextClass pattern).
-  function getScoreTextClass(score) {
-    if (score >= 90) return 'text-success';
-    if (score >= 75) return 'text-info';
-    if (score >= 60) return 'text-warning';
-    return 'text-error';
-  }
+  const scoreColor = $derived(healthColor(overallScore, totalErrors));
 
   function getStatusDotClass(status) {
     switch (status) {
@@ -67,6 +49,27 @@
       default:
         return 'bg-warning';
     }
+  }
+
+  // Color reflects whether a project has OPEN ERRORS — NOT how busy it was.
+  // Previously a clean-but-quiet project (e.g. 59 events, 0 errors) rendered a
+  // full RED bar purely because its activity score was < 60, which read as
+  // "this is broken / has errors" when nothing was wrong. Now red is reserved
+  // for projects that actually have syntax errors; clean projects are calm
+  // (green when busy, blue otherwise) and the bar WIDTH still shows activity.
+  function healthColor(score, errors) {
+    if (errors > 0) return 'var(--error)';
+    if (score >= 75) return 'var(--success)';
+    return 'var(--info)';
+  }
+  function healthTextClass(score, errors) {
+    if (errors > 0) return 'text-error';
+    if (score >= 75) return 'text-success';
+    return 'text-info';
+  }
+
+  function openProject(name) {
+    navigate(`/agents/convos?project=${encodeURIComponent(name)}`);
   }
 
   async function loadHealthSummary() {
@@ -176,7 +179,7 @@
           </p>
         </div>
         <div class="flex items-center gap-3">
-          <div class="text-2xl font-bold font-mono {getScoreTextClass(overallScore)}">
+          <div class="text-2xl font-bold font-mono {healthTextClass(overallScore, totalErrors)}">
             {overallScore}
           </div>
           <div class="text-xs text-muted">/ 100</div>
@@ -242,8 +245,11 @@
              off-screen. Rows wrap-flex below sm so the bar always has room. -->
         <div class="space-y-3 pr-1">
           {#each projectsData as project (project.project_name)}
-            <div
-              class="flex flex-wrap items-center gap-3 sm:gap-4 p-3 bg-canvas border border-border rounded"
+            <button
+              type="button"
+              onclick={() => openProject(project.project_name)}
+              title="View {project.project_name}'s sessions"
+              class="w-full text-left flex flex-wrap items-center gap-3 sm:gap-4 p-3 bg-canvas border border-border rounded cursor-pointer hover:border-accent transition-colors"
             >
               <div
                 class="text-sm font-mono text-body w-full sm:w-32 truncate"
@@ -256,29 +262,37 @@
                 <div class="flex-1 h-2 bg-surface rounded overflow-hidden">
                   <div
                     class="h-full transition-all"
-                    style="width: {project.health_score || 0}%; background: {getScoreColor(
-                      project.health_score || 0
+                    style="width: {project.health_score || 0}%; background: {healthColor(
+                      project.health_score || 0,
+                      project.error_count || 0
                     )}"
                   ></div>
                 </div>
                 <span
-                  class="text-sm font-mono w-8 text-right {getScoreTextClass(
-                    project.health_score || 0
+                  class="text-sm font-mono w-8 text-right {healthTextClass(
+                    project.health_score || 0,
+                    project.error_count || 0
                   )}"
                 >
                   {project.health_score || 0}
                 </span>
               </div>
 
-              <div class="text-xs font-mono text-muted text-right whitespace-nowrap">
+              <div
+                class="text-xs font-mono text-right whitespace-nowrap {(project.error_count || 0) >
+                0
+                  ? 'text-error'
+                  : 'text-muted'}"
+              >
                 {project.error_count || 0} errors
               </div>
 
               <span class="flex items-center gap-1.5 text-xs font-mono whitespace-nowrap">
                 <span class="w-2 h-2 rounded-full {getStatusDotClass(project.status)}"></span>
                 <span class="text-body">{project.status}</span>
+                <span class="text-muted/60" aria-hidden="true">›</span>
               </span>
-            </div>
+            </button>
           {/each}
         </div>
       </div>

@@ -17,7 +17,8 @@ export function createConversationsRouter(repo: AgentEventsRepository): Router {
     const limit = Math.min(safeInt(req.query.limit, 50), 500);
     const offset = safeInt(req.query.offset, 0);
     const eventType = req.query.event_type as string | undefined;
-    return res.json(repo.conversations(eventType, limit, offset));
+    const project = req.query.project as string | undefined;
+    return res.json(repo.conversations(eventType, limit, offset, project));
   });
 
   router.get('/stats', cacheMiddleware(5000), (_req: Request, res: Response) => {
