@@ -222,10 +222,13 @@
     // sweep is itself a finding (the backstop is down), so surface it rather
     // than silently omitting the section.
     if (endpointSweep.data) {
-      const failed = endpointSweep.data.results.filter(r => r.status === 'failed');
+      const d = endpointSweep.data;
+      const failed = d.results.filter(r => r.status === 'failed');
+      const coverage =
+        d.discovered != null ? `${d.probed}/${d.discovered} GET routes probed` : 'coverage unknown';
       lines.push(
-        `## Endpoint Coverage — ${endpointSweep.data.passed}/${endpointSweep.data.total} passing` +
-          (failed.length ? ` · ${failed.length} failed` : '')
+        `## Endpoint Coverage — ${d.passed} passed · ${failed.length} failed · ${d.skipped} skipped` +
+          ` (${coverage}, ${d.excluded} excluded)`
       );
       for (const r of failed) {
         const tag = r.critical ? '✗ CRITICAL' : '✗ FAIL';
@@ -702,18 +705,24 @@
       <div>
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Endpoint coverage</h3>
         <p class="text-xs text-muted mt-1">
-          Hits every /system page's primary GET. A failure here means a page is silently broken.
+          Discovers every GET endpoint from the live router and probes it. A failure means a route
+          is broken; "skipped" means reachable but not asserted (needs input / no data yet).
         </p>
       </div>
       <div class="flex items-center gap-3">
         {#if endpointSweep.data}
           <span class="text-xs font-mono text-muted">
             <span class={endpointSweep.data.failed === 0 ? 'text-success' : 'text-error'}>
-              {endpointSweep.data.passed}/{endpointSweep.data.total}
+              {endpointSweep.data.passed} passed
             </span>
-            passed
             {#if endpointSweep.data.failed > 0}
               · <span class="text-error">{endpointSweep.data.failed} failed</span>
+            {/if}
+            {#if endpointSweep.data.skipped > 0}
+              · {endpointSweep.data.skipped} skipped
+            {/if}
+            {#if endpointSweep.data.discovered != null}
+              · {endpointSweep.data.probed}/{endpointSweep.data.discovered} GET routes
             {/if}
           </span>
         {/if}
@@ -734,6 +743,7 @@
     {#if endpointSweep.data}
       {@const failures = endpointSweep.data.results.filter(r => r.status === 'failed')}
       {@const passes = endpointSweep.data.results.filter(r => r.status === 'passed')}
+      {@const skips = endpointSweep.data.results.filter(r => r.status === 'skipped')}
       {#if failures.length > 0}
         <div class="space-y-1.5 mb-3">
           {#each failures as r (r.name)}
@@ -772,6 +782,26 @@
           {/each}
         </div>
       </details>
+      {#if skips.length > 0}
+        <details class="text-xs mt-2">
+          <summary
+            class="cursor-pointer text-muted hover:text-body transition-colors mb-2 select-none"
+          >
+            {skips.length} skipped (reachable but not asserted)
+          </summary>
+          <div class="grid sm:grid-cols-2 gap-x-4 gap-y-1 font-mono text-muted">
+            {#each skips as r (r.name)}
+              <div class="flex items-baseline gap-2">
+                <span class="text-muted/60">–</span>
+                <span class="text-body truncate" title={r.name}>{r.name}</span>
+                <span class="text-muted/60 text-[10px] truncate flex-1" title={r.note}>
+                  {r.note}
+                </span>
+              </div>
+            {/each}
+          </div>
+        </details>
+      {/if}
     {:else if !endpointSweep.loading}
       <div class="text-xs text-muted italic">
         Click Run check to test every /system page endpoint.
