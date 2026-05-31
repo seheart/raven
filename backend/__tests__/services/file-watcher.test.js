@@ -8,6 +8,12 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import chokidar from 'chokidar';
 
+// CI's container filesystem doesn't deliver native inotify events reliably,
+// so chokidar's 'ready'/change events can hang the event-based tests. Force
+// polling by default (per-call opts still win) for deterministic behaviour.
+const watchPolled = (dir, opts = {}) =>
+  chokidar.watch(dir, { usePolling: true, interval: 50, ...opts });
+
 describe('File Watcher Service', () => {
   const testDir = join(process.cwd(), '__tests__', 'test-watch-dir');
   const testFile = join(testDir, 'test.js');
@@ -53,7 +59,7 @@ describe('File Watcher Service', () => {
 
   describe('Watcher Initialization', () => {
     it('should initialize watcher for directory', () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true
       });
@@ -62,7 +68,7 @@ describe('File Watcher Service', () => {
     });
 
     it('should handle ignored patterns', () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**'],
         persistent: true,
         ignoreInitial: true
@@ -72,7 +78,7 @@ describe('File Watcher Service', () => {
     });
 
     it('should configure debounce delay', () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true,
         awaitWriteFinish: {
@@ -87,7 +93,7 @@ describe('File Watcher Service', () => {
 
   describe('File Change Detection', () => {
     it('should detect file addition', done => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true
       });
@@ -106,7 +112,7 @@ describe('File Watcher Service', () => {
     it('should detect file modification', done => {
       // First create the file
       writeFile(testFile, 'console.log("original");').then(() => {
-        watcher = chokidar.watch(testDir, {
+        watcher = watchPolled(testDir, {
           persistent: true,
           ignoreInitial: true
         });
@@ -125,7 +131,7 @@ describe('File Watcher Service', () => {
     it('should detect file deletion', done => {
       // First create the file
       writeFile(testFile, 'console.log("test");').then(() => {
-        watcher = chokidar.watch(testDir, {
+        watcher = watchPolled(testDir, {
           persistent: true,
           ignoreInitial: true
         });
@@ -146,7 +152,7 @@ describe('File Watcher Service', () => {
     it('should ignore node_modules changes', done => {
       const nodeModulesFile = join(testDir, 'node_modules', 'test.js');
 
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         ignored: '**/node_modules/**',
         persistent: true,
         ignoreInitial: true
@@ -191,7 +197,7 @@ describe('File Watcher Service', () => {
     it('should ignore .git directory changes', done => {
       const gitFile = join(testDir, '.git', 'config');
 
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         ignored: '**/.git/**',
         persistent: true,
         ignoreInitial: true
@@ -268,7 +274,7 @@ describe('File Watcher Service', () => {
     it('should debounce rapid file changes', done => {
       let changeCount = 0;
 
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true,
         awaitWriteFinish: {
@@ -302,7 +308,7 @@ describe('File Watcher Service', () => {
       const nonExistentDir = join(testDir, 'does-not-exist');
 
       expect(() => {
-        watcher = chokidar.watch(nonExistentDir, {
+        watcher = watchPolled(nonExistentDir, {
           persistent: true,
           ignoreInitial: true
         });
@@ -310,7 +316,7 @@ describe('File Watcher Service', () => {
     });
 
     it('should emit error on watcher errors', done => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true
       });
@@ -331,7 +337,7 @@ describe('File Watcher Service', () => {
 
   describe('Watcher Lifecycle', () => {
     it('should close watcher cleanly', async () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true
       });
@@ -342,7 +348,7 @@ describe('File Watcher Service', () => {
     it('should not emit events after close', done => {
       let eventFired = false;
 
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true
       });
@@ -365,7 +371,7 @@ describe('File Watcher Service', () => {
     });
 
     it('should handle multiple close calls', async () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true
       });
@@ -377,7 +383,7 @@ describe('File Watcher Service', () => {
 
   describe('Performance', () => {
     it('should handle watching large directory trees', done => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true,
         depth: 5
@@ -390,7 +396,7 @@ describe('File Watcher Service', () => {
     });
 
     it('should limit recursion depth', () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true,
         depth: 2
@@ -402,7 +408,7 @@ describe('File Watcher Service', () => {
 
   describe('Platform-Specific Behavior', () => {
     it('should use native OS file watching', () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true,
         usePolling: false,
@@ -413,7 +419,7 @@ describe('File Watcher Service', () => {
     });
 
     it('should fall back to polling when needed', () => {
-      watcher = chokidar.watch(testDir, {
+      watcher = watchPolled(testDir, {
         persistent: true,
         ignoreInitial: true,
         usePolling: true,

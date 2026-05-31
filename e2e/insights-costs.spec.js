@@ -24,15 +24,15 @@ test.describe('Insights → Costs sub-tab', () => {
     await expect(page).toHaveURL(/\/insights\/costs$/);
   });
 
-  test('renders the "Token Usage" page heading', async ({ page }) => {
+  test('renders the "Costs" page heading', async ({ page }) => {
     await expect(
-      page.getByRole('heading', { name: /Token Usage/i })
+      page.getByRole('heading', { name: /Costs/i })
     ).toBeVisible({ timeout: 25000 });
   });
 
   test('top-line cost tile displays a value (never silent "—")', async ({ page }) => {
     await expect(
-      page.getByRole('heading', { name: /Token Usage/i })
+      page.getByRole('heading', { name: /Costs/i })
     ).toBeVisible({ timeout: 25000 });
     // Either "Est. Spend" (API mode) or "API equivalent" (subscription mode)
     // is the headline tile — both render the same formatCost output below
@@ -53,7 +53,7 @@ test.describe('Insights → Costs sub-tab', () => {
 
   test('renders the Requests tile', async ({ page }) => {
     await expect(
-      page.getByRole('heading', { name: /Token Usage/i })
+      page.getByRole('heading', { name: /Costs/i })
     ).toBeVisible({ timeout: 25000 });
     // The Requests tile uses the same skeleton; if it paints with a number
     // the rest of the summary grid is wired up too.
