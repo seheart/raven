@@ -225,7 +225,8 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
               err.message,
               err.severity,
               err.language,
-              sessionId
+              sessionId,
+              eventProjectName
             );
             logger.warn(`⚠️  Syntax error in ${event.path}:${err.line}: ${err.message}`);
           }

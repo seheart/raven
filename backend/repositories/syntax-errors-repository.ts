@@ -27,7 +27,8 @@ export interface SyntaxErrorsRepository {
     message: string,
     severity: string,
     language: string,
-    session_id: string | undefined
+    session_id: string | undefined,
+    project_name: string | undefined
   ): number;
   list(limit?: number): SyntaxErrorRecord[];
   byFile(filepath: string, limit?: number): SyntaxErrorRecord[];
@@ -51,12 +52,13 @@ export function createSyntaxErrorsRepository(db: RavenDB): SyntaxErrorsRepositor
       message,
       severity,
       language,
-      session_id
+      session_id,
+      project_name
     ) {
       const result = db.db
         .prepare(
-          `INSERT INTO syntax_errors (timestamp, filepath, line_number, column_number, message, severity, language, session_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO syntax_errors (timestamp, filepath, line_number, column_number, message, severity, language, session_id, project_name)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           timestamp,
@@ -66,7 +68,8 @@ export function createSyntaxErrorsRepository(db: RavenDB): SyntaxErrorsRepositor
           message,
           severity,
           language,
-          session_id || null
+          session_id || null,
+          project_name || null
         );
       return result.lastInsertRowid as number;
     },

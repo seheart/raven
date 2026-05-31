@@ -385,7 +385,11 @@ export class RavenDB {
     );
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_api_latency_session ON api_latency(session_id)');
 
-    // Syntax errors table
+    // Syntax errors table. `project_name` is set at insert time from the
+    // owning project (the watcher knows it) — earlier this table had no
+    // project column, so the health page derived one from the filepath's
+    // first segment, which yielded subdirectory names ('backend', 'src')
+    // that matched no real project and reported 0 errors everywhere.
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS syntax_errors (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -397,9 +401,18 @@ export class RavenDB {
         severity TEXT NOT NULL,
         language TEXT NOT NULL,
         resolved INTEGER DEFAULT 0,
-        session_id TEXT
+        session_id TEXT,
+        project_name TEXT
       )
     `);
+
+    // Migrate existing databases: add project_name if missing.
+    const syntaxErrorCols = this.db.prepare('PRAGMA table_info(syntax_errors)').all() as Array<{
+      name: string;
+    }>;
+    if (!syntaxErrorCols.some(c => c.name === 'project_name')) {
+      this.db.exec('ALTER TABLE syntax_errors ADD COLUMN project_name TEXT');
+    }
 
     // Pattern warnings table
     this.db.exec(`

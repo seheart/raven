@@ -264,21 +264,22 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
     WHERE project_name IS NOT NULL AND timestamp >= ?
     GROUP BY project_name
   `);
-  // syntax_errors has no project column — derive it from filepath prefix.
-  // substr(filepath, 1, instr(filepath, '/') - 1) extracts the leading
-  // directory slug, matching the LIKE 'project/%' convention.
+  // syntax_errors carries a real project_name (set at insert from the owning
+  // project). Only count UNRESOLVED errors — the health page treats this as
+  // "open errors currently dragging the score down", not a lifetime tally.
+  // (Earlier this derived a fake project from the filepath's first segment —
+  // 'backend'/'src'/etc. — which matched no real project, so every project
+  // reported 0 errors and the score's error penalty never fired.)
   const recentErrorsByProjectStmt = db.db.prepare(`
-    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
-           COUNT(*) as count
+    SELECT project_name, COUNT(*) as count
     FROM syntax_errors
-    WHERE instr(filepath, '/') > 0 AND timestamp >= ?
+    WHERE project_name IS NOT NULL AND resolved = 0 AND timestamp >= ?
     GROUP BY project_name
   `);
   const totalErrorsByProjectStmt = db.db.prepare(`
-    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
-           COUNT(*) as count
+    SELECT project_name, COUNT(*) as count
     FROM syntax_errors
-    WHERE instr(filepath, '/') > 0
+    WHERE project_name IS NOT NULL AND resolved = 0
     GROUP BY project_name
   `);
 
