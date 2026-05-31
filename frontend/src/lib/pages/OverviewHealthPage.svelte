@@ -240,7 +240,7 @@
 
         <!-- Bounded so a long list of projects doesn't push everything else
              off-screen. Rows wrap-flex below sm so the bar always has room. -->
-        <div class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+        <div class="space-y-3 pr-1">
           {#each projectsData as project (project.project_name)}
             <div
               class="flex flex-wrap items-center gap-3 sm:gap-4 p-3 bg-canvas border border-border rounded"

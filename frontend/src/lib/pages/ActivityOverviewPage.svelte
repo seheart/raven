@@ -821,7 +821,7 @@
     {:else if groupBySession && sessions.length > 0}
       <!-- Session Grouped View — bounded so a busy day doesn't push every
            other card off the screen. The user scrolls within the feed. -->
-      <div class="max-h-[640px] overflow-y-auto space-y-4 pr-1">
+      <div class="max-h-[640px] space-y-4 pr-1">
         {#each sessions as session (session.id)}
           <div class="bg-canvas border border-border rounded-lg overflow-hidden">
             <button
@@ -870,9 +870,7 @@
       </div>
     {:else}
       <!-- Flat List View — flat dense table, bounded scroller. -->
-      <div
-        class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[640px]"
-      >
+      <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
         <table class="w-full">
           <tbody>
             {@render activityRows(activities)}

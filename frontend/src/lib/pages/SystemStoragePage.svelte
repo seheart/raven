@@ -286,7 +286,7 @@
       {:else if projectDisk && projectDisk.rows.length === 0}
         <div class="text-xs text-muted text-center py-6">No projects to scan.</div>
       {:else}
-        <div class="max-h-[500px] overflow-y-auto">
+        <div class="max-h-[500px]">
           <table class="w-full text-xs font-mono">
             <thead class="text-muted uppercase tracking-wide sticky top-0 bg-surface">
               <tr class="border-b border-border">

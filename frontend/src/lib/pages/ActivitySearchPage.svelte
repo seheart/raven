@@ -282,9 +282,7 @@
 
     <!-- Results — flat dense table, bounded so big result sets scroll within
          the page instead of dwarfing it. -->
-    <div
-      class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[640px]"
-    >
+    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
       <table class="w-full">
         <thead class="bg-canvas sticky top-0 z-10">
           <tr class="text-[11px] text-muted uppercase tracking-wide">

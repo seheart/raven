@@ -282,9 +282,7 @@
     <!-- Table — horizontal scroll within container (7 cols is intrinsically
          wide); vertical scroll within container so the summary tile stays
          pinned below regardless of project count. -->
-    <div
-      class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[560px]"
-    >
+    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
       <table class="w-full min-w-[720px]">
         <thead class="bg-canvas">
           <tr class="text-[11px] text-muted uppercase tracking-wide">

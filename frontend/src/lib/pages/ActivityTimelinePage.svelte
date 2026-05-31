@@ -298,7 +298,7 @@
     <!-- Bounded scroller — timelines grow unbounded with use, and at
          half-screen we want the user scrolling within the feed, not the
          whole page. Sticky date headers still work inside the scroller. -->
-    <div class="max-h-[720px] overflow-y-auto space-y-6 pr-1">
+    <div class="max-h-[720px] space-y-6 pr-1">
       {#each groupedEvents as group (group.date)}
         <div class="relative">
           <!-- Date Header -->

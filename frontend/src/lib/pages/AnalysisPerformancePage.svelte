@@ -847,9 +847,7 @@
 
         <!-- Table -->
         <PageSection title="01 // File Changes by Resource Usage">
-          <div
-            class="border-t border-b border-border font-mono text-sm overflow-x-auto max-h-[500px] overflow-y-auto"
-          >
+          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
             <table class="w-full">
               <thead class="bg-canvas">
                 <tr class="text-[11px] text-muted uppercase tracking-wide">

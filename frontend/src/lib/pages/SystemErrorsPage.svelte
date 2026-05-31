@@ -188,7 +188,7 @@
     />
   {:else}
     <div class="bg-surface border border-border rounded-lg">
-      <div class="divide-y divide-border max-h-[500px] overflow-y-auto">
+      <div class="divide-y divide-border">
         {#each errors as err (err.id)}
           <div>
             <button

@@ -134,7 +134,7 @@
           >
           <span class="text-xs font-mono text-muted">{recentFiles.length}</span>
         </div>
-        <div class="max-h-[480px] overflow-y-auto">
+        <div class="max-h-[480px]">
           {#if loading}
             <div class="text-sm text-muted font-sans p-4 text-center">Loading...</div>
           {:else if recentFiles.length === 0}

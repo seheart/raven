@@ -564,9 +564,7 @@
         </p>
       </div>
     {:else}
-      <div
-        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto"
-      >
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {#each runningAgents as agent (agent.agent_name)}
           <div
             class="bg-canvas border border-border rounded-lg p-4 hover:border-accent transition-all"
@@ -625,9 +623,7 @@
         </p>
       </div>
     {:else}
-      <div
-        class="border-t border-b border-border font-mono text-sm overflow-x-auto max-h-[500px] overflow-y-auto"
-      >
+      <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
@@ -763,7 +759,7 @@
         {/if}
       </div>
     {:else}
-      <div class="space-y-2 max-h-[500px] overflow-y-auto">
+      <div class="space-y-2">
         {#each filteredEvents as event, i (event.id || event.timestamp + ':' + i)}
           <div
             class="flex items-start gap-3 p-3 bg-canvas rounded hover:bg-surface-2 transition-all"

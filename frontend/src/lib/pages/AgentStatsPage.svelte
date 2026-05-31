@@ -526,7 +526,7 @@
     </div>
 
     <!-- Agent Cards with Enhanced Details -->
-    <div class="space-y-4 max-h-[500px] overflow-y-auto">
+    <div class="space-y-4">
       {#each sortedStats as agent (agent.agent_name)}
         {@const config = getAgentConfig(agent.agent_name)}
         {@const mood = calculateMood(agent)}

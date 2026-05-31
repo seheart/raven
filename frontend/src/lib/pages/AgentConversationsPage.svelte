@@ -739,7 +739,7 @@
         {/if}
       </div>
 
-      <div class="flex flex-col gap-3 max-h-[500px] overflow-y-auto">
+      <div class="flex flex-col gap-3">
         {#each Object.entries(groupedConversations) as [groupName, groupConvs] (groupName)}
           {#if groupBy !== 'none'}
             <div

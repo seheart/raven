@@ -279,7 +279,7 @@
         <EmptyState size="compact" title="No matching warnings" />
       {:else}
         <div class="bg-surface border border-border rounded-lg">
-          <div class="divide-y divide-border max-h-[500px] overflow-y-auto">
+          <div class="divide-y divide-border">
             {#each filteredWarnings as warning (warning.id)}
               <div class="px-5 py-3 flex items-start gap-3">
                 <span
@@ -349,7 +349,7 @@
           <span class="text-muted text-xs">{ignoresOpen ? '▾' : '▸'}</span>
         </button>
         {#if ignoresOpen}
-          <div class="divide-y divide-border border-t border-border max-h-[400px] overflow-y-auto">
+          <div class="divide-y divide-border border-t border-border">
             {#each ignores as ignore (ignore.id)}
               <div class="px-5 py-3 flex items-start gap-3">
                 <div class="flex-1 min-w-0">

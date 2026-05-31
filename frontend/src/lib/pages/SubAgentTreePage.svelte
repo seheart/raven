@@ -202,7 +202,7 @@
       <!-- Session List -->
       <div class="bg-surface border border-border rounded p-4">
         <h3 class="text-sm font-semibold text-heading mb-3">Sessions</h3>
-        <div class="space-y-1 max-h-[400px] overflow-y-auto">
+        <div class="space-y-1">
           {#each sessions as session (session.session_id)}
             <button
               onclick={() => selectSession(session.session_id)}
@@ -242,7 +242,7 @@
               : 'Select a session to view the agent tree'}
           </div>
         {:else}
-          <div class="space-y-1 max-h-[500px] overflow-y-auto">
+          <div class="space-y-1">
             {#each tree as node (node.agent_id)}
               {@render treeNode(node)}
             {/each}

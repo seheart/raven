@@ -309,9 +309,7 @@
   {:else}
     <!-- Bounded so the table doesn't scroll the whole page when there are
          hundreds of events; user scrolls within the list, Bloomberg-style. -->
-    <div
-      class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[600px]"
-    >
+    <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
       <table class="w-full">
         <thead class="bg-canvas">
           <tr class="text-[11px] text-muted uppercase tracking-wide">

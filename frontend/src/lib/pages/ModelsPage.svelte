@@ -137,7 +137,7 @@
             were this slow or worse), and <strong class="text-body">max</strong> is the worst single
             call. Lower is better.
           </p>
-          <div class="space-y-1 max-h-[400px] overflow-y-auto">
+          <div class="space-y-1">
             {#each latencyByModel as l (l.model)}
               <div
                 class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 text-[11px] font-mono py-1 border-b border-border last:border-b-0"
@@ -161,7 +161,7 @@
         description="Run `ollama run llama3` (or any local model) and it'll appear here with live token rate, VRAM use, and request stats. Hosted models from Claude / OpenAI show up automatically when you call them via Claude Code."
       />
     {:else}
-      <div class="space-y-4 max-h-[500px] overflow-y-auto">
+      <div class="space-y-4">
         {#each models as model (model.name)}
           <div class="bg-surface border border-border rounded-lg overflow-hidden">
             <!-- Model Header -->

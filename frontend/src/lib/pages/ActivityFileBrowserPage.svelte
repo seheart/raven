@@ -689,9 +689,7 @@
         description="Try adjusting your search or filters."
       />
     {:else}
-      <div
-        class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[560px] mb-6"
-      >
+      <div class="border-t border-b border-border font-mono text-sm overflow-x-auto mb-6">
         <table class="w-full">
           <thead class="bg-canvas sticky top-0 z-10">
             <tr class="text-[11px] text-muted uppercase tracking-wide">
