@@ -40,10 +40,10 @@ export function createHealthMonitoringRouter(healthMonitor: HealthMonitor, db?: 
     try {
       const report = await healthMonitor.runHealthCheck();
       res.json(report);
-    } catch (error: any) {
+    } catch (error: unknown) {
       res.status(500).json({
         error: 'Health check failed',
-        message: error.message
+        message: error instanceof Error ? error.message : String(error)
       });
     }
   });

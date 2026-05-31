@@ -23,8 +23,11 @@
   // a single failed step doesn't block the others from rendering.
   let codeHealth = $state({ data: null, loading: false, running: false });
   let healthMonitor = $state({ data: null, loading: false });
-  let errors = $state({ count: 0, loading: false });
-  let patterns = $state({ count: 0, loading: false });
+  // `error` distinguishes "loaded and genuinely zero" from "fetch failed" —
+  // without it a 500 on /errors/stats would render as a green "0 unresolved",
+  // the exact silent failure this page exists to catch.
+  let errors = $state({ count: 0, loading: false, /** @type {string|null} */ error: null });
+  let patterns = $state({ count: 0, loading: false, /** @type {string|null} */ error: null });
   // Endpoint coverage: every /system page's primary GET endpoint. Hits
   // /api/health/comprehensive which runs HealthChecker.runAll(). The
   // anti-silent-failure backstop — a regression in any /system page's data
@@ -80,6 +83,10 @@
     // page is silently broken.
     if (endpointSweep.data?.criticalFailed > 0) return 'critical';
     if (endpointSweep.data?.failed > 0) return 'warning';
+    // A section that FAILED TO LOAD must not read as "All clear". The sweep is
+    // the anti-silent-failure backstop, so its own death is at least a warning;
+    // a broken errors/patterns fetch likewise can't be silently treated as 0.
+    if (endpointSweep.error || errors.error || patterns.error) return 'warning';
     if (ch?.overall_score === 'warning' || hm?.overallStatus === 'warning' || patterns.count > 0)
       return 'warning';
     if (ch?.overall_score === 'healthy' && hm?.overallStatus === 'healthy') return 'healthy';
@@ -195,15 +202,25 @@
     }
     lines.push('');
 
-    // Errors
-    lines.push(`## Errors — ${errors.count} unresolved`);
+    // Errors — report a load failure honestly rather than "0 unresolved".
+    lines.push(
+      errors.error
+        ? `## Errors — could not load (${errors.error})`
+        : `## Errors — ${errors.count} unresolved`
+    );
     lines.push('');
 
     // Pattern Warnings
-    lines.push(`## Safety Patterns — ${patterns.count} unresolved`);
+    lines.push(
+      patterns.error
+        ? `## Safety Patterns — could not load (${patterns.error})`
+        : `## Safety Patterns — ${patterns.count} unresolved`
+    );
     lines.push('');
 
-    // Endpoint coverage — only the failures matter in a debug report.
+    // Endpoint coverage — only the failures matter in a debug report. A failed
+    // sweep is itself a finding (the backstop is down), so surface it rather
+    // than silently omitting the section.
     if (endpointSweep.data) {
       const failed = endpointSweep.data.results.filter(r => r.status === 'failed');
       lines.push(
@@ -214,6 +231,9 @@
         const tag = r.critical ? '✗ CRITICAL' : '✗ FAIL';
         lines.push(`- ${tag} **${r.name}** — ${r.error || 'failed'}`);
       }
+      lines.push('');
+    } else if (endpointSweep.error) {
+      lines.push(`## Endpoint Coverage — sweep failed: ${endpointSweep.error}`);
       lines.push('');
     }
 
@@ -251,14 +271,20 @@
         .get('/errors/stats')
         .then(r => {
           errors.count = r?.total ?? 0;
+          errors.error = null;
         })
-        .catch(() => {}),
+        .catch(err => {
+          errors.error = err?.message || String(err);
+        }),
       api
         .get('/pattern-warnings')
         .then(r => {
           patterns.count = r?.warnings?.length ?? 0;
+          patterns.error = null;
         })
-        .catch(() => {}),
+        .catch(err => {
+          patterns.error = err?.message || String(err);
+        }),
       runEndpointSweep().catch(() => {})
     ]);
   }
@@ -325,8 +351,11 @@
         .get('/errors/stats')
         .then(r => {
           errors.count = r?.total ?? 0;
+          errors.error = null;
         })
-        .catch(() => {})
+        .catch(err => {
+          errors.error = err?.message || String(err);
+        })
         .finally(() => {
           errors.loading = false;
         }),
@@ -334,8 +363,11 @@
         .get('/pattern-warnings')
         .then(r => {
           patterns.count = r?.warnings?.length ?? 0;
+          patterns.error = null;
         })
-        .catch(() => {})
+        .catch(err => {
+          patterns.error = err?.message || String(err);
+        })
         .finally(() => {
           patterns.loading = false;
         })
@@ -356,13 +388,22 @@
         codeHealth.running = false;
         resolve();
       };
+      // During a self-analysis run the backend is intentionally CPU-bound and
+      // routine GETs can transiently 503/time out (apiClient even suppresses
+      // those). A single failed poll must NOT be read as "run finished" — that
+      // would end the run early and leave the card showing the PREVIOUS run.
+      // Tolerate a few consecutive failures before giving up.
+      const MAX_CONSECUTIVE_FAILURES = 5;
+      let consecutiveFailures = 0;
       codeHealthPoll = setInterval(async () => {
         try {
           const result = await api.get('/analysis/code-health');
+          consecutiveFailures = 0;
           codeHealth.data = result.latest;
           if (!result.is_running) stop();
         } catch {
-          stop();
+          consecutiveFailures += 1;
+          if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) stop();
         }
       }, 3000);
     });
@@ -582,14 +623,34 @@
         <span class="text-[10px] text-muted">→ details</span>
       </div>
       <div class="flex items-center gap-2 mb-2">
-        <span class="w-2 h-2 rounded-full {errors.count > 0 ? 'bg-error' : 'bg-success'}"></span>
-        <span class="text-sm font-mono {errors.count > 0 ? 'text-error' : 'text-body'}">
-          {errors.count}
-          {errors.count === 1 ? 'unresolved error' : 'unresolved errors'}
+        <span
+          class="w-2 h-2 rounded-full {errors.error
+            ? 'bg-warning'
+            : errors.count > 0
+              ? 'bg-error'
+              : 'bg-success'}"
+        ></span>
+        <span
+          class="text-sm font-mono {errors.error
+            ? 'text-warning'
+            : errors.count > 0
+              ? 'text-error'
+              : 'text-body'}"
+        >
+          {#if errors.error}
+            Could not load
+          {:else}
+            {errors.count}
+            {errors.count === 1 ? 'unresolved error' : 'unresolved errors'}
+          {/if}
         </span>
       </div>
       <div class="text-xs text-muted">
-        {errors.count > 0 ? 'Click through to inspect or clear.' : 'Nothing currently flagged.'}
+        {errors.error
+          ? errors.error
+          : errors.count > 0
+            ? 'Click through to inspect or clear.'
+            : 'Nothing currently flagged.'}
       </div>
     </button>
 
@@ -604,15 +665,30 @@
         <span class="text-[10px] text-muted">→ details</span>
       </div>
       <div class="flex items-center gap-2 mb-2">
-        <span class="w-2 h-2 rounded-full {patterns.count > 0 ? 'bg-warning' : 'bg-success'}"
+        <span
+          class="w-2 h-2 rounded-full {patterns.error || patterns.count > 0
+            ? 'bg-warning'
+            : 'bg-success'}"
         ></span>
-        <span class="text-sm font-mono {patterns.count > 0 ? 'text-warning' : 'text-body'}">
-          {patterns.count}
-          {patterns.count === 1 ? 'unresolved warning' : 'unresolved warnings'}
+        <span
+          class="text-sm font-mono {patterns.error || patterns.count > 0
+            ? 'text-warning'
+            : 'text-body'}"
+        >
+          {#if patterns.error}
+            Could not load
+          {:else}
+            {patterns.count}
+            {patterns.count === 1 ? 'unresolved warning' : 'unresolved warnings'}
+          {/if}
         </span>
       </div>
       <div class="text-xs text-muted">
-        {patterns.count > 0 ? 'Credential leaks, debug statements, etc.' : 'No flagged patterns.'}
+        {patterns.error
+          ? patterns.error
+          : patterns.count > 0
+            ? 'Credential leaks, debug statements, etc.'
+            : 'No flagged patterns.'}
       </div>
     </button>
   </div>

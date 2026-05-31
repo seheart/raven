@@ -46,26 +46,43 @@ export class HealthMonitor {
   }
 
   /**
-   * Switch between active (60s) and idle (5min) health check intervals
+   * Switch between active (60s) and idle (5min) health check intervals.
+   * Safe to call before startMonitoring() — the desired state is recorded and
+   * applied when monitoring starts, so the idle flag and the live timer can
+   * never silently diverge.
    */
   setIdle(idle: boolean): void {
     if (idle === this.isIdle) return;
     this.isIdle = idle;
-    const newInterval = idle ? this.idleIntervalMs : this.activeIntervalMs;
 
+    // Only re-arm if monitoring is actually running; otherwise startMonitoring
+    // will honor isIdle when it schedules.
     if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-      this.monitoringInterval = setInterval(async () => {
-        try {
-          await this.runHealthCheck();
-        } catch (error: any) {
-          logger.error('Health check failed:', error);
-        }
-      }, newInterval);
+      this.scheduleChecks();
+      const interval = this.currentIntervalMs();
       logger.info(
-        `🏥 Health monitoring: switched to ${idle ? 'idle' : 'active'} interval (${newInterval / 1000}s)`
+        `🏥 Health monitoring: switched to ${idle ? 'idle' : 'active'} interval (${interval / 1000}s)`
       );
     }
+  }
+
+  /** The interval that matches the current idle/active state. */
+  private currentIntervalMs(): number {
+    return this.isIdle ? this.idleIntervalMs : this.activeIntervalMs;
+  }
+
+  /** (Re)arm the periodic check timer at the current interval. */
+  private scheduleChecks(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+    }
+    this.monitoringInterval = setInterval(async () => {
+      try {
+        await this.runHealthCheck();
+      } catch (error: any) {
+        logger.error('Health check failed:', error);
+      }
+    }, this.currentIntervalMs());
   }
 
   /**
@@ -84,21 +101,21 @@ export class HealthMonitor {
       return;
     }
 
-    logger.info(`🏥 Starting health monitoring (interval: ${intervalMs}ms)`);
+    // Record the active cadence so a later setIdle()/active toggle restores
+    // exactly this value rather than the 60s default.
+    this.activeIntervalMs = intervalMs;
+    const effectiveInterval = this.currentIntervalMs();
+    logger.info(
+      `🏥 Starting health monitoring (interval: ${effectiveInterval}ms${this.isIdle ? ', idle' : ''})`
+    );
 
     // Run initial check
     this.runHealthCheck().catch((err: any) => {
       logger.error('Initial health check failed:', err);
     });
 
-    // Schedule periodic checks
-    this.monitoringInterval = setInterval(async () => {
-      try {
-        await this.runHealthCheck();
-      } catch (error: any) {
-        logger.error('Health check failed:', error);
-      }
-    }, intervalMs);
+    // Schedule periodic checks (honors the current idle/active state)
+    this.scheduleChecks();
   }
 
   /**
@@ -243,7 +260,19 @@ export class HealthMonitor {
           const actualColumns = columns.map(c => c.name);
           const missingColumns = schema.requiredColumns.filter(col => !actualColumns.includes(col));
 
-          if (missingColumns.length > 0) {
+          // PRAGMA table_info on a non-existent table returns [] rather than
+          // throwing, so an absent table would otherwise be misreported as
+          // "missing every column" — distinguish it explicitly.
+          if (actualColumns.length === 0) {
+            checks.push({
+              category: 'Database Schema',
+              name: `Table: ${schema.table}`,
+              status: 'critical',
+              message: `Table does not exist`,
+              timestamp,
+              details: { table: schema.table }
+            });
+          } else if (missingColumns.length > 0) {
             checks.push({
               category: 'Database Schema',
               name: `Table: ${schema.table}`,
@@ -336,7 +365,11 @@ export class HealthMonitor {
       //   - inference / model_load: Ollama-level activity, not user work
       //   - file like '/api/%' or '/v1/%': Ollama HTTP endpoints (native
       //     /api/chat,/embed,/generate plus the /v1/* OpenAI-compat surface)
-      //     captured from the Ollama proxy
+      //     captured from the Ollama log-watcher (which sets `file`)
+      //   - api_call from agent 'Ollama': the same Ollama HTTP traffic when it
+      //     arrives via the *proxy* insert path, which records file=null and
+      //     puts the endpoint in metadata instead — background polls like
+      //     /api/ps have no resolvable caller and legitimately carry no project
       // Without these the check screamed about ~15k Ollama events and
       // drowned out anything actually broken.
       const orphanedAgentEvents = this.db.db
@@ -344,6 +377,7 @@ export class HealthMonitor {
           `SELECT COUNT(*) as count FROM agent_events
          WHERE (project_name IS NULL OR project_name = '')
            AND event_type NOT IN ('inference', 'model_load')
+           AND NOT (event_type = 'api_call' AND agent = 'Ollama')
            AND (file IS NULL OR (file NOT LIKE '/api/%' AND file NOT LIKE '/v1/%'))`
         )
         .get() as { count: number };
@@ -367,11 +401,16 @@ export class HealthMonitor {
         });
       }
 
-      // Check for corrupted timestamps
+      // Check for corrupted timestamps. Catch not just NULL/empty but also
+      // non-empty values SQLite can't parse: datetime() returns NULL for an
+      // unparseable string, which would otherwise silently drop those rows
+      // from the recent-activity query below while passing this check.
       const invalidTimestamps = this.db.db
         .prepare(
           `SELECT COUNT(*) as count FROM events
-         WHERE timestamp IS NULL OR timestamp = ''`
+         WHERE timestamp IS NULL
+            OR timestamp = ''
+            OR datetime(timestamp) IS NULL`
         )
         .get() as { count: number };
 
@@ -380,7 +419,7 @@ export class HealthMonitor {
           category: 'Data Integrity',
           name: 'Event Timestamps',
           status: 'warning',
-          message: `${invalidTimestamps.count} events with invalid timestamps`,
+          message: `${invalidTimestamps.count} events with invalid or unparseable timestamps`,
           timestamp,
           details: { invalidCount: invalidTimestamps.count }
         });
@@ -416,11 +455,14 @@ export class HealthMonitor {
           details: { totalEvents: 0, recentEvents: 0 }
         });
       } else if (recentEvents.count === 0) {
+        // A quiet hour is a normal state (you stepped away), not a fault. Keep
+        // it healthy so it doesn't permanently pin Overall to "warning" and
+        // train the operator to ignore the badge — the message still surfaces it.
         checks.push({
           category: 'Data Integrity',
           name: 'Event Recording',
-          status: 'warning',
-          message: 'No recent activity in past hour - development may be paused',
+          status: 'healthy',
+          message: 'No activity in the past hour (development may be paused)',
           timestamp,
           details: { totalEvents: totalEvents.count, recentEvents: 0 }
         });
@@ -455,16 +497,32 @@ export class HealthMonitor {
     const timestamp = new Date().toISOString();
 
     try {
-      // Check recent metrics
+      // Check recent metrics. AVG() over zero rows returns SQL NULL, which
+      // better-sqlite3 surfaces as JS null — that means the metrics collector
+      // produced nothing in the last 5 minutes (i.e. it's stalled/dead), which
+      // is exactly the failure this check exists to surface. Treat no-data as a
+      // warning rather than synthesizing a fake "0.0% — normal" healthy reading.
       const recentMetrics = this.db.db
         .prepare(
           `SELECT AVG(cpu_percent) as avg_cpu, AVG(memory_percent) as avg_memory
          FROM raven_metrics
          WHERE datetime(timestamp) > datetime('now', '-5 minutes')`
         )
-        .get() as { avg_cpu: number; avg_memory: number };
+        .get() as { avg_cpu: number | null; avg_memory: number | null };
 
-      if (recentMetrics.avg_cpu !== null && recentMetrics.avg_cpu > 90) {
+      if (recentMetrics.avg_cpu === null || recentMetrics.avg_memory === null) {
+        checks.push({
+          category: 'System Resources',
+          name: 'Metrics Collector',
+          status: 'warning',
+          message: 'No system metrics in the last 5 minutes — collector may be down',
+          timestamp,
+          details: { avgCpu: recentMetrics.avg_cpu, avgMemory: recentMetrics.avg_memory }
+        });
+        return checks;
+      }
+
+      if (recentMetrics.avg_cpu > 90) {
         checks.push({
           category: 'System Resources',
           name: 'CPU Usage',
@@ -478,12 +536,12 @@ export class HealthMonitor {
           category: 'System Resources',
           name: 'CPU Usage',
           status: 'healthy',
-          message: `CPU usage normal: ${(recentMetrics.avg_cpu || 0).toFixed(1)}%`,
+          message: `CPU usage normal: ${recentMetrics.avg_cpu.toFixed(1)}%`,
           timestamp
         });
       }
 
-      if (recentMetrics.avg_memory !== null && recentMetrics.avg_memory > 95) {
+      if (recentMetrics.avg_memory > 95) {
         checks.push({
           category: 'System Resources',
           name: 'Memory Usage',
@@ -497,7 +555,7 @@ export class HealthMonitor {
           category: 'System Resources',
           name: 'Memory Usage',
           status: 'healthy',
-          message: `Memory usage normal: ${(recentMetrics.avg_memory || 0).toFixed(1)}%`,
+          message: `Memory usage normal: ${recentMetrics.avg_memory.toFixed(1)}%`,
           timestamp
         });
       }
@@ -545,11 +603,13 @@ export class HealthMonitor {
   }
 
   /**
-   * Check API endpoint health by exercising the underlying data sources
-   * directly. We used to fetch our own HTTP routes from this loop, which
-   * round-tripped through the request middleware and could show false
-   * "endpoint slow" warnings when the same DB or process was already busy
-   * serving real traffic.
+   * Probe the underlying data sources directly. We used to fetch our own HTTP
+   * routes from this loop, which round-tripped through the request middleware
+   * and could show false "endpoint slow" warnings when the same DB or process
+   * was already busy serving real traffic. These probes time trivial in-process
+   * SQLite reads — they verify the data layer is responsive, NOT that any HTTP
+   * endpoint works (that's HealthChecker's /api/health/comprehensive sweep).
+   * The category is labelled "Data Source Probes" to reflect that honestly.
    */
   private async checkAPIEndpoints(): Promise<HealthCheckResult[]> {
     const checks: HealthCheckResult[] = [];
@@ -578,7 +638,7 @@ export class HealthMonitor {
         const responseTime = Date.now() - startTime;
         const status = responseTime > 250 ? 'warning' : 'healthy';
         checks.push({
-          category: 'API Endpoints',
+          category: 'Data Source Probes',
           name: probe.name,
           status,
           message:
@@ -590,7 +650,7 @@ export class HealthMonitor {
         });
       } catch (error: any) {
         checks.push({
-          category: 'API Endpoints',
+          category: 'Data Source Probes',
           name: probe.name,
           status: 'critical',
           message: `Probe failed: ${error.message}`,
@@ -746,11 +806,14 @@ export class HealthMonitor {
         const hasChanges = status.length > 0;
 
         if (hasChanges) {
+          // Uncommitted changes are the steady state during active development,
+          // not a fault — report healthy with the count rather than warning, so
+          // it doesn't permanently pin Overall to "warning".
           const lines = status.split('\n').length;
           checks.push({
             category: 'Git Repository',
             name: 'Working Directory',
-            status: 'warning',
+            status: 'healthy',
             message: `${lines} uncommitted ${lines === 1 ? 'change' : 'changes'}`,
             timestamp,
             details: { changeCount: lines }

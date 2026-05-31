@@ -49,6 +49,9 @@ interface AgentEventRow {
 }
 
 export class HealthChecker {
+  /** Per-endpoint probe deadline. Keeps one hung route from stalling the sweep. */
+  static readonly ENDPOINT_TIMEOUT_MS = 10000;
+
   private baseUrl: string;
   private db: RavenDB | null;
   private results: HealthCheckResult[];
@@ -268,10 +271,25 @@ export class HealthChecker {
 
   async checkEndpoint(path: string): Promise<unknown> {
     const url = `${this.baseUrl}${path}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/json' }
-    });
+    // Bound every probe. runAll() awaits Promise.all over all checks, and the
+    // /api/health/comprehensive route is deliberately exempt from the 30s
+    // global timeout — so without a per-request deadline a single hung endpoint
+    // (e.g. the Ollama proxy blocking) would stall the whole sweep and the
+    // route indefinitely. A timeout surfaces the hang as a real failed check
+    // instead of masking it.
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(HealthChecker.ENDPOINT_TIMEOUT_MS)
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        throw new Error(`Timed out after ${HealthChecker.ENDPOINT_TIMEOUT_MS}ms`);
+      }
+      throw error;
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -107,7 +107,6 @@
         "scripts/**/*.ts",
         "migrations/**/*.js",
         "migrations/**/*.ts",
-        "services/startup-validator.js",
         "services/auth-service.js"
       ],
       "rules": {
