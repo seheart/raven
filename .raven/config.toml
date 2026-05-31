@@ -122,8 +122,13 @@ action = "log"
 message = "High CPU usage: {cpu_percent}%"
 cooldown_seconds = 300
 
-[triggers.large_deletion]
-lines_deleted = ">100"
+# Fires on any large edit. The event carries `lines_changed` = the diff's line
+# count (see event-bus-bindings.ts), NOT a deletion count — so this is honestly
+# a "large change" detector, not a deletion-specific one. Was named
+# `large_deletion` with a "{lines_deleted} lines deleted" message that always
+# rendered 0, since events have no separate deletion field.
+[triggers.large_change]
+lines_changed = ">100"
 action = "log"
-message = "⚠️ Large deletion detected: {file} ({lines_deleted} lines deleted)"
+message = "⚠️ Large change detected: {file} ({lines_changed} lines in diff)"
 cooldown_seconds = 60

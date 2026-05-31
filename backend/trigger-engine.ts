@@ -370,15 +370,22 @@ cooldown_seconds = 300
    * Format message template with event values
    */
   private formatMessage(template: string, event: TriggerEvent): string {
-    return template
-      .replace(/\{file\}/g, String(event.file || ''))
-      .replace(/\{agent\}/g, String(event.agent || ''))
-      .replace(/\{event_type\}/g, String(event.event_type || ''))
-      .replace(/\{lines_changed\}/g, String(event.lines_changed || 0))
-      .replace(/\{lines_deleted\}/g, String((event as any).lines_deleted || 0))
-      .replace(/\{duration_ms\}/g, String(event.duration_ms || 0))
-      .replace(/\{cpu_percent\}/g, String(event.cpu_percent || 0))
-      .replace(/\{memory_percent\}/g, String(event.memory_percent || 0));
+    return (
+      template
+        .replace(/\{file\}/g, String(event.file || ''))
+        .replace(/\{agent\}/g, String(event.agent || ''))
+        .replace(/\{event_type\}/g, String(event.event_type || ''))
+        .replace(/\{lines_changed\}/g, String(event.lines_changed || 0))
+        // File events carry no separate deletion count — `lines_changed` (the
+        // diff's line count) is all we have, and the `lines_deleted` trigger
+        // condition reuses it (see matches()). So the {lines_deleted} placeholder
+        // resolves to the same field; otherwise it read a field that never exists
+        // and always rendered 0 ("…0 lines deleted").
+        .replace(/\{lines_deleted\}/g, String(event.lines_changed || 0))
+        .replace(/\{duration_ms\}/g, String(event.duration_ms || 0))
+        .replace(/\{cpu_percent\}/g, String(event.cpu_percent || 0))
+        .replace(/\{memory_percent\}/g, String(event.memory_percent || 0))
+    );
   }
 
   /**
