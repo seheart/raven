@@ -63,7 +63,7 @@
 <PageLayout>
   <div class="space-y-8">
     <!-- Status bar — single source of truth: <StatusBar> (zone 01) -->
-    <StatusBar label="Design Reference">
+    <StatusBar prompt="RAVEN.DESIGN" label="Design Reference">
       {#snippet actions()}
         <a
           href={import.meta.env.DEV
@@ -83,18 +83,28 @@
         <section>
           <PageHeader title={HERO.title} />
 
-          <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
+          <p class="mt-4 text-base text-body font-sans leading-relaxed max-w-[48rem]">
+            {HERO.lede}
+          </p>
 
-          <div class="mt-4 space-y-2 text-sm font-mono">
-            {#each HERO.meta as row (row.k)}
-              <div class="flex items-baseline gap-3">
-                <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
-                <span class="text-body flex-1 min-w-0">{row.v}</span>
-              </div>
-            {/each}
+          <!-- Hero meta — uses the "Hero meta block" pattern this page documents
+           (01 // Composed Patterns): label + value rows inside one bordered card. -->
+          <div class="mt-5 bg-surface border border-border rounded-lg p-4 max-w-[48rem]">
+            <div class="space-y-2 text-sm font-mono">
+              {#each HERO.meta as row (row.k)}
+                <div
+                  class="flex items-baseline gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0"
+                >
+                  <span class="text-muted uppercase tracking-wide text-xs w-28 flex-shrink-0"
+                    >{row.k}</span
+                  >
+                  <span class="text-body flex-1 min-w-0">{row.v}</span>
+                </div>
+              {/each}
+            </div>
           </div>
 
-          <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4">
+          <div class="mt-4 bg-warning/10 border-l-4 border-warning rounded-r p-4 max-w-[48rem]">
             <div class="text-xs font-mono uppercase tracking-wide text-warning mb-1">
               ! You are here
             </div>
@@ -104,7 +114,9 @@
             </div>
           </div>
 
-          <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-muted">
+          <div
+            class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-mono text-muted max-w-[48rem]"
+          >
             {#each HERO.badges as badge (badge.label)}
               <span
                 class="px-2 py-0.5 bg-accent-subtle text-accent rounded font-semibold tracking-wide"
