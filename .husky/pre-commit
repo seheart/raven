@@ -1,1 +1,4 @@
+# Baseline secret / large-file / conflict-marker guard (shared across all repos).
+"$HOME/.config/git/hooks/_guard.sh" || exit 1
+
 npx lint-staged
