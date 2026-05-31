@@ -176,6 +176,9 @@
      flat fills lack, without the ink-jet look of fully-opaque solids. */
   --chart-grad-top: rgba(217, 119, 87, 0.65);
   --chart-grad-bottom: rgba(217, 119, 87, 0.04);
+  /* Flat translucent fill for bars/areas — uniform alpha, NOT a vertical fade
+     to transparent (which made tall bars vanish toward their baseline). */
+  --chart-fill: rgba(217, 119, 87, 0.5);
 
   /* Subtle variants — pale tints. accent-subtle is the warm grey of
      surface-2 since the accent is now neutral black. */
@@ -289,6 +292,7 @@ html.dark {
   --chart-8: #5e8a96; /* deep teal */
   --chart-grad-top: rgba(233, 136, 106, 0.7);
   --chart-grad-bottom: rgba(233, 136, 106, 0.05);
+  --chart-fill: rgba(233, 136, 106, 0.5);
 
   --shadow: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
