@@ -6,7 +6,7 @@ Thanks for your interest. Raven is a small, opinionated project — a few princi
 
 - **Local-first, always.** Anything that calls home, phones an analytics vendor, or requires an account is a non-starter.
 - **Observation, not intervention.** Raven watches; it never edits files, runs commits, or kicks off automation in the agent's repo. The agent under observation does all the writing.
-- **Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before adding a route or repository.** The split between routes (HTTP) and repositories (SQLite) is enforced by dependency-cruiser. PRs that bypass it will fail CI.
+- **Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before adding a route or repository.** The split between routes (HTTP) and repositories (SQLite) is enforced by dependency-cruiser — `npx depcruise` will reject anything that bypasses it.
 
 ## Dev setup
 
@@ -55,15 +55,16 @@ End-to-end (Playwright):
 npm run e2e                           # from repo root
 ```
 
-CI runs all three plus Knip (dead-code), dependency-cruiser (architecture rules), and a type-coverage ratchet. Run them locally before pushing if you've touched anything structural.
+There's no CI — checks run locally. Beyond the three test suites, run Knip (dead-code), dependency-cruiser (architecture rules), and the type-coverage check before pushing if you've touched anything structural. The pre-commit hook runs lint-staged (eslint, stylelint, prettier, svelte-check) on staged files.
 
-## Pull requests
+## Workflow
 
-- **One concern per PR.** Bug fix + refactor + new feature in one branch is three PRs' worth of review work; please split.
+Raven is maintained by a single developer who commits straight to `main` — no feature branches, no internal PR review. A few habits keep history clean:
+
+- **One concern per commit.** Bug fix + refactor + new feature in one commit is hard to revert cleanly; please split.
 - **Tests required for behavior changes.** If you're adding a route, add a `__tests__/routes/` file. New frontend component, add a `__tests__/` next to it. Bug fixes need a regression test.
-- **Don't commit to `main` directly.** Open a PR even for trivial changes so CI can run.
 - **No `--no-verify` or `--no-gpg-sign`.** If a hook fails, fix the underlying issue.
-- **Keep PRs scoped.** If you find a separate problem mid-PR, file an issue and link it; don't bundle.
+- **Outside contributions** are welcome via fork + pull request — fork, branch, and open a PR against `main`. Keep it scoped to one concern; if you find a separate problem, file an issue and link it rather than bundling.
 
 ## Commit messages
 
@@ -77,13 +78,13 @@ docs(roadmap): restructure into phases
 test(routes): cover today/narrative aggregation
 ```
 
-The body should explain the *why*, not the *what*. The diff already says what changed.
+The body should explain the _why_, not the _what_. The diff already says what changed.
 
 ## Style
 
 - Frontend: Svelte 5 runes (`$state`, `$derived`, `$effect`). Tailwind utilities. Layout primitives (`PageLayout`, `PageHeader`, `PageSection`) — every page should use them.
 - Backend: TypeScript, route per concern, repository per table. Always parameterize SQL. Never `db.db.prepare()` inside a route handler — that's a repository's job.
-- No comments that restate the code. Comment the *why* when it isn't obvious from a function name.
+- No comments that restate the code. Comment the _why_ when it isn't obvious from a function name.
 
 ## Reporting bugs
 

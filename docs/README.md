@@ -27,7 +27,7 @@
 
 ## Development
 
-- [Contributing](development/CONTRIBUTING.md)
+- [Contributing](../CONTRIBUTING.md)
 - [Style Reference](development/STYLE_REFERENCE.md)
 - [Testing](TESTING.md)
 - [Security](SECURITY.md)

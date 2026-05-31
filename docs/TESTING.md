@@ -8,7 +8,7 @@ Comprehensive guide to testing infrastructure and practices in Raven v1.1.0+
 2. [Test Types](#test-types)
 3. [Running Tests](#running-tests)
 4. [Writing Tests](#writing-tests)
-5. [CI/CD Integration](#cicd-integration)
+5. [Running checks locally](#running-checks-locally)
 6. [Coverage Goals](#coverage-goals)
 7. [Troubleshooting](#troubleshooting)
 
@@ -27,18 +27,21 @@ Raven uses a comprehensive testing strategy with three layers:
 **Current Status:**
 
 **Backend (Jest):**
+
 - Framework: Jest v29.7.0
 - Total Test Files: 14
 - Tests: 206 (158 passing, 48 failing)
 - Coverage Target: 70% lines, 70% functions, 50% branches
 
 **Frontend (Vitest):**
+
 - Framework: Vitest v3.2.4
 - Total Test Files: 9
 - Tests: 43 (38 passing, 5 failing)
 - Coverage Target: TBD
 
 **E2E (Playwright):**
+
 - Framework: Playwright v1.56.1
 - Test Files: 3 new comprehensive test suites
 - Browsers: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
@@ -52,6 +55,7 @@ Raven uses a comprehensive testing strategy with three layers:
 **Location:** `backend/__tests__/`
 
 **Structure:**
+
 ```
 backend/__tests__/
 ├── routes/
@@ -76,6 +80,7 @@ backend/__tests__/
 ```
 
 **What's Tested:**
+
 - ✅ Authentication & Authorization
 - ✅ API Routes (auth, control, dashboard, telemetry, **health**)
 - ✅ Utilities (cache, logger)
@@ -85,6 +90,7 @@ backend/__tests__/
 - ✅ Integration Flows
 
 **What Needs Tests:**
+
 - ⚠️ Agent tracking routes
 - ⚠️ Rollback functionality
 - ⚠️ Pattern detection
@@ -97,6 +103,7 @@ backend/__tests__/
 **Location:** `frontend/src/lib/__tests__/`
 
 **Structure:**
+
 ```
 frontend/src/lib/__tests__/
 ├── apiClient.test.js
@@ -108,6 +115,7 @@ frontend/src/lib/__tests__/
 ```
 
 **What's Tested:**
+
 - ✅ API Client
 - ✅ Logger
 - ✅ Notification Service
@@ -119,6 +127,7 @@ frontend/src/lib/__tests__/
 - ✅ EventFeed Component
 
 **What Needs Tests:**
+
 - ⚠️ Safety Panels (SyntaxErrorPanel, SessionRollbackPanel, PatternWarningsPanel)
 - ⚠️ Agents Panels (AgentsPanel, ConversationsPanel)
 - ⚠️ Activity Panels (LiveCodeFeed, EventLog, FileBrowser)
@@ -132,6 +141,7 @@ frontend/src/lib/__tests__/
 **Location:** `e2e/`
 
 **Structure:**
+
 ```
 e2e/
 ├── overview.spec.js           # NEW
@@ -140,6 +150,7 @@ e2e/
 ```
 
 **What's Tested:**
+
 - ✅ Overview Page Loading & Display
 - ✅ Tab Navigation (all 6 main tabs)
 - ✅ Keyboard Shortcuts (1-6)
@@ -151,6 +162,7 @@ e2e/
 - ✅ WebSocket Connections
 
 **What Needs E2E Tests:**
+
 - ⚠️ Safety Features (rollback, pattern warnings)
 - ⚠️ Agent Interactions
 - ⚠️ File Browser Navigation
@@ -247,6 +259,7 @@ npx playwright test --grep="should load the overview page"
 ### First Time Setup
 
 **Install Playwright browsers:**
+
 ```bash
 npm run playwright:install
 ```
@@ -314,15 +327,17 @@ test('user can navigate to overview page', async ({ page }) => {
 ### Best Practices
 
 **1. Test Naming**
+
 ```javascript
 // ✅ Good - Descriptive and clear
-test('should display error message when API fails')
+test('should display error message when API fails');
 
 // ❌ Bad - Vague
-test('test1')
+test('test1');
 ```
 
 **2. Arrange-Act-Assert Pattern**
+
 ```javascript
 test('should calculate total correctly', () => {
   // Arrange
@@ -337,6 +352,7 @@ test('should calculate total correctly', () => {
 ```
 
 **3. Mock External Dependencies**
+
 ```javascript
 // Mock fetch
 global.fetch = vi.fn(() =>
@@ -348,6 +364,7 @@ global.fetch = vi.fn(() =>
 ```
 
 **4. Clean Up After Tests**
+
 ```javascript
 afterEach(() => {
   vi.clearAllMocks();
@@ -356,6 +373,7 @@ afterEach(() => {
 ```
 
 **5. Use Descriptive Matchers**
+
 ```javascript
 // ✅ Good
 expect(response.body).toHaveProperty('status', 'online');
@@ -366,47 +384,22 @@ expect(response.body.status === 'online').toBe(true);
 
 ---
 
-## CI/CD Integration
+## Running checks locally
 
-### GitHub Actions Workflow
+Raven has no CI — it's a solo project, and the GitHub Actions pipeline was removed once it stopped earning its keep. All checks run on your machine instead.
 
-Tests run automatically on:
-- Push to `main` or `develop` branches
-- Pull requests to `main` or `develop`
+Before pushing anything structural, run the same suites by hand:
 
-**CI Pipeline:**
-1. Backend Tests (Jest)
-2. Frontend Tests (Vitest)
-3. **E2E Tests (Playwright)** - NEW!
-4. Docker Build
-5. Security Scan
-
-**New E2E Job in `.github/workflows/ci.yml`:**
-```yaml
-e2e:
-  name: E2E Tests
-  runs-on: ubuntu-latest
-  needs: [backend, frontend]
-
-  steps:
-    - Install Playwright browsers
-    - Run E2E tests
-    - Upload test reports
-    - Upload videos (on failure)
+```bash
+npm test            # backend (Jest) + frontend (Vitest)
+npm run test:e2e    # Playwright
+npm run lint:dead   # Knip dead-code scan
+npx depcruise backend/src   # architecture rules
 ```
 
-### Test Reports
+The pre-commit hook (lint-staged) runs eslint, stylelint, prettier, and svelte-check on staged files automatically — don't bypass it with `--no-verify`.
 
-**Artifacts Uploaded:**
-- Test coverage reports → Codecov
-- **Playwright HTML report** → GitHub Actions artifacts (NEW)
-- **Test videos (on failure)** → GitHub Actions artifacts (NEW)
-
-**Accessing Reports:**
-1. Go to GitHub Actions tab
-2. Select your workflow run
-3. Scroll to "Artifacts" section
-4. Download `playwright-report` or `playwright-videos`
+**Local test reports:** the Playwright HTML report lands in `playwright-report/` and failure videos in `test-results/`. Open the report with `npx playwright show-report`.
 
 ---
 
@@ -415,6 +408,7 @@ e2e:
 ### Current Coverage Thresholds
 
 **Backend (Jest):**
+
 ```javascript
 {
   branches: 50%,
@@ -425,10 +419,12 @@ e2e:
 ```
 
 **Frontend (Vitest):**
+
 - No strict thresholds yet
 - Goal: 60% coverage for components
 
 **E2E (Playwright):**
+
 - Critical user flows: 100%
 - All main pages: 100%
 - Edge cases: 80%
@@ -457,6 +453,7 @@ npx playwright show-report
 ### Backend Tests
 
 **`backend/__tests__/routes/health.test.js`** (25 tests)
+
 - GET /api/health
 - GET /api/session-id
 - GET /api/status
@@ -465,6 +462,7 @@ npx playwright show-report
 - GET /api/health/projects (comprehensive project health calculation)
 
 **`backend/__tests__/services/websocket.test.js`** (18 tests)
+
 - Connection management
 - Event broadcasting (file-changed, system-metrics, etc.)
 - Room/namespace support
@@ -474,6 +472,7 @@ npx playwright show-report
 - Connection state tracking
 
 **`backend/__tests__/services/file-watcher.test.js`** (17 tests)
+
 - Watcher initialization
 - File change detection (add, modify, delete)
 - Event filtering
@@ -486,6 +485,7 @@ npx playwright show-report
 ### Frontend Tests
 
 **`frontend/src/lib/__tests__/HealthWidget.test.js`** (28 tests)
+
 - Component rendering
 - Health status indicators
 - Health checks (syntax, tests, deletions, security)
@@ -498,6 +498,7 @@ npx playwright show-report
 - Time formatting
 
 **`frontend/src/lib/__tests__/OverviewPanel.test.js`** (23 tests)
+
 - Component rendering
 - Session information display
 - Current session card
@@ -513,6 +514,7 @@ npx playwright show-report
 ### E2E Tests
 
 **`e2e/overview.spec.js`** (17 tests)
+
 - Overview page loading
 - Session information
 - Health widget
@@ -527,6 +529,7 @@ npx playwright show-report
 - Time-based greeting
 
 **`e2e/navigation.spec.js`** (21 tests)
+
 - Main navigation tabs
 - Tab navigation to all 6 pages
 - Active tab highlighting
@@ -538,6 +541,7 @@ npx playwright show-report
 - Sub-navigation
 
 **`e2e/health-monitoring.spec.js`** (15 tests)
+
 - Startup health checks
 - Health check indicators
 - Health status icons
@@ -567,9 +571,12 @@ test('slow operation', async () => {
 
 ```javascript
 // Use waitFor instead of hard waits
-await waitFor(() => {
-  expect(element).toBeVisible();
-}, { timeout: 5000 });
+await waitFor(
+  () => {
+    expect(element).toBeVisible();
+  },
+  { timeout: 5000 }
+);
 
 // Not: await page.waitForTimeout(5000)
 ```
@@ -613,9 +620,9 @@ lsof -ti:5173 | xargs kill -9
 npx playwright install --with-deps
 ```
 
-**7. Tests Fail Locally But Pass in CI**
+**7. Flaky / Environment-Dependent Failures**
 
-- Check Node version matches CI (v24)
+- Check your Node version (Raven targets Node 18+)
 - Check environment variables
 - Clear node_modules and reinstall
 
@@ -640,17 +647,20 @@ afterEach(() => {
 ### Priority Testing Needs
 
 **High Priority:**
+
 1. Fix 48 failing backend tests
 2. Fix 5 failing frontend tests
 3. Add Safety panel tests
 4. Add Agents panel tests
 
 **Medium Priority:**
+
 1. Increase backend coverage to 80%
 2. Add frontend component tests
 3. Add E2E tests for all user flows
 
 **Low Priority:**
+
 1. Performance testing
 2. Load testing
 3. Accessibility testing
@@ -677,6 +687,7 @@ When adding new features:
 4. **Update this doc** if adding new test patterns
 
 **Test Checklist:**
+
 - [ ] Unit tests for new functions
 - [ ] Component tests for new UI
 - [ ] Integration tests for new flows

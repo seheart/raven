@@ -157,7 +157,8 @@ If continuing to expand test coverage:
 2. **Complete control route tests** - Fix async mocking for fs and exec
 3. **Add integration tests** - Test full request flow with real server
 4. **Add coverage reporting** - Set up Istanbul/nyc for coverage metrics
-5. **CI/CD integration** - Run tests automatically on commits
+
+> Note: there's deliberately no CI on this repo (solo project) — run the suites locally before pushing. See [../docs/TESTING.md](../docs/TESTING.md#running-checks-locally).
 
 ## Coverage Goals
 
