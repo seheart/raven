@@ -14,7 +14,7 @@ cd raven
 # 2. Start Raven (installs dependencies automatically)
 ./start.sh
 
-# 3. Open browser to http://localhost:5173
+# 3. Open browser to http://localhost:9000
 ```
 
 **That's it!** Raven is now monitoring your AI development activity.
@@ -23,12 +23,13 @@ cd raven
 
 ## 📋 Prerequisites
 
-| Requirement | Version | Check Command |
-|-------------|---------|---------------|
-| **Node.js** | 18+ | `node --version` |
-| **npm** | 9+ | `npm --version` |
+| Requirement | Version | Check Command    |
+| ----------- | ------- | ---------------- |
+| **Node.js** | 18+     | `node --version` |
+| **npm**     | 9+      | `npm --version`  |
 
 **Install Node.js:**
+
 - Ubuntu/Debian: `sudo apt install nodejs npm`
 - macOS: `brew install node`
 - Windows: Download from [nodejs.org](https://nodejs.org/)
@@ -39,7 +40,8 @@ cd raven
 
 After running `./start.sh`, you'll have:
 
-✅ **Backend Server** running on `http://localhost:3030`
+✅ **Backend Server** running on `http://localhost:9100`
+
 - REST API with 37 endpoints
 - WebSocket server for real-time updates
 - SQLite database for all events
@@ -47,7 +49,8 @@ After running `./start.sh`, you'll have:
 - Git integration
 - System metrics collection
 
-✅ **Frontend UI** running on `http://localhost:5173`
+✅ **Frontend UI** running on `http://localhost:9000`
+
 - Real-time dashboard
 - Agent monitoring panel
 - Performance metrics
@@ -66,6 +69,7 @@ Raven auto-discovers all projects in `/home/seth/Projects/`. Select one from the
 ### 2. Explore the Dashboard
 
 Click through the tabs:
+
 - **Dashboard** (1) - Overview with stats cards
 - **Git** (2) - Git status and commit history
 - **Replay** (3) - Session timeline replay
@@ -77,6 +81,7 @@ Click through the tabs:
 ### 3. Watch Real-Time Updates
 
 Make changes to files in your project and watch them appear instantly in:
+
 - Live Code Feed (Dashboard tab)
 - Activity Log (bottom panel)
 - Git Panel (uncommitted changes)
@@ -86,7 +91,7 @@ Make changes to files in your project and watch them appear instantly in:
 Test the telemetry API:
 
 ```bash
-curl -X POST http://localhost:3030/telemetry \
+curl -X POST http://localhost:9100/telemetry \
   -H "Content-Type: application/json" \
   -d '{
     "agent": "test",
@@ -101,11 +106,11 @@ Check the Agents tab - your event should appear!
 
 ## ⌨️ Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `1-7` | Switch tabs |
-| `?` | Show keyboard shortcuts |
-| `Esc` | Close modals/dialogs |
+| Key   | Action                  |
+| ----- | ----------------------- |
+| `1-7` | Switch tabs             |
+| `?`   | Show keyboard shortcuts |
+| `Esc` | Close modals/dialogs    |
 
 ---
 
@@ -128,8 +133,8 @@ tail -f /tmp/raven-backend.log
 tail -f /tmp/raven-frontend.log
 
 # Check if servers are running
-curl http://localhost:3030/health    # Backend
-curl http://localhost:5173           # Frontend
+curl http://localhost:9100/health    # Backend
+curl http://localhost:9000           # Frontend
 ```
 
 ---
@@ -137,28 +142,33 @@ curl http://localhost:5173           # Frontend
 ## 📊 Quick API Tests
 
 ### Get Dashboard Statistics
+
 ```bash
-curl http://localhost:3030/api/dashboard-stats
+curl http://localhost:9100/api/dashboard-stats
 ```
 
 ### Get Top Modified Files
+
 ```bash
-curl http://localhost:3030/api/top-modified-files?limit=10
+curl http://localhost:9100/api/top-modified-files?limit=10
 ```
 
 ### Get Agent Events
+
 ```bash
-curl http://localhost:3030/api/agent-events?limit=20
+curl http://localhost:9100/api/agent-events?limit=20
 ```
 
 ### Get System Metrics
+
 ```bash
-curl http://localhost:3030/api/system-metrics?limit=10
+curl http://localhost:9100/api/system-metrics?limit=10
 ```
 
 ### Get Project List
+
 ```bash
-curl http://localhost:3030/api/projects/list
+curl http://localhost:9100/api/projects/list
 ```
 
 ---
@@ -180,7 +190,7 @@ def send_telemetry(agent, event_type, message, **kwargs):
     }
 
     response = requests.post(
-        'http://localhost:3030/telemetry',
+        'http://localhost:9100/telemetry',
         json=event
     )
 
@@ -204,6 +214,7 @@ send_telemetry(
 ### Change Theme
 
 Click the theme buttons in the top-right:
+
 - **Day** - Gruvbox light theme
 - **Dusk** - Ristretto warm theme
 - **Night** - Tokyo Night dark theme (default)
@@ -212,9 +223,10 @@ Click the theme buttons in the top-right:
 
 1. Edit `.raven/triggers.toml`
 2. Add custom alert conditions
-3. Reload triggers: `curl -X POST http://localhost:3030/api/triggers-reload`
+3. Reload triggers: `curl -X POST http://localhost:9100/api/triggers-reload`
 
 **Example trigger:**
+
 ```toml
 [[triggers]]
 name = "my_custom_trigger"
@@ -231,7 +243,7 @@ cooldown_seconds = 60
 ```
 raven/
 ├── backend/                  # Node.js Express server
-│   ├── server.js            # Main server (port 3030)
+│   ├── server.js            # Main server (port 9100)
 │   ├── db.js                # SQLite database
 │   ├── metrics-collector.js # System metrics
 │   └── trigger-engine.js    # Alert system
@@ -259,11 +271,11 @@ raven/
 
 ### Backend won't start
 
-**Error:** `Port 3030 already in use`
+**Error:** `Port 9100 already in use`
 
 ```bash
 # Kill existing process
-lsof -ti:3030 | xargs kill -9
+lsof -ti:9100 | xargs kill -9
 
 # Or change port in backend/server.js
 ```
@@ -284,7 +296,7 @@ cd frontend && npm install
 
 ### WebSocket not connecting
 
-1. Check backend is running: `curl http://localhost:3030/health`
+1. Check backend is running: `curl http://localhost:9100/health`
 2. Check browser console for errors
 3. Verify CORS settings in `backend/server.js`
 
@@ -308,6 +320,7 @@ rm .raven/db/*.db-wal .raven/db/*.db-shm
 Now that Raven is running, dive deeper:
 
 ### 📖 Read the Docs
+
 - [Architecture](ARCHITECTURE.md) - System design and tech stack
 - [REST API Reference](api/REST_API.md) - All 37 API endpoints
 - [WebSocket API](api/WEBSOCKET_API.md) - Real-time events
@@ -317,11 +330,13 @@ Now that Raven is running, dive deeper:
 - [Deployment Guide](DEPLOYMENT.md) - Production deployment
 
 ### 🛠️ Customize
+
 - Configure triggers in `.raven/triggers.toml`
 - Adjust metrics collection in `backend/metrics-collector.js`
 - Modify UI components in `frontend/src/lib/`
 
 ### 🤝 Contribute
+
 - [Contributing Guide](../CONTRIBUTING.md)
 - [GitHub Issues](https://github.com/seheart/raven/issues)
 
@@ -344,8 +359,9 @@ Now that Raven is running, dive deeper:
 Raven is now monitoring your AI development activity.
 
 **Quick checklist:**
-- ✅ Backend running on port 3030
-- ✅ Frontend running on port 5173
+
+- ✅ Backend running on port 9100
+- ✅ Frontend running on port 9000
 - ✅ Dashboard accessible in browser
 - ✅ File changes being monitored
 - ✅ Git integration active

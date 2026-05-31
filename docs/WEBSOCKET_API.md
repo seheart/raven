@@ -7,7 +7,7 @@ Raven uses Socket.io for real-time bidirectional communication between the backe
 ```javascript
 // Frontend connection
 import { io } from 'socket.io-client';
-const socket = io('http://localhost:3030');
+const socket = io('http://localhost:9100');
 ```
 
 ## Event Types
@@ -15,9 +15,11 @@ const socket = io('http://localhost:3030');
 ### File System Events
 
 #### `file-changed`
+
 **Description:** Emitted when a file is modified, created, or deleted and successfully tracked in the database.
 
 **Payload:**
+
 ```typescript
 {
   id: string;           // Event ID from database
@@ -34,16 +36,18 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `file-changed-untracked`
+
 **Description:** Emitted when a file change is detected but failed to persist to database.
 
 **Payload:**
+
 ```typescript
 {
   timestamp: string;
   project: string;
   filepath: string;
   change_type: string;
-  error: string;        // Error description
+  error: string; // Error description
 }
 ```
 
@@ -52,9 +56,11 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `file-too-large`
+
 **Description:** Emitted when a file exceeds the maximum allowed size (10MB).
 
 **Payload:**
+
 ```typescript
 {
   timestamp: string;
@@ -70,9 +76,11 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `file-watcher-error`
+
 **Description:** Emitted when the file watcher encounters an error.
 
 **Payload:**
+
 ```typescript
 {
   project: string;
@@ -89,9 +97,11 @@ const socket = io('http://localhost:3030');
 ### Git Events
 
 #### `git-status-updated`
+
 **Description:** Emitted when Git status changes are detected.
 
 **Payload:**
+
 ```typescript
 {
   project: string;
@@ -111,20 +121,23 @@ const socket = io('http://localhost:3030');
 ### Performance & System Events
 
 #### `performance-alert`
+
 **Description:** Emitted when system memory or heap usage exceeds thresholds.
 
 **Payload:**
+
 ```typescript
 {
   type: 'memory' | 'heap';
   severity: 'critical' | 'warning';
   title: string;
   message: string;
-  value: string;  // Percentage as string (e.g., "92.5")
+  value: string; // Percentage as string (e.g., "92.5")
 }
 ```
 
 **Thresholds:**
+
 - **Critical Memory:** >90% system memory usage
 - **Warning Heap:** >90% heap usage
 - **Warning Memory:** >85% system memory usage
@@ -134,9 +147,11 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `system-metrics`
+
 **Description:** Emitted periodically with system resource metrics.
 
 **Payload:**
+
 ```typescript
 {
   timestamp: string;
@@ -154,14 +169,16 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `storage-warning`
+
 **Description:** Emitted when disk storage usage exceeds thresholds.
 
 **Payload:**
+
 ```typescript
 {
-  percentage: string;  // e.g., "92.5"
-  size: number;        // Size in bytes
-  critical: boolean;   // true if >90%, false if >85%
+  percentage: string; // e.g., "92.5"
+  size: number; // Size in bytes
+  critical: boolean; // true if >90%, false if >85%
 }
 ```
 
@@ -170,9 +187,11 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `health-check-failed`
+
 **Description:** Emitted when a health check fails.
 
 **Payload:**
+
 ```typescript
 {
   checkName: string;
@@ -189,9 +208,11 @@ const socket = io('http://localhost:3030');
 ### Agent & Telemetry Events
 
 #### `agent-event`
+
 **Description:** Emitted when agent activity is detected and tracked.
 
 **Payload:**
+
 ```typescript
 {
   id: string;
@@ -216,9 +237,11 @@ const socket = io('http://localhost:3030');
 ### Trigger Events
 
 #### `trigger-fired`
+
 **Description:** Emitted when a custom trigger rule is activated.
 
 **Payload:**
+
 ```typescript
 {
   trigger_name: string;
@@ -234,9 +257,11 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `trigger-stats`
+
 **Description:** Emitted alongside `trigger-fired` to update trigger statistics.
 
 **Payload:**
+
 ```typescript
 {
   total_triggers: number;
@@ -252,9 +277,11 @@ const socket = io('http://localhost:3030');
 ---
 
 #### `notification`
+
 **Description:** Emitted for trigger-generated notifications.
 
 **Payload:**
+
 ```typescript
 {
   id: string;
@@ -276,7 +303,7 @@ const socket = io('http://localhost:3030');
 ### Listening to File Changes
 
 ```javascript
-socket.on('file-changed', (data) => {
+socket.on('file-changed', data => {
   console.log(`File ${data.change_type}: ${data.filepath}`);
   // Update UI with new file event
 });
@@ -285,7 +312,7 @@ socket.on('file-changed', (data) => {
 ### Monitoring Performance Alerts
 
 ```javascript
-socket.on('performance-alert', (alert) => {
+socket.on('performance-alert', alert => {
   if (alert.severity === 'critical') {
     showNotification(`${alert.title}: ${alert.message}`, 'error');
   }
@@ -295,7 +322,7 @@ socket.on('performance-alert', (alert) => {
 ### Tracking Git Status
 
 ```javascript
-socket.on('git-status-updated', (status) => {
+socket.on('git-status-updated', status => {
   updateGitBadge({
     branch: status.branch,
     modified: status.modified.length,
@@ -308,27 +335,27 @@ socket.on('git-status-updated', (status) => {
 ### Real-time Trigger Notifications
 
 ```javascript
-socket.on('trigger-fired', (trigger) => {
+socket.on('trigger-fired', trigger => {
   console.log(`Trigger activated: ${trigger.trigger_name}`);
   showToast(trigger.message);
 });
 
-socket.on('trigger-stats', (stats) => {
+socket.on('trigger-stats', stats => {
   updateTriggerDashboard(stats);
 });
 ```
 
 ## Event Frequency
 
-| Event | Frequency | Notes |
-|-------|-----------|-------|
-| `file-changed` | Real-time | On every file system change |
-| `git-status-updated` | Real-time | After file changes in Git repos |
-| `performance-alert` | Threshold-based | Only when thresholds exceeded |
-| `system-metrics` | Periodic | Every 5 seconds (configurable) |
-| `storage-warning` | Threshold-based | >85% and >90% disk usage |
-| `agent-event` | Real-time | On every agent action |
-| `trigger-fired` | Real-time | When trigger conditions met |
+| Event                | Frequency       | Notes                           |
+| -------------------- | --------------- | ------------------------------- |
+| `file-changed`       | Real-time       | On every file system change     |
+| `git-status-updated` | Real-time       | After file changes in Git repos |
+| `performance-alert`  | Threshold-based | Only when thresholds exceeded   |
+| `system-metrics`     | Periodic        | Every 5 seconds (configurable)  |
+| `storage-warning`    | Threshold-based | >85% and >90% disk usage        |
+| `agent-event`        | Real-time       | On every agent action           |
+| `trigger-fired`      | Real-time       | When trigger conditions met     |
 
 ## WebSocket Rooms (Future Feature)
 
@@ -347,15 +374,15 @@ socket.emit('leave-project', 'my-project');
 Always handle connection errors and reconnection:
 
 ```javascript
-socket.on('connect_error', (error) => {
+socket.on('connect_error', error => {
   console.error('Connection failed:', error);
 });
 
-socket.on('reconnect', (attemptNumber) => {
+socket.on('reconnect', attemptNumber => {
   console.log(`Reconnected after ${attemptNumber} attempts`);
 });
 
-socket.on('disconnect', (reason) => {
+socket.on('disconnect', reason => {
   if (reason === 'io server disconnect') {
     // Server initiated disconnect, reconnect manually
     socket.connect();

@@ -31,6 +31,7 @@ this.db.pragma('journal_mode = WAL'); // Better performance
 ```
 
 **WAL Mode Benefits:**
+
 - Concurrent readers don't block writers
 - Faster write performance
 - Better crash recovery
@@ -63,20 +64,21 @@ CREATE TABLE IF NOT EXISTS events (
 
 **Columns:**
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INTEGER | NO | Auto-incrementing primary key |
-| `timestamp` | TEXT | NO | ISO 8601 timestamp (e.g., "2025-10-19T12:34:56.789Z") |
-| `filepath` | TEXT | YES | Relative file path (e.g., "src/main.js") |
-| `change_type` | TEXT | YES | Change type: "created", "modified", "deleted" |
-| `diff` | TEXT | YES | Unified diff output |
-| `cpu` | REAL | YES | CPU usage at time of event (0-100) |
-| `mem` | REAL | YES | Memory usage at time of event (0-100) |
-| `session_id` | TEXT | YES | UUID of current session |
-| `file_hash` | TEXT | YES | SHA-256 hash of file content |
-| `event_size` | INTEGER | YES | Size of diff/change in bytes |
+| Column        | Type    | Nullable | Description                                           |
+| ------------- | ------- | -------- | ----------------------------------------------------- |
+| `id`          | INTEGER | NO       | Auto-incrementing primary key                         |
+| `timestamp`   | TEXT    | NO       | ISO 8601 timestamp (e.g., "2025-10-19T12:34:56.789Z") |
+| `filepath`    | TEXT    | YES      | Relative file path (e.g., "src/main.js")              |
+| `change_type` | TEXT    | YES      | Change type: "created", "modified", "deleted"         |
+| `diff`        | TEXT    | YES      | Unified diff output                                   |
+| `cpu`         | REAL    | YES      | CPU usage at time of event (0-100)                    |
+| `mem`         | REAL    | YES      | Memory usage at time of event (0-100)                 |
+| `session_id`  | TEXT    | YES      | UUID of current session                               |
+| `file_hash`   | TEXT    | YES      | SHA-256 hash of file content                          |
+| `event_size`  | INTEGER | YES      | Size of diff/change in bytes                          |
 
 **Example Row:**
+
 ```json
 {
   "id": 123,
@@ -95,6 +97,7 @@ CREATE TABLE IF NOT EXISTS events (
 **Indexes:** None (small dataset, sequential access patterns)
 
 **Typical Queries:**
+
 ```sql
 -- Get recent events
 SELECT * FROM events ORDER BY timestamp DESC LIMIT 100;
@@ -136,20 +139,21 @@ CREATE TABLE IF NOT EXISTS agent_events (
 
 **Columns:**
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INTEGER | NO | Auto-incrementing primary key |
-| `timestamp` | TEXT | NO | ISO 8601 timestamp |
-| `agent` | TEXT | NO | Agent identifier (e.g., "claude", "ollama", "lmstudio") |
-| `event_type` | TEXT | NO | Event type (e.g., "edit", "create", "execute", "analyze") |
-| `file` | TEXT | YES | File affected by event |
-| `lines_changed` | INTEGER | YES | Number of lines modified |
-| `duration_ms` | INTEGER | YES | Operation duration in milliseconds |
-| `message` | TEXT | NO | Human-readable description |
-| `metadata` | TEXT | YES | JSON string with additional data |
-| `session_id` | TEXT | YES | UUID of current session |
+| Column          | Type    | Nullable | Description                                               |
+| --------------- | ------- | -------- | --------------------------------------------------------- |
+| `id`            | INTEGER | NO       | Auto-incrementing primary key                             |
+| `timestamp`     | TEXT    | NO       | ISO 8601 timestamp                                        |
+| `agent`         | TEXT    | NO       | Agent identifier (e.g., "claude", "ollama", "lmstudio")   |
+| `event_type`    | TEXT    | NO       | Event type (e.g., "edit", "create", "execute", "analyze") |
+| `file`          | TEXT    | YES      | File affected by event                                    |
+| `lines_changed` | INTEGER | YES      | Number of lines modified                                  |
+| `duration_ms`   | INTEGER | YES      | Operation duration in milliseconds                        |
+| `message`       | TEXT    | NO       | Human-readable description                                |
+| `metadata`      | TEXT    | YES      | JSON string with additional data                          |
+| `session_id`    | TEXT    | YES      | UUID of current session                                   |
 
 **Example Row:**
+
 ```json
 {
   "id": 456,
@@ -168,6 +172,7 @@ CREATE TABLE IF NOT EXISTS agent_events (
 **Indexes:** None (small dataset)
 
 **Typical Queries:**
+
 ```sql
 -- Get recent agent events
 SELECT * FROM agent_events ORDER BY timestamp DESC LIMIT 100;
@@ -218,18 +223,19 @@ CREATE TABLE IF NOT EXISTS raven_metrics (
 
 **Columns:**
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INTEGER | NO | Auto-incrementing primary key |
-| `timestamp` | TEXT | NO | ISO 8601 timestamp |
-| `cpu_percent` | REAL | YES | CPU usage percentage (0-100) |
-| `memory_percent` | REAL | YES | Memory usage percentage (0-100) |
-| `disk_usage_percent` | REAL | YES | Disk usage percentage (0-100) |
-| `network_rx_mbps` | REAL | YES | Network receive speed in Mbps |
-| `network_tx_mbps` | REAL | YES | Network transmit speed in Mbps |
-| `session_id` | TEXT | YES | UUID of current session |
+| Column               | Type    | Nullable | Description                     |
+| -------------------- | ------- | -------- | ------------------------------- |
+| `id`                 | INTEGER | NO       | Auto-incrementing primary key   |
+| `timestamp`          | TEXT    | NO       | ISO 8601 timestamp              |
+| `cpu_percent`        | REAL    | YES      | CPU usage percentage (0-100)    |
+| `memory_percent`     | REAL    | YES      | Memory usage percentage (0-100) |
+| `disk_usage_percent` | REAL    | YES      | Disk usage percentage (0-100)   |
+| `network_rx_mbps`    | REAL    | YES      | Network receive speed in Mbps   |
+| `network_tx_mbps`    | REAL    | YES      | Network transmit speed in Mbps  |
+| `session_id`         | TEXT    | YES      | UUID of current session         |
 
 **Example Row:**
+
 ```json
 {
   "id": 789,
@@ -250,6 +256,7 @@ CREATE TABLE IF NOT EXISTS raven_metrics (
 **Indexes:** None (time-series data, sequential access)
 
 **Typical Queries:**
+
 ```sql
 -- Get recent metrics
 SELECT * FROM raven_metrics ORDER BY timestamp DESC LIMIT 100;
@@ -296,17 +303,18 @@ CREATE TABLE IF NOT EXISTS process_metrics (
 
 **Columns:**
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INTEGER | NO | Auto-incrementing primary key |
-| `timestamp` | TEXT | NO | ISO 8601 timestamp |
-| `process_name` | TEXT | NO | Process/agent name (e.g., "ollama", "claude") |
-| `pid` | INTEGER | YES | Process ID |
-| `cpu_percent` | REAL | YES | Process CPU usage percentage (0-100) |
-| `memory_mb` | REAL | YES | Process memory usage in megabytes |
-| `session_id` | TEXT | YES | UUID of current session |
+| Column         | Type    | Nullable | Description                                   |
+| -------------- | ------- | -------- | --------------------------------------------- |
+| `id`           | INTEGER | NO       | Auto-incrementing primary key                 |
+| `timestamp`    | TEXT    | NO       | ISO 8601 timestamp                            |
+| `process_name` | TEXT    | NO       | Process/agent name (e.g., "ollama", "claude") |
+| `pid`          | INTEGER | YES      | Process ID                                    |
+| `cpu_percent`  | REAL    | YES      | Process CPU usage percentage (0-100)          |
+| `memory_mb`    | REAL    | YES      | Process memory usage in megabytes             |
+| `session_id`   | TEXT    | YES      | UUID of current session                       |
 
 **Example Row:**
+
 ```json
 {
   "id": 1011,
@@ -322,6 +330,7 @@ CREATE TABLE IF NOT EXISTS process_metrics (
 **Indexes:** None (small dataset)
 
 **Typical Queries:**
+
 ```sql
 -- Get recent process metrics
 SELECT * FROM process_metrics ORDER BY timestamp DESC LIMIT 100;
@@ -356,72 +365,90 @@ ORDER BY timestamp DESC;
 
 ```javascript
 // Insert file event
-insertEvent(timestamp, filepath, changeType, diff, cpu, mem, sessionId, fileHash, eventSize)
+insertEvent(timestamp, filepath, changeType, diff, cpu, mem, sessionId, fileHash, eventSize);
 
 // Insert agent event
-insertAgentEvent(timestamp, agent, eventType, file, linesChanged, durationMs, message, metadata, sessionId)
+insertAgentEvent(
+  timestamp,
+  agent,
+  eventType,
+  file,
+  linesChanged,
+  durationMs,
+  message,
+  metadata,
+  sessionId
+);
 
 // Insert system metrics
-insertMetrics(timestamp, cpuPercent, memoryPercent, diskUsagePercent, networkRxMbps, networkTxMbps, sessionId)
+insertMetrics(
+  timestamp,
+  cpuPercent,
+  memoryPercent,
+  diskUsagePercent,
+  networkRxMbps,
+  networkTxMbps,
+  sessionId
+);
 
 // Insert process metrics
-insertProcessMetrics(timestamp, processName, pid, cpuPercent, memoryMb, sessionId)
+insertProcessMetrics(timestamp, processName, pid, cpuPercent, memoryMb, sessionId);
 ```
 
 ### Query Methods
 
 ```javascript
 // Get recent events (default: 100)
-getRecentEvents(limit = 100)
+getRecentEvents((limit = 100));
 
 // Get recent agent events (default: 100)
-getRecentAgentEvents(limit = 100)
+getRecentAgentEvents((limit = 100));
 
 // Get events by agent
-getEventsByAgent(agent, limit = 100)
+getEventsByAgent(agent, (limit = 100));
 
 // Get agent statistics
-getAgentStats()
+getAgentStats();
 
 // Get recent metrics (default: 100)
-getRecentMetrics(limit = 100)
+getRecentMetrics((limit = 100));
 
 // Get metrics statistics
-getMetricsStats()
+getMetricsStats();
 
 // Get process metrics by name
-getProcessMetrics(processName, limit = 100)
+getProcessMetrics(processName, (limit = 100));
 
 // Get events by session
-getEventsBySession(sessionId)
+getEventsBySession(sessionId);
 
 // Get top modified files
-getTopModifiedFiles(limit = 10)
+getTopModifiedFiles((limit = 10));
 
 // Get longest edits
-getLongestEdits(limit = 10)
+getLongestEdits((limit = 10));
 
 // Get tracked files
-getTrackedFiles()
+getTrackedFiles();
 
 // Get dashboard statistics
-getDashboardStats()
+getDashboardStats();
 ```
 
 ### Maintenance Methods
 
 ```javascript
 // Delete old records
-deleteOldRecords(days)
+deleteOldRecords(days);
 
 // Get database size
-getDatabaseSize()
+getDatabaseSize();
 
 // Vacuum database
-vacuum()
+vacuum();
 
 // Close database connection
-close()
+close();
 ```
 
 ---
@@ -433,9 +460,10 @@ close()
 **API Endpoint:** `POST /api/database/clear-old/:days`
 
 **Example:**
+
 ```javascript
 // Delete records older than 30 days
-fetch('http://localhost:3030/api/database/clear-old/30', {
+fetch('http://localhost:9100/api/database/clear-old/30', {
   method: 'POST'
 });
 ```

@@ -136,12 +136,15 @@ Playwright configuration is in `/playwright.config.js`:
 
 ```javascript
 {
-  baseURL: 'http://localhost:5173',  // Frontend URL
+  // E2E runs on dedicated ports (frontend 9001 → backend 9101) so it never
+  // disrupts a dev session on the canonical 9000 → 9100.
+  baseURL: 'http://localhost:9001',  // Frontend URL (isolated E2E port)
   timeout: 30000,                     // 30 second timeout per test
   retries: 2,                         // Retry failing tests twice
-  workers: 4,                         // Run 4 tests in parallel
 }
 ```
+
+Playwright auto-starts its own backend (9101) and frontend (9001) via the `webServer` config and tears them down afterward — you don't need to start Raven yourself. Override the ports with `RAVEN_E2E_FRONTEND_PORT` / `RAVEN_E2E_BACKEND_PORT` if something is squatting them.
 
 ## 🐛 Debugging Failed Tests
 
@@ -314,17 +317,14 @@ This ensures new features are properly tested!
 
 ### Before Running Tests:
 
-1. ✅ Make sure Raven is running: `./start.sh` or `raven start`
-2. ✅ Backend must be on `http://localhost:3030`
-3. ✅ Frontend must be on `http://localhost:5173`
+1. ✅ Install Playwright browsers once: `npm run playwright:install`
+2. ✅ That's it — Playwright auto-starts isolated backend (9101) and frontend (9001) servers itself. You do **not** need a dev session running; if one is, it's left untouched on 9000/9100.
 
 ### If Tests Fail:
 
-1. Check Raven is actually running
-2. Check backend logs: `tail -f /tmp/raven-backend.log`
-3. Check frontend logs: `tail -f /tmp/raven-frontend.log`
-4. Run tests with UI mode to see what's happening
-5. Check for network issues or port conflicts
+1. Run tests with UI mode (`npm run test:e2e:ui`) to see what's happening
+2. Check for a port conflict on 9001/9101 (override with `RAVEN_E2E_FRONTEND_PORT` / `RAVEN_E2E_BACKEND_PORT`)
+3. Confirm browsers are installed: `npm run playwright:install`
 
 ### For Continuous Testing:
 

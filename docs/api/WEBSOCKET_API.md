@@ -1,7 +1,7 @@
 # Raven WebSocket API Reference
 
 **Version:** 0.6.1
-**WebSocket URL:** `ws://localhost:3030`
+**WebSocket URL:** `ws://localhost:9100`
 **Library:** Socket.IO 4.8.1
 **Status:** ✅ Production Ready
 
@@ -27,7 +27,7 @@ Raven uses Socket.IO for real-time bidirectional communication. The server pushe
 ```javascript
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3030', {
+const socket = io('http://localhost:9100', {
   transports: ['websocket', 'polling'],
   reconnection: true,
   reconnectionDelay: 1000,
@@ -39,23 +39,23 @@ socket.on('connect', () => {
   console.log('Socket ID:', socket.id);
 });
 
-socket.on('disconnect', (reason) => {
+socket.on('disconnect', reason => {
   console.log('❌ Disconnected:', reason);
 });
 
-socket.on('connect_error', (error) => {
+socket.on('connect_error', error => {
   console.error('Connection error:', error);
 });
 ```
 
 ### Connection Events
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `connect` | Server → Client | Connection established |
-| `disconnect` | Server → Client | Connection closed |
-| `connect_error` | Server → Client | Connection failed |
-| `reconnect` | Server → Client | Reconnection successful |
+| Event           | Direction       | Description             |
+| --------------- | --------------- | ----------------------- |
+| `connect`       | Server → Client | Connection established  |
+| `disconnect`    | Server → Client | Connection closed       |
+| `connect_error` | Server → Client | Connection failed       |
+| `reconnect`     | Server → Client | Reconnection successful |
 
 ---
 
@@ -70,6 +70,7 @@ socket.on('connect_error', (error) => {
 **Frequency:** Real-time (debounced 50ms)
 
 **Payload:**
+
 ```javascript
 {
   filepath: 'src/main.js',
@@ -84,8 +85,9 @@ socket.on('connect_error', (error) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('file-changed', (data) => {
+socket.on('file-changed', data => {
   console.log(`📝 File ${data.change_type}:`, data.filepath);
   console.log(`   CPU: ${data.cpu}% | Memory: ${data.mem}%`);
 
@@ -106,6 +108,7 @@ socket.on('file-changed', (data) => {
 **Frequency:** After file changes in Git repository
 
 **Payload:**
+
 ```javascript
 {
   branch: 'main',
@@ -126,8 +129,9 @@ socket.on('file-changed', (data) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('git-status-updated', (data) => {
+socket.on('git-status-updated', data => {
   console.log(`🔧 Git status updated on ${data.branch}`);
   console.log(`   Modified: ${data.modified} | Staged: ${data.staged}`);
 
@@ -151,6 +155,7 @@ socket.on('git-status-updated', (data) => {
 **Frequency:** On project selection
 
 **Payload:**
+
 ```javascript
 {
   project_name: 'ant312',
@@ -161,8 +166,9 @@ socket.on('git-status-updated', (data) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('project-switched', (data) => {
+socket.on('project-switched', data => {
   console.log(`📂 Project switched: ${data.previous_project} → ${data.project_name}`);
 
   // Clear old data and reload
@@ -186,6 +192,7 @@ socket.on('project-switched', (data) => {
 **Frequency:** Real-time (when agent sends telemetry)
 
 **Payload:**
+
 ```javascript
 {
   id: 123,
@@ -204,8 +211,9 @@ socket.on('project-switched', (data) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('agent-event', (data) => {
+socket.on('agent-event', data => {
   console.log(`🤖 ${data.agent} - ${data.event_type}: ${data.message}`);
 
   if (data.file) {
@@ -238,6 +246,7 @@ socket.on('agent-event', (data) => {
 **Frequency:** After each agent event
 
 **Payload:**
+
 ```javascript
 [
   {
@@ -254,12 +263,13 @@ socket.on('agent-event', (data) => {
     avg_duration_ms: 1200,
     total_duration_ms: 50400
   }
-]
+];
 ```
 
 **Example:**
+
 ```javascript
-socket.on('agent-stats', (stats) => {
+socket.on('agent-stats', stats => {
   console.log('📊 Agent statistics updated');
 
   stats.forEach(agent => {
@@ -283,6 +293,7 @@ socket.on('agent-stats', (stats) => {
 **Frequency:** Every 1 second
 
 **Payload:**
+
 ```javascript
 {
   timestamp: '2025-10-19T12:34:56.789Z',
@@ -296,8 +307,9 @@ socket.on('agent-stats', (stats) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('system-metrics', (metrics) => {
+socket.on('system-metrics', metrics => {
   // Update real-time charts
   updateCPUChart(metrics.cpu_percent);
   updateMemoryChart(metrics.memory_percent);
@@ -325,6 +337,7 @@ socket.on('system-metrics', (metrics) => {
 **Frequency:** When trigger activates (with cooldown)
 
 **Payload:**
+
 ```javascript
 {
   trigger_name: 'high_cpu',
@@ -339,8 +352,9 @@ socket.on('system-metrics', (metrics) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('trigger-fired', (event) => {
+socket.on('trigger-fired', event => {
   console.log(`🚨 Trigger fired: ${event.trigger_name}`);
   console.log(`   ${event.message}`);
 
@@ -373,6 +387,7 @@ socket.on('trigger-fired', (event) => {
 **Frequency:** After each trigger event
 
 **Payload:**
+
 ```javascript
 {
   total_triggers: 5,
@@ -393,8 +408,9 @@ socket.on('trigger-fired', (event) => {
 ```
 
 **Example:**
+
 ```javascript
-socket.on('trigger-stats', (stats) => {
+socket.on('trigger-stats', stats => {
   console.log(`📈 Trigger stats: ${stats.total_fired} total events`);
 
   // Update trigger panel
@@ -426,7 +442,7 @@ let agents = [];
 
 onMount(() => {
   // Connect to WebSocket
-  socket = io('http://localhost:3030', {
+  socket = io('http://localhost:9100', {
     transports: ['websocket', 'polling'],
     reconnection: true
   });
@@ -441,32 +457,32 @@ onMount(() => {
   });
 
   // File events
-  socket.on('file-changed', (data) => {
-    events = [data, ...events].slice(0, 100);  // Keep last 100
+  socket.on('file-changed', data => {
+    events = [data, ...events].slice(0, 100); // Keep last 100
   });
 
   // Git events
-  socket.on('git-status-updated', (data) => {
+  socket.on('git-status-updated', data => {
     gitStatus = data;
   });
 
   // Project switching
-  socket.on('project-switched', (data) => {
-    events = [];  // Clear events for new project
+  socket.on('project-switched', data => {
+    events = []; // Clear events for new project
     console.log(`Switched to ${data.project_name}`);
   });
 
   // Agent events
-  socket.on('agent-event', (data) => {
+  socket.on('agent-event', data => {
     console.log(`Agent event: ${data.agent} - ${data.message}`);
   });
 
-  socket.on('agent-stats', (data) => {
+  socket.on('agent-stats', data => {
     agents = data;
   });
 
   // System metrics
-  socket.on('system-metrics', (data) => {
+  socket.on('system-metrics', data => {
     metrics = {
       cpu: data.cpu_percent,
       memory: data.memory_percent
@@ -474,11 +490,11 @@ onMount(() => {
   });
 
   // Triggers
-  socket.on('trigger-fired', (event) => {
+  socket.on('trigger-fired', event => {
     alert(`Trigger: ${event.message}`);
   });
 
-  socket.on('trigger-stats', (stats) => {
+  socket.on('trigger-stats', stats => {
     console.log('Trigger stats updated:', stats);
   });
 });
@@ -496,41 +512,44 @@ onDestroy(() => {
 
 ### Event Frequency
 
-| Event | Frequency | Notes |
-|-------|-----------|-------|
-| `file-changed` | ~1-100/sec | Debounced (50ms), varies with activity |
-| `git-status-updated` | ~1-10/sec | Only on Git repo changes |
-| `project-switched` | Rare | User-triggered only |
-| `agent-event` | ~1-50/sec | Varies with agent activity |
-| `agent-stats` | Same as agent-event | Sent after each event |
-| `system-metrics` | 1/sec | Fixed interval |
-| `trigger-fired` | Variable | Depends on conditions + cooldown |
-| `trigger-stats` | Same as trigger-fired | Sent after each trigger |
+| Event                | Frequency             | Notes                                  |
+| -------------------- | --------------------- | -------------------------------------- |
+| `file-changed`       | ~1-100/sec            | Debounced (50ms), varies with activity |
+| `git-status-updated` | ~1-10/sec             | Only on Git repo changes               |
+| `project-switched`   | Rare                  | User-triggered only                    |
+| `agent-event`        | ~1-50/sec             | Varies with agent activity             |
+| `agent-stats`        | Same as agent-event   | Sent after each event                  |
+| `system-metrics`     | 1/sec                 | Fixed interval                         |
+| `trigger-fired`      | Variable              | Depends on conditions + cooldown       |
+| `trigger-stats`      | Same as trigger-fired | Sent after each trigger                |
 
 ### Best Practices
 
 1. **Debounce UI Updates**
+
    ```javascript
    let updateTimeout;
-   socket.on('system-metrics', (data) => {
+   socket.on('system-metrics', data => {
      clearTimeout(updateTimeout);
      updateTimeout = setTimeout(() => {
        updateCharts(data);
-     }, 100);  // Update UI every 100ms max
+     }, 100); // Update UI every 100ms max
    });
    ```
 
 2. **Limit Event History**
+
    ```javascript
    const MAX_EVENTS = 1000;
-   socket.on('file-changed', (data) => {
+   socket.on('file-changed', data => {
      events = [data, ...events].slice(0, MAX_EVENTS);
    });
    ```
 
 3. **Use Event Filtering**
+
    ```javascript
-   socket.on('agent-event', (data) => {
+   socket.on('agent-event', data => {
      // Only process events from specific agents
      if (['claude', 'ollama'].includes(data.agent)) {
        processEvent(data);
@@ -539,11 +558,12 @@ onDestroy(() => {
    ```
 
 4. **Batch Updates**
+
    ```javascript
    let metricsBuffer = [];
    let flushInterval;
 
-   socket.on('system-metrics', (data) => {
+   socket.on('system-metrics', data => {
      metricsBuffer.push(data);
    });
 
@@ -552,7 +572,7 @@ onDestroy(() => {
        updateMetricsChart(metricsBuffer);
        metricsBuffer = [];
      }
-   }, 1000);  // Flush every second
+   }, 1000); // Flush every second
    ```
 
 ---
@@ -562,7 +582,7 @@ onDestroy(() => {
 ### Connection Errors
 
 ```javascript
-socket.on('connect_error', (error) => {
+socket.on('connect_error', error => {
   console.error('WebSocket connection error:', error);
 
   // Show user-friendly message
@@ -578,7 +598,7 @@ socket.on('connect_error', (error) => {
 ### Disconnection Handling
 
 ```javascript
-socket.on('disconnect', (reason) => {
+socket.on('disconnect', reason => {
   console.log('Disconnected:', reason);
 
   if (reason === 'io server disconnect') {
@@ -594,7 +614,7 @@ socket.on('disconnect', (reason) => {
 ### Reconnection
 
 ```javascript
-socket.io.on('reconnect', (attemptNumber) => {
+socket.io.on('reconnect', attemptNumber => {
   console.log(`✅ Reconnected after ${attemptNumber} attempts`);
 
   // Reload data after reconnection
@@ -602,7 +622,7 @@ socket.io.on('reconnect', (attemptNumber) => {
   hideOfflineIndicator();
 });
 
-socket.io.on('reconnect_attempt', (attemptNumber) => {
+socket.io.on('reconnect_attempt', attemptNumber => {
   console.log(`🔄 Reconnection attempt ${attemptNumber}`);
 });
 

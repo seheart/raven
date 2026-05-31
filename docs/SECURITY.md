@@ -93,7 +93,7 @@ Please include as much information as possible:
 
 3. **Network Security**
    - Use firewall rules to restrict access
-   - Only expose necessary ports (3030 for API)
+   - Only expose necessary ports (9100 for API)
    - Consider using reverse proxy (nginx) for SSL termination
 
 4. **Monitoring**
@@ -123,8 +123,8 @@ Please include as much information as possible:
 
 ## Security Audit History
 
-| Date | Type | Findings | Status |
-|------|------|----------|--------|
+| Date       | Type               | Findings                       | Status   |
+| ---------- | ------------------ | ------------------------------ | -------- |
 | 2025-10-18 | Initial Assessment | Manual review, no issues found | ✅ Clean |
 
 ## Compliance
@@ -134,6 +134,7 @@ Raven is designed with security in mind but is not currently certified for any s
 ## Contact
 
 For security-related questions (non-vulnerabilities):
+
 - GitHub Discussions: https://github.com/seheart/raven/discussions
 - Email: seheart@gmail.com
 

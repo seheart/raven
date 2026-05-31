@@ -1,7 +1,7 @@
 # Raven REST API Reference
 
 **Version:** 0.6.1
-**Base URL:** `http://localhost:3030`
+**Base URL:** `http://localhost:9100`
 **Status:** ✅ Production Ready
 
 ---
@@ -15,7 +15,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 - **Total Endpoints:** 37
 - **Authentication:** None (local-only)
 - **Rate Limiting:** None
-- **CORS:** Enabled for `http://localhost:5173`
+- **CORS:** Enabled for `http://localhost:9000`
 
 ---
 
@@ -26,6 +26,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Health check endpoint
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -41,6 +42,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get current session ID
 
 **Response:**
+
 ```json
 {
   "session_id": "550e8400-e29b-41d4-a716-446655440000"
@@ -56,6 +58,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get dashboard statistics
 
 **Response:**
+
 ```json
 {
   "total_events": 1234,
@@ -71,11 +74,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get most frequently modified files
 
 **Query Parameters:**
+
 - `limit` (optional, default: 10) - Number of files to return
 
 **Example:** `GET /api/top-modified-files?limit=20`
 
 **Response:**
+
 ```json
 [
   {
@@ -92,11 +97,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get largest edits by line count
 
 **Query Parameters:**
+
 - `limit` (optional, default: 10) - Number of edits to return
 
 **Example:** `GET /api/longest-edits?limit=20`
 
 **Response:**
+
 ```json
 [
   {
@@ -117,6 +124,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Receive agent telemetry events
 
 **Request Body:**
+
 ```json
 {
   "agent": "claude",
@@ -132,6 +140,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -144,6 +153,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get status of all detected agents
 
 **Response:**
+
 ```json
 [
   {
@@ -164,11 +174,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get agent telemetry events
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100) - Number of events to return
 
 **Example:** `GET /api/agent-events?limit=50`
 
 **Response:**
+
 ```json
 [
   {
@@ -191,9 +203,11 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get events for a specific agent
 
 **Parameters:**
+
 - `agent` (required) - Agent name (e.g., "claude", "ollama")
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100)
 
 **Example:** `GET /api/events-by-agent/claude?limit=50`
@@ -205,6 +219,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get agent statistics
 
 **Response:**
+
 ```json
 [
   {
@@ -226,11 +241,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get recent system metrics
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100) - Number of metrics samples
 
 **Example:** `GET /api/system-metrics?limit=200`
 
 **Response:**
+
 ```json
 [
   {
@@ -251,14 +268,17 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get process metrics for specific agent
 
 **Parameters:**
+
 - `agent` (required) - Agent name
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100)
 
 **Example:** `GET /api/process-metrics/claude?limit=50`
 
 **Response:**
+
 ```json
 [
   {
@@ -278,6 +298,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get aggregated metrics statistics
 
 **Response:**
+
 ```json
 {
   "avg_cpu": 12.5,
@@ -293,6 +314,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get performance correlations between metrics and events
 
 **Response:**
+
 ```json
 {
   "cpu_vs_events": 0.67,
@@ -310,6 +332,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get list of all tracked files
 
 **Response:**
+
 ```json
 [
   {
@@ -326,12 +349,14 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get file change events
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100) - Number of events
 - `diff` (optional, boolean) - Include diff content
 
 **Example:** `GET /api/file-events?limit=50&diff=true`
 
 **Response:**
+
 ```json
 [
   {
@@ -354,6 +379,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get all events for a specific session
 
 **Parameters:**
+
 - `sessionId` (required) - Session UUID
 
 **Example:** `GET /api/events-by-session/550e8400-e29b-41d4-a716-446655440000`
@@ -365,11 +391,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get combined activity log (files + agents)
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100)
 
 **Example:** `GET /api/activity-log?limit=50`
 
 **Response:**
+
 ```json
 [
   {
@@ -393,11 +421,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get all snapshots for a file
 
 **Parameters:**
+
 - `filepath` (required) - File path (URL encoded)
 
 **Example:** `GET /api/snapshots/src%2Fmain.js`
 
 **Response:**
+
 ```json
 [
   {
@@ -414,6 +444,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Restore file to a specific snapshot
 
 **Request Body:**
+
 ```json
 {
   "filepath": "src/main.js",
@@ -422,6 +453,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -438,6 +470,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get trigger configuration
 
 **Response:**
+
 ```json
 {
   "triggers": [
@@ -457,11 +490,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get triggered alert events
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100)
 
 **Example:** `GET /api/triggered-events?limit=50`
 
 **Response:**
+
 ```json
 [
   {
@@ -481,6 +516,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get trigger statistics
 
 **Response:**
+
 ```json
 {
   "total_triggers": 5,
@@ -500,6 +536,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Reload trigger configuration from file
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -512,6 +549,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Clear all trigger cooldowns
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -528,6 +566,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Clear file content cache
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -540,11 +579,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Clear database records older than N days
 
 **Parameters:**
+
 - `days` (required) - Number of days (e.g., 7, 30)
 
 **Example:** `POST /api/database/clear-old/30`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -559,6 +600,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Restart file watcher
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -571,6 +613,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Export health metrics as JSON
 
 **Response:**
+
 ```json
 {
   "timestamp": "2025-10-19T12:34:56Z",
@@ -603,6 +646,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get list of all discovered projects
 
 **Response:**
+
 ```json
 {
   "projects": [
@@ -628,6 +672,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Refresh project list (re-scan directory)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -641,6 +686,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Switch active project
 
 **Request Body:**
+
 ```json
 {
   "project_name": "ant312"
@@ -648,6 +694,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -665,6 +712,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get Git status for active project
 
 **Response:**
+
 ```json
 {
   "branch": "main",
@@ -689,6 +737,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get list of Git branches
 
 **Response:**
+
 ```json
 {
   "current": "main",
@@ -714,11 +763,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get Git commit history
 
 **Query Parameters:**
+
 - `limit` (optional, default: 50) - Number of commits
 
 **Example:** `GET /api/git/history?limit=100`
 
 **Response:**
+
 ```json
 [
   {
@@ -737,11 +788,13 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get Git diff for specific file
 
 **Parameters:**
+
 - `filepath` (required) - File path (URL encoded, can include slashes using `*` route)
 
 **Example:** `GET /api/git/diff/src/main.js`
 
 **Response:**
+
 ```json
 {
   "filepath": "src/main.js",
@@ -754,6 +807,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 **Purpose:** Get Git diff for entire working tree
 
 **Response:**
+
 ```json
 {
   "diff": "diff --git a/src/main.js...\n...",
@@ -770,15 +824,18 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 All endpoints return standard HTTP status codes:
 
 ### Success Codes
+
 - `200 OK` - Request successful
 - `201 Created` - Resource created
 
 ### Error Codes
+
 - `400 Bad Request` - Invalid request parameters
 - `404 Not Found` - Resource not found
 - `500 Internal Server Error` - Server error
 
 ### Error Response Format
+
 ```json
 {
   "error": true,
@@ -794,7 +851,7 @@ All endpoints return standard HTTP status codes:
 ### Complete Example: Fetch Dashboard Data
 
 ```javascript
-const API_BASE = 'http://localhost:3030/api';
+const API_BASE = 'http://localhost:9100/api';
 
 async function fetchDashboard() {
   try {
@@ -828,7 +885,7 @@ async function sendTelemetry(agent, eventType, message, options = {}) {
     ...options
   };
 
-  const response = await fetch('http://localhost:3030/telemetry', {
+  const response = await fetch('http://localhost:9100/telemetry', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(event)

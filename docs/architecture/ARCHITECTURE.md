@@ -14,7 +14,7 @@ Raven is a **web-based** AI agent monitoring tool with a client-server architect
 ┌─────────────────────────────────────────────────────────┐
 │                    CLIENT BROWSER                       │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │         Svelte Frontend (Port 5173)              │  │
+│  │         Svelte Frontend (Port 9000)              │  │
 │  │  - Dashboard, Metrics, Agents, Triggers UI       │  │
 │  │  - Real-time updates via Socket.IO               │  │
 │  └──────────────────────────────────────────────────┘  │
@@ -23,7 +23,7 @@ Raven is a **web-based** AI agent monitoring tool with a client-server architect
                            │ HTTP + WebSocket
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Node.js Backend (Port 3030)                │
+│              Node.js Backend (Port 9100)                │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  Express Server                                  │  │
 │  │  - REST API (21 endpoints)                       │  │
@@ -88,27 +88,27 @@ raven/
 
 ### Backend (Node.js)
 
-| Component | Technology | Version | Purpose |
-|-----------|-----------|---------|---------|
-| **Runtime** | Node.js | 20+ | JavaScript runtime |
-| **Framework** | Express | 4.21.2 | HTTP server & REST API |
-| **WebSockets** | Socket.IO | 4.8.1 | Real-time bidirectional events |
-| **Database** | better-sqlite3 | 11.8.1 | SQLite database wrapper |
-| **File Watching** | chokidar | 4.0.3 | File system monitoring |
-| **Metrics** | systeminformation | 5.27.11 | System metrics collection |
-| **Config** | toml | 3.0.0 | TOML configuration parsing |
-| **UUID** | uuid | 11.0.5 | Session ID generation |
-| **CORS** | cors | 2.8.5 | Cross-origin resource sharing |
+| Component         | Technology        | Version | Purpose                        |
+| ----------------- | ----------------- | ------- | ------------------------------ |
+| **Runtime**       | Node.js           | 20+     | JavaScript runtime             |
+| **Framework**     | Express           | 4.21.2  | HTTP server & REST API         |
+| **WebSockets**    | Socket.IO         | 4.8.1   | Real-time bidirectional events |
+| **Database**      | better-sqlite3    | 11.8.1  | SQLite database wrapper        |
+| **File Watching** | chokidar          | 4.0.3   | File system monitoring         |
+| **Metrics**       | systeminformation | 5.27.11 | System metrics collection      |
+| **Config**        | toml              | 3.0.0   | TOML configuration parsing     |
+| **UUID**          | uuid              | 11.0.5  | Session ID generation          |
+| **CORS**          | cors              | 2.8.5   | Cross-origin resource sharing  |
 
 ### Frontend (Svelte)
 
-| Component | Technology | Version | Purpose |
-|-----------|-----------|---------|---------|
-| **Framework** | Svelte | Latest | Reactive UI framework |
-| **Build Tool** | Vite | Latest | Fast development server |
-| **WebSocket Client** | Socket.IO Client | Latest | Real-time event handling |
-| **HTTP Client** | Fetch API | Native | REST API calls |
-| **Testing** | Vitest | Latest | Unit testing |
+| Component            | Technology       | Version | Purpose                  |
+| -------------------- | ---------------- | ------- | ------------------------ |
+| **Framework**        | Svelte           | Latest  | Reactive UI framework    |
+| **Build Tool**       | Vite             | Latest  | Fast development server  |
+| **WebSocket Client** | Socket.IO Client | Latest  | Real-time event handling |
+| **HTTP Client**      | Fetch API        | Native  | REST API calls           |
+| **Testing**          | Vitest           | Latest  | Unit testing             |
 
 ---
 
@@ -116,47 +116,47 @@ raven/
 
 ### REST API (HTTP)
 
-**Base URL:** `http://localhost:3030/api`
+**Base URL:** `http://localhost:9100/api`
 
 **Endpoints (21):**
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/session-id` | Get current session ID |
-| GET | `/api/dashboard-stats` | Dashboard statistics |
-| GET | `/api/top-modified-files` | Most edited files |
-| GET | `/api/longest-edits` | Largest code changes |
-| GET | `/api/agents-status` | Active agents status |
-| GET | `/api/agent-events` | Agent telemetry events |
-| GET | `/api/events-by-agent/:agent` | Events for specific agent |
-| GET | `/api/agent-stats` | Agent statistics |
-| GET | `/api/system-metrics` | System CPU/memory metrics |
-| GET | `/api/process-metrics/:agent` | Per-process metrics |
-| GET | `/api/metrics-stats` | Metrics aggregations |
-| GET | `/api/performance-correlations` | Correlation analysis |
-| GET | `/api/tracked-files` | List of monitored files |
-| GET | `/api/events-by-session/:sessionId` | Events by session |
-| GET | `/api/triggers-config` | Trigger configuration |
-| GET | `/api/triggered-events` | Fired trigger events |
-| GET | `/api/trigger-stats` | Trigger statistics |
-| POST | `/api/triggers-reload` | Reload trigger config |
-| POST | `/api/triggers-clear-cooldowns` | Clear trigger cooldowns |
-| POST | `/telemetry` | Send agent telemetry event |
-| GET | `/health` | Health check endpoint |
+| Method | Endpoint                            | Purpose                    |
+| ------ | ----------------------------------- | -------------------------- |
+| GET    | `/api/session-id`                   | Get current session ID     |
+| GET    | `/api/dashboard-stats`              | Dashboard statistics       |
+| GET    | `/api/top-modified-files`           | Most edited files          |
+| GET    | `/api/longest-edits`                | Largest code changes       |
+| GET    | `/api/agents-status`                | Active agents status       |
+| GET    | `/api/agent-events`                 | Agent telemetry events     |
+| GET    | `/api/events-by-agent/:agent`       | Events for specific agent  |
+| GET    | `/api/agent-stats`                  | Agent statistics           |
+| GET    | `/api/system-metrics`               | System CPU/memory metrics  |
+| GET    | `/api/process-metrics/:agent`       | Per-process metrics        |
+| GET    | `/api/metrics-stats`                | Metrics aggregations       |
+| GET    | `/api/performance-correlations`     | Correlation analysis       |
+| GET    | `/api/tracked-files`                | List of monitored files    |
+| GET    | `/api/events-by-session/:sessionId` | Events by session          |
+| GET    | `/api/triggers-config`              | Trigger configuration      |
+| GET    | `/api/triggered-events`             | Fired trigger events       |
+| GET    | `/api/trigger-stats`                | Trigger statistics         |
+| POST   | `/api/triggers-reload`              | Reload trigger config      |
+| POST   | `/api/triggers-clear-cooldowns`     | Clear trigger cooldowns    |
+| POST   | `/telemetry`                        | Send agent telemetry event |
+| GET    | `/health`                           | Health check endpoint      |
 
 ### WebSocket (Socket.IO)
 
-**URL:** `ws://localhost:3030`
+**URL:** `ws://localhost:9100`
 
 **Events:**
 
-| Event | Direction | Purpose |
-|-------|-----------|---------|
-| `agent-event` | Server → Client | New telemetry event |
-| `agent-stats` | Server → Client | Updated agent statistics |
-| `metrics-update` | Server → Client | System metrics update |
-| `trigger-fired` | Server → Client | Alert triggered |
-| `file-changed` | Server → Client | File system change |
+| Event            | Direction       | Purpose                  |
+| ---------------- | --------------- | ------------------------ |
+| `agent-event`    | Server → Client | New telemetry event      |
+| `agent-stats`    | Server → Client | Updated agent statistics |
+| `metrics-update` | Server → Client | System metrics update    |
+| `trigger-fired`  | Server → Client | Alert triggered          |
+| `file-changed`   | Server → Client | File system change       |
 
 ---
 
@@ -292,12 +292,13 @@ cd frontend
 npm install
 npm run dev
 
-# Access: http://localhost:5173
+# Access: http://localhost:9000
 ```
 
 ### Production
 
 **Option 1: Separate processes**
+
 ```bash
 # Backend
 cd backend && npm install
@@ -309,6 +310,7 @@ cd frontend && npm install && npm run build
 ```
 
 **Option 2: Backend serves frontend**
+
 ```bash
 # Build frontend
 cd frontend && npm run build
@@ -328,12 +330,12 @@ cd backend && npm start
 
 ```bash
 # Backend
-PORT=3030                    # Server port
+PORT=9100                    # Server port
 NODE_ENV=production          # Production mode
 DB_PATH=.raven/db/raven.db  # Database path
 
 # Frontend
-VITE_API_URL=http://localhost:3030  # API base URL
+VITE_API_URL=http://localhost:9100  # API base URL
 ```
 
 ---
@@ -342,12 +344,12 @@ VITE_API_URL=http://localhost:3030  # API base URL
 
 ### Resource Usage
 
-| Metric | Typical | Peak |
-|--------|---------|------|
-| Backend Memory | 50-80 MB | 120 MB |
-| Frontend Memory | 30-50 MB | 80 MB |
-| Database Size | 5-10 MB | 50 MB (with snapshots) |
-| CPU Usage | 2-5% | 15% (during file changes) |
+| Metric          | Typical  | Peak                      |
+| --------------- | -------- | ------------------------- |
+| Backend Memory  | 50-80 MB | 120 MB                    |
+| Frontend Memory | 30-50 MB | 80 MB                     |
+| Database Size   | 5-10 MB  | 50 MB (with snapshots)    |
+| CPU Usage       | 2-5%     | 15% (during file changes) |
 
 ### Scalability Limits
 
@@ -362,7 +364,7 @@ VITE_API_URL=http://localhost:3030  # API base URL
 
 ### Current Implementation
 
-- ✅ CORS enabled (localhost:5173)
+- ✅ CORS enabled (localhost:9000)
 - ✅ JSON payload limit (50 MB)
 - ⚠️ No authentication (localhost only)
 - ⚠️ No HTTPS (development)
@@ -392,6 +394,7 @@ VITE_API_URL=http://localhost:3030  # API base URL
 ### File Watcher (`chokidar`)
 
 Monitors `test_workspace/` for file changes:
+
 - Detects: create, modify, delete, rename
 - Debounced: 50ms (configurable)
 - Ignores: node_modules, .git, target, dist
@@ -400,6 +403,7 @@ Monitors `test_workspace/` for file changes:
 ### Metrics Collector (`systeminformation`)
 
 Collects system metrics every 2 seconds:
+
 - CPU usage (%)
 - Memory usage (%, MB)
 - Network I/O (bytes)
@@ -408,7 +412,8 @@ Collects system metrics every 2 seconds:
 ### Trigger Engine (`trigger-engine.js`)
 
 Evaluates rules from `.raven/config.toml`:
-- File patterns (e.g., "*.js > 100 lines")
+
+- File patterns (e.g., "\*.js > 100 lines")
 - Agent events (e.g., "claude > 5000ms")
 - System metrics (e.g., "CPU > 80%")
 - Cooldown mechanism (prevents spam)
@@ -416,6 +421,7 @@ Evaluates rules from `.raven/config.toml`:
 ### Real-time Events (Socket.IO)
 
 Broadcasts events to all connected clients:
+
 - File changes
 - Agent events
 - Metrics updates
@@ -440,6 +446,7 @@ npm test
 ```
 
 **Existing Tests:**
+
 - `keyboardService.test.js` - 10 tests
 - `EventFeed.test.js` - 8 tests
 - `MetricsPanel.test.js` - 4 tests
@@ -460,6 +467,7 @@ npm test
 ### Why Web-Based?
 
 **Advantages of Web Architecture:**
+
 1. **Easier deployment** - Standard web hosting
 2. **Cross-platform** - Works on any OS with browser
 3. **Remote access** - Can monitor from any device
@@ -472,12 +480,14 @@ npm test
 ## 🔮 Future Enhancements
 
 ### Short-term
+
 - [ ] Add authentication (JWT)
 - [ ] Enable HTTPS
 - [ ] Docker containerization
 - [ ] Health monitoring dashboard
 
 ### Long-term
+
 - [ ] Multi-workspace support
 - [ ] Cloud sync (opt-in)
 - [ ] Team collaboration features

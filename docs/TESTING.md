@@ -606,11 +606,11 @@ afterAll(async () => {
 **5. Port Already in Use (E2E)**
 
 ```bash
-# Kill process on port 3030
-lsof -ti:3030 | xargs kill -9
+# Kill process on port 9100
+lsof -ti:9100 | xargs kill -9
 
-# Kill process on port 5173
-lsof -ti:5173 | xargs kill -9
+# Kill process on port 9000
+lsof -ti:9000 | xargs kill -9
 ```
 
 **6. Playwright Browsers Not Installed**

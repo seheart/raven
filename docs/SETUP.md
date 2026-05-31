@@ -3,6 +3,7 @@
 ## Prerequisites
 
 ### All Platforms
+
 - Node.js 18+ (`node --version`)
 - npm 9+ (`npm --version`)
 - **rsync** (for Server Sync feature)
@@ -21,6 +22,7 @@ xcode-select --install
 ```
 
 **What this provides:**
+
 - ✅ C/C++ compiler toolchain
 - ✅ Python (needed by node-gyp for building native modules)
 - ✅ Essential build tools
@@ -28,6 +30,7 @@ xcode-select --install
 **Note:** The installation may take a few minutes. After installing, `npm install` will automatically compile the native SQLite module for your Mac.
 
 **Compatibility:**
+
 - ✅ Intel Macs - Fully supported
 - ✅ Apple Silicon (M1/M2/M3) - Fully supported (native ARM64 builds)
 - ✅ systeminformation - Full macOS support for CPU, memory, and system metrics
@@ -42,7 +45,7 @@ cd raven
 # Start both backend and frontend
 ./start.sh
 
-# Open browser to http://localhost:5173
+# Open browser to http://localhost:9000
 ```
 
 **That's it!** The start script handles everything automatically.
@@ -72,7 +75,7 @@ cd ..
 ```bash
 cd backend
 npm start
-# Server runs on http://localhost:3030
+# Server runs on http://localhost:9100
 ```
 
 ### 4. Start Frontend Dev Server
@@ -82,7 +85,7 @@ In a new terminal:
 ```bash
 cd frontend
 npm run dev
-# UI runs on http://localhost:5173
+# UI runs on http://localhost:9000
 ```
 
 ## Project Structure
@@ -90,7 +93,7 @@ npm run dev
 ```
 raven/
 ├── backend/                   # Node.js Express Server
-│   ├── server.js             # Main server (port 3030)
+│   ├── server.js             # Main server (port 9100)
 │   ├── db.js                 # SQLite database wrapper
 │   ├── metrics-collector.js  # System metrics
 │   ├── trigger-engine.js     # Alert system
@@ -124,17 +127,18 @@ raven/
 ### 1. Check Backend
 
 ```bash
-curl http://localhost:3030/api/session-id
+curl http://localhost:9100/api/session-id
 ```
 
 Expected output:
+
 ```json
-{"session_id":"..."}
+{ "session_id": "..." }
 ```
 
 ### 2. Check Frontend
 
-Open http://localhost:5173 in your browser. You should see the Raven dashboard.
+Open http://localhost:9000 in your browser. You should see the Raven dashboard.
 
 ### 3. Test Real-Time Updates
 
@@ -164,54 +168,65 @@ active = "raven"                  # Active project name
 ### Backend won't start
 
 **Error:** `Cannot find module`
+
 - **Solution:** Run `cd backend && npm install`
 
-**Error:** `Port 3030 already in use`
+**Error:** `Port 9100 already in use`
+
 - **Solution:** Kill the existing process or change port in `backend/server.js`
 
 ### Frontend won't start
 
 **Error:** `Cannot find module`
+
 - **Solution:** Run `cd frontend && npm install`
 
-**Error:** `Port 5173 already in use`
+**Error:** `Port 9000 already in use`
+
 - **Solution:** Vite will automatically try port 5174
 
 ### WebSocket connection fails
 
 **Symptom:** Real-time updates not working
-- **Solution:** Ensure backend is running on port 3030
+
+- **Solution:** Ensure backend is running on port 9100
 - Check browser console for WebSocket errors
 - Verify CORS is enabled in `backend/server.js`
 
 ### Database errors
 
 **Error:** `Database locked` or `SQLITE_BUSY`
+
 - **Solution:** Stop all Raven instances and restart
 - If persists: `rm .raven/db/*.db-wal .raven/db/*.db-shm`
 
 ### macOS-Specific Issues
 
 **Error during `npm install`:** `gyp: No Xcode or CLT version detected!`
+
 - **Solution:** Install Xcode Command Line Tools: `xcode-select --install`
 - **Verify:** `xcode-select -p` should show `/Library/Developer/CommandLineTools`
 
 **Error:** `node-gyp build failed`
+
 - **Solution:**
   1. Update Xcode tools: `softwareupdate --all --install --force`
   2. Reset tools path: `sudo xcode-select --reset`
   3. Try install again: `npm install`
 
 **Performance issue:** System metrics collection slow
+
 - **Note:** This is normal on macOS. The `systeminformation` library is slightly slower on macOS compared to Linux due to system API differences. All functionality works correctly.
 
 **Error:** `EMFILE: too many open files` when watching projects
+
 - **Root cause:** macOS has a default soft limit of 256 file descriptors. Large projects with node_modules can exceed this.
 - **Solution (Automatic):** Raven now automatically:
   1. Excludes itself (`raven` project) from auto-discovery to prevent watching its own `node_modules`
   2. Uses macOS FSEvents API (`useFsEvents: true`) for more efficient file watching
   3. Applies ignore patterns to skip `node_modules`, `.git`, and other large directories
 - **Manual workaround (if needed):**
+
   ```bash
   # Increase file descriptor limit for current session
   ulimit -n 10240
@@ -219,6 +234,7 @@ active = "raven"                  # Active project name
   # Make permanent: Add to ~/.zshrc or ~/.bash_profile
   echo "ulimit -n 10240" >> ~/.zshrc
   ```
+
 - **Verify fix:** Check backend logs for successful watcher initialization without EMFILE errors:
   ```bash
   tail -f /tmp/raven-backend.log | grep "File watcher ready"
@@ -255,12 +271,13 @@ tail -f /tmp/raven-frontend.log
 ## Testing File Monitoring
 
 1. **Start Raven:**
+
    ```bash
    ./start.sh
    ```
 
 2. **Open the UI:**
-   - Navigate to http://localhost:5173
+   - Navigate to http://localhost:9000
    - Click on "Live Feed" tab
 
 3. **Test file changes:**
@@ -280,11 +297,13 @@ tail -f /tmp/raven-frontend.log
 ## System Requirements
 
 ### Minimum
+
 - Node.js 18+
 - 2GB RAM
 - 500MB disk space
 
 ### Recommended
+
 - Node.js 20+
 - 4GB RAM
 - 2GB disk space (for snapshots)
@@ -295,6 +314,7 @@ tail -f /tmp/raven-frontend.log
 For production use:
 
 1. **Build frontend:**
+
    ```bash
    cd frontend
    npm run build
@@ -304,13 +324,14 @@ For production use:
    Backend automatically serves built frontend from `frontend/dist/`
 
 3. **Run as service:**
+
    ```bash
    # Using systemd (Linux)
    sudo systemctl start raven
    ```
 
 4. **Configure reverse proxy (optional):**
-   - Use nginx or Apache to proxy port 3030
+   - Use nginx or Apache to proxy port 9100
    - Enable HTTPS with Let's Encrypt
 
 ## Support
