@@ -752,7 +752,7 @@
 
           {#each groupConvs as conv (conv.id)}
             <article
-              class="bg-surface border border-border rounded-lg overflow-hidden {getEventClass(
+              class="shrink-0 bg-surface border border-border rounded-lg overflow-hidden {getEventClass(
                 conv.event_type
               ) === 'user'
                 ? 'border-l-4 border-l-accent'
