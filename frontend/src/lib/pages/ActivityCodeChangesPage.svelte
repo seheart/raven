@@ -230,7 +230,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Changes" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Changes" />
   <PageHeader
     title="What changed in your code"
     description="A live feed of file edits with their diffs — see exactly what your AI tools wrote. Click any row to view the diff."

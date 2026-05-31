@@ -641,7 +641,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Activity" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Activity" />
   <PageHeader
     title="What just happened"
     description="Every file change and every AI tool call, newest first. File events come from the filesystem; agent events are tool calls and messages from your AI coder."

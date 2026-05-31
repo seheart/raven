@@ -205,7 +205,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Search" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Search" />
   <PageHeader
     title="Search"
     description="Look across every file, every AI tool call, and every message Raven has seen. Type a filename, a project name, or part of a path."

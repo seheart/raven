@@ -129,7 +129,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Health" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Health" />
   <PageHeader
     title="Are your projects busy and healthy?"
     description="How active each project is and whether errors are piling up. The score combines recent activity with a syntax-error penalty — busy and clean is a 90+, quiet or buggy drags it down."

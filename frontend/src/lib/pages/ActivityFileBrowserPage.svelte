@@ -441,6 +441,11 @@
     Array.from(new Set(files.map(f => getFileExtension(f)).filter(ext => ext))).sort()
   );
 
+  // The tracked-file list can be thousands of rows. Render only a slice so the
+  // page stays a sane height (rendering all of them made it ~150,000px tall);
+  // users narrow with search / type / project filters or click "Show more".
+  let visibleCount = $state(100);
+
   const filteredFiles = $derived.by(() => {
     return files
       .filter(filepath => {
@@ -477,6 +482,8 @@
         return sortOrder === 'asc' ? comparison : -comparison;
       });
   });
+
+  const visibleFiles = $derived(filteredFiles.slice(0, visibleCount));
 
   const stats = $derived.by(() => {
     const lastUpdated =
@@ -516,7 +523,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Files" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Files" />
   <PageHeader
     title="Files Raven has watched"
     description="Every file your AI tools have created, edited, or deleted at least once. Click any row to see its history."
@@ -700,7 +707,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each filteredFiles as filepath (filepath)}
+            {#each visibleFiles as filepath (filepath)}
               <tr
                 class="hover:bg-surface/40 cursor-pointer align-top {expandedFile === filepath
                   ? 'bg-surface/40'
@@ -747,8 +754,18 @@
     {/if}
 
     {#if filteredFiles.length > 0}
-      <div class="text-center text-sm text-muted font-sans">
-        Showing {filteredFiles.length} of {stats.totalFiles} files
+      <div class="flex flex-col items-center gap-3 text-center text-sm text-muted font-sans">
+        <div>
+          Showing {visibleFiles.length} of {filteredFiles.length}
+          {filteredFiles.length === stats.totalFiles
+            ? 'files'
+            : `matching (${stats.totalFiles} tracked)`}
+        </div>
+        {#if filteredFiles.length > visibleCount}
+          <ToolbarButton onClick={() => (visibleCount += 100)}>
+            Show 100 more · {filteredFiles.length - visibleCount} hidden
+          </ToolbarButton>
+        {/if}
       </div>
     {/if}
   {/if}

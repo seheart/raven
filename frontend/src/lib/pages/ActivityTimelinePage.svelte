@@ -203,7 +203,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Timeline" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Timeline" />
   <PageHeader
     title="Your timeline, day by day"
     description="Everything your AI tools have touched, grouped by when it happened. Scroll back to see how a busy afternoon — or a quiet week — actually played out."

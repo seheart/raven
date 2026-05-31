@@ -227,7 +227,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Projects" />
+  <StatusBar prompt="RAVEN.ACTIVITY" label="Projects" />
   <PageHeader
     title="Projects, side by side"
     description="Every project Raven has seen — most-recently-active first. See where your AI tools have been spending time."
