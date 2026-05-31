@@ -374,7 +374,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Insights" />
+  <StatusBar prompt="RAVEN.INSIGHTS" label="Insights" />
   <PageHeader
     title="Insights"
     description="Stories Raven can write about how you and your AI tools have been working together. Tap a card to ask for one. Stories are written by your local AI, so nothing leaves your machine."

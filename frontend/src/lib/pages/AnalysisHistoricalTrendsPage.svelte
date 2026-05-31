@@ -414,7 +414,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Trends" />
+  <StatusBar prompt="RAVEN.INSIGHTS" label="Trends" />
   <PageHeader
     title="Historical Trends"
     description="How your file activity changes over time, bucketed by hour, day, or week. Pick a window and see the shape of your weeks."
@@ -447,11 +447,11 @@
         onchange={handleDaysChange}
         class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
       >
-        <option value="1">24 hours</option>
-        <option value="7">7 days</option>
-        <option value="14">14 days</option>
-        <option value="30">30 days</option>
-        <option value="90">90 days</option>
+        <option value={1}>24 hours</option>
+        <option value={7}>7 days</option>
+        <option value={14}>14 days</option>
+        <option value={30}>30 days</option>
+        <option value={90}>90 days</option>
       </select>
     </div>
   </div>

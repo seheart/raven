@@ -358,11 +358,11 @@
             {/await}
           {:else if activeSubTab === 'wrapped'}
             {#await import('./lib/pages/WrappedPage.svelte')}
-              <PlaceholderPage title="Wrapped" description="Loading..." />
+              <PlaceholderPage title="Looking Back" description="Loading..." />
             {:then { default: Component }}
               <Component />
             {:catch}
-              <PlaceholderPage title="Wrapped" description="Failed to load" />
+              <PlaceholderPage title="Looking Back" description="Failed to load" />
             {/await}
           {:else}
             <PlaceholderPage

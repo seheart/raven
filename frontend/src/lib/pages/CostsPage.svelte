@@ -283,7 +283,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Costs" />
+  <StatusBar prompt="RAVEN.INSIGHTS" label="Costs" />
   <PageHeader title="Costs">
     {#snippet actions()}
       <div class="flex items-center gap-3">
