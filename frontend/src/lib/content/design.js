@@ -24,20 +24,6 @@ export const HERO = {
   ]
 };
 
-// TOC chips at the top — match section headings below.
-export const TOC = [
-  { slug: 'intent', label: '00 Intent' },
-  { slug: 'patterns', label: '01 Patterns' },
-  { slug: 'architecture', label: '02 Architecture' },
-  { slug: 'states', label: '03 States' },
-  { slug: 'colors', label: '04 Colors' },
-  { slug: 'type', label: '05 Type' },
-  { slug: 'spacing', label: '06 Spacing' },
-  { slug: 'radius', label: '07 Radius' },
-  { slug: 'motion', label: '08 Motion' },
-  { slug: 'principles', label: '09 Principles' }
-];
-
 // === 00 Intent ===
 export const INTENT = {
   manifesto:
@@ -48,7 +34,10 @@ export const INTENT = {
   // Pairs lock the visual register: what to do, what to avoid.
   tension: [
     { do: 'Mono for technical content', not: 'Mono for prose' },
-    { do: 'Dotted-leader rows for key/value', not: 'Opaque table grids' },
+    {
+      do: 'Label + value rows (value fills, or right-aligns when short)',
+      not: 'Dotted leaders that shove the value to mid-screen'
+    },
     { do: 'Pulsing dot for live state', not: 'Spinners' },
     { do: 'One bordered card per logical group', not: 'Shadowed elevation' },
     { do: 'Numbered dividers (01 // …)', not: '"Section 1: …" prose headings' },
@@ -153,7 +142,7 @@ export const PRIMITIVES = [
   {
     name: 'RefreshButton',
     variants: ['(props: onClick, loading, label)'],
-    use: 'Canonical refresh button used in 23+ page headers. Has built-in loading state.'
+    use: 'Canonical refresh button used in most page headers. Has built-in loading state.'
   },
   {
     name: 'ToolbarButton',
@@ -181,9 +170,19 @@ export const PRIMITIVES = [
     use: 'Centered spinner card while initial data loads. Same shell as EmptyState; semantically distinct.'
   },
   {
-    name: 'MermaidDiagram',
-    variants: ['(props: source, ariaLabel, fallback)'],
-    use: 'Theme-aware architecture diagrams. Lazy-loads mermaid; observes documentElement to flip on theme change.'
+    name: 'DataFetchError',
+    variants: ['(props: endpoint, message, hint, onRetry)'],
+    use: 'Inline error card for a failed fetch. Names the endpoint, shows the raw error as a hint, and offers a retry — replaces a silent empty state when a request fails.'
+  },
+  {
+    name: 'FreshnessBadge',
+    variants: ['live', 'polled'],
+    use: 'Small "updated Ns ago / live" indicator for data surfaces, so the user can tell streaming data from a periodic poll.'
+  },
+  {
+    name: 'LinkButton',
+    variants: ['default', 'primary', '(props: href, external)'],
+    use: 'Anchor styled as a button — internal routes or external links. Used for hero action rows (About "Get started").'
   }
 ];
 
@@ -198,8 +197,8 @@ export const PAGE_ZONES = [
   {
     tag: '02',
     name: 'Hero',
-    purpose: 'Two-column: title/lede main + complementary aside',
-    body: 'Heros split the canvas into a flex row: a constrained main column (`flex-1 min-w-0 max-w-[48rem]`) on the left holding PageHeader + lede + dotted-leader meta rows + callouts + LOCAL-FIRST badge, and an aside (`lg:w-72 lg:flex-shrink-0`) on the right holding complementary content — a CTA stack (About), a vital-stats card (System), a size legend (Roadmap), or a sticky jump-nav (Design). Both columns earn their space; nothing dead. Aim for 4–8 meta rows in main; offload anything else to the aside or a section below.'
+    purpose: 'Single column: title, lede, meta rows, callouts',
+    body: 'A constrained single column (`max-w-[48rem]`) holding PageHeader + lede + label/value meta rows + callouts + LOCAL-FIRST badge. Meta rows are a simple flex: a fixed-width `text-muted` label and a `flex-1` value that fills the line (or `justify-between` when the value is short). Anything that used to live in a right-rail aside — vital stats, quick actions, legends — now folds inline as a stat strip, an action row, or its own numbered section below. No side rail.'
   },
   {
     tag: '03',
@@ -215,9 +214,9 @@ export const PAGE_ZONES = [
   },
   {
     tag: '04½',
-    name: 'Doc-page layout',
-    purpose: 'Long reference pages get a sticky right-side jump-nav',
-    body: 'Pages with many sections (Design, About, System) wrap their entire content area in a top-level two-column flex: a scrolling main column (`max-w-[64rem]`) on the left and a sticky aside (`lg:sticky lg:top-16`) on the right with an "On this page" jump-nav. The aside follows the user as they scroll so any section is one click away. Inline ProseBlock is the secondary tool — use it for prose paragraphs inside sections that would otherwise stretch past ~90 characters.'
+    name: 'Reading width',
+    purpose: 'Cap long-form text so lines stay legible',
+    body: 'Long reference pages (Design, About, System) run a single scrolling column capped at `max-w-[64rem]`. Wrap prose paragraphs that would otherwise stretch past ~90 characters in `<ProseBlock>`; data UI (tables, grids, charts) stays full width. No sticky jump-nav or side rail — sections read top to bottom.'
   },
   {
     tag: '05',
@@ -243,17 +242,13 @@ export const PAGE_SKELETON = `<PageLayout>
       </div>
     </div>
 
-    <!-- 02 Hero — two-column: prose main + aside -->
-    <section class="flex flex-col lg:flex-row gap-8">
-      <div class="flex-1 min-w-0 max-w-[48rem]">
-        <PageHeader title="Page" description="One-line description." />
-        <!-- lede paragraph, meta rows, callouts, badges go here -->
-      </div>
-      <aside class="lg:w-72 lg:flex-shrink-0">
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <!-- CTA stack, vital stats, legend, or "on this page" nav -->
-        </div>
-      </aside>
+    <!-- 02 Hero — single column, capped to a readable width -->
+    <section class="max-w-[48rem]">
+      <PageHeader title="Page" description="One-line description." />
+      <!-- lede paragraph, label/value meta rows, callouts, badges go here.
+           Anything that was a right-rail aside (stats, actions, legend)
+           folds inline below as a strip, an action row, or its own
+           numbered section. -->
     </section>
 
     <!-- 03 Numbered sections -->
