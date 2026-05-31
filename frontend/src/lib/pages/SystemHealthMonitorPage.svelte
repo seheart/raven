@@ -74,7 +74,7 @@
       healthReport = response;
       error = null;
     } catch (err) {
-      error = err.message;
+      error = err?.message || String(err);
     } finally {
       loading = false;
     }
@@ -165,11 +165,11 @@
               Ingest rate
             </div>
             <div class="font-mono text-2xl text-body">
-              {internalMetrics.ingest_events_per_second.toFixed(2)}
+              {(internalMetrics.ingest_events_per_second ?? 0).toFixed(2)}
               <span class="text-xs text-muted">ev/s</span>
             </div>
             <div class="text-[11px] font-mono text-muted mt-1">
-              {internalMetrics.ingest_events_total.toLocaleString()} total
+              {(internalMetrics.ingest_events_total ?? 0).toLocaleString()} total
             </div>
           </div>
           <div class="bg-surface px-5 py-4">
@@ -177,10 +177,10 @@
               WS clients
             </div>
             <div class="font-mono text-2xl text-body">
-              {internalMetrics.ws_clients_connected}
+              {internalMetrics.ws_clients_connected ?? 0}
             </div>
             <div class="text-[11px] font-mono text-muted mt-1">
-              queue depth {internalMetrics.ws_broadcast_queue_depth}
+              queue depth {internalMetrics.ws_broadcast_queue_depth ?? 0}
             </div>
           </div>
           <div class="bg-surface px-5 py-4">
@@ -188,12 +188,12 @@
               Trigger p95
             </div>
             <div class="font-mono text-2xl text-body">
-              {internalMetrics.trigger_processing_p95_ms.toFixed(1)}
+              {(internalMetrics.trigger_processing_p95_ms ?? 0).toFixed(1)}
               <span class="text-xs text-muted">ms</span>
             </div>
             <div class="text-[11px] font-mono text-muted mt-1">
-              p50 {internalMetrics.trigger_processing_p50_ms.toFixed(1)}ms ·
-              {internalMetrics.trigger_processing_samples} samples
+              p50 {(internalMetrics.trigger_processing_p50_ms ?? 0).toFixed(1)}ms ·
+              {internalMetrics.trigger_processing_samples ?? 0} samples
             </div>
           </div>
           <div class="bg-surface px-5 py-4">
@@ -203,11 +203,13 @@
             <div
               class="font-mono text-2xl {writeRateColor(internalMetrics.db_write_success_rate_pct)}"
             >
-              {internalMetrics.db_write_success_rate_pct.toFixed(2)}<span class="text-xs">%</span>
+              {(internalMetrics.db_write_success_rate_pct ?? 0).toFixed(2)}<span class="text-xs"
+                >%</span
+              >
             </div>
             <div class="text-[11px] font-mono text-muted mt-1">
-              {internalMetrics.db_write_retry_count.toLocaleString()} retries ·
-              {internalMetrics.db_write_samples} samples
+              {(internalMetrics.db_write_retry_count ?? 0).toLocaleString()} retries ·
+              {internalMetrics.db_write_samples ?? 0} samples
             </div>
           </div>
         </div>
@@ -237,7 +239,7 @@
         </div>
 
         <!-- Circuit breakers (one row per breaker). Hidden when none registered. -->
-        {#if internalMetrics.circuit_breaker_states.length > 0}
+        {#if internalMetrics.circuit_breaker_states?.length > 0}
           <div class="border-t border-border">
             <div class="px-5 py-2 text-[11px] font-mono uppercase tracking-wide text-muted">
               Circuit breakers
@@ -268,8 +270,8 @@
         {/if}
 
         <div class="px-5 py-2 border-t border-border text-[11px] font-mono text-muted">
-          Uptime {Math.floor(internalMetrics.uptime_seconds / 60)}m
-          {internalMetrics.uptime_seconds % 60}s · counters reset on restart
+          Uptime {Math.floor((internalMetrics.uptime_seconds ?? 0) / 60)}m
+          {(internalMetrics.uptime_seconds ?? 0) % 60}s · counters reset on restart
         </div>
       {/if}
     </div>
@@ -313,7 +315,7 @@
             {criticalCount > 0 ? 'Critical Issues' : 'Warnings'} ({criticalCount + warningCount})
           </h3>
         </div>
-        <div class="divide-y divide-[var(--border)]">
+        <div class="divide-y divide-border">
           {#each (healthReport.checks || []).filter(c => c.status !== 'healthy') as check (check.name + check.category)}
             <div class="px-5 py-3 flex items-start gap-3">
               <span
@@ -340,7 +342,7 @@
             {category}
           </h3>
         </div>
-        <div class="divide-y divide-[var(--border)]">
+        <div class="divide-y divide-border">
           {#each checks as check (check.name + check.category)}
             <div class="px-5 py-3 flex items-start gap-3">
               <span

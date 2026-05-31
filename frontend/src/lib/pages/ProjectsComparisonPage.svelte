@@ -16,6 +16,7 @@
    */
   import { createPageApi } from '../apiClient.js';
   import { dataService } from '../dataService.js';
+  import { toasts } from '../toastStore.js';
   const { abort: abortRequests } = createPageApi();
 
   let projects = $state([]);
@@ -39,9 +40,9 @@
       );
     }
 
-    // Status filter
+    // Status filter — use the status memoized at load time (see loadProjects).
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(p => getActivityStatus(p.last_activity).class === filterStatus);
+      filtered = filtered.filter(p => p.activityStatus.class === filterStatus);
     }
 
     return filtered;
@@ -129,10 +130,14 @@
     }
   }
 
-  function copyPath(path) {
-    navigator.clipboard.writeText(path);
-    // Simple feedback - could add toast notification
-    logger.debug('Path copied:', path);
+  async function copyPath(path) {
+    try {
+      await navigator.clipboard.writeText(path);
+      toasts.success('Path copied to clipboard');
+    } catch (err) {
+      logger.error('Failed to copy path:', err);
+      toasts.error('Could not copy path');
+    }
   }
 
   function exportCSV() {
@@ -152,7 +157,7 @@
       p.file_count || 0,
       p.agent_events || 0,
       p.last_activity || 'Never',
-      getActivityStatus(p.last_activity).label
+      p.activityStatus.label
     ]);
 
     const csv = [headers, ...rows]
@@ -164,32 +169,6 @@
     const a = document.createElement('a');
     a.href = url;
     a.download = `raven-projects-comparison-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function _exportJSON() {
-    const exportData = {
-      exported_at: new Date().toISOString(),
-      total_projects: filteredProjects.length,
-      projects: filteredProjects.map(p => ({
-        name: p.name,
-        path: p.path || '',
-        total_events: p.total_events || 0,
-        total_errors: p.total_errors || 0,
-        last_activity: p.last_activity,
-        status: getActivityStatus(p.last_activity).label
-      }))
-    };
-
-    const json = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `raven-projects-comparison-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -210,14 +189,18 @@
 
       projects = projectsList.map(project => {
         const storage = storageMap.get(project.name) || {};
+        const last_activity = storage.last_event || null;
         return {
           ...project,
           total_events: storage.event_count || project.eventCount || project.event_count || 0,
           agent_events: storage.agent_event_count || 0,
           file_count: storage.file_count || 0,
-          total_errors: 0,
-          last_activity: storage.last_event || null,
-          first_activity: storage.first_event || null
+          last_activity,
+          first_activity: storage.first_event || null,
+          // Memoize status once per load — getActivityStatus was previously
+          // recomputed O(n) in filteredProjects, every row, and the footer
+          // (twice) on every render.
+          activityStatus: getActivityStatus(last_activity)
         };
       });
       lastUpdated = new Date();
@@ -339,7 +322,7 @@
         </thead>
         <tbody>
           {#each sortedProjects as project (project.name)}
-            {@const status = getActivityStatus(project.last_activity)}
+            {@const status = project.activityStatus}
             <tr class="hover:bg-surface/40">
               <td class="px-3 py-0.5 font-semibold text-accent">{project.name}</td>
               <td class="px-3 py-0.5">
@@ -347,10 +330,11 @@
                   <span class="text-muted truncate max-w-[28rem]">{project.path || 'N/A'}</span>
                   {#if project.path}
                     <button
-                      class="opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+                      class="text-muted hover:text-accent transition-colors flex-shrink-0"
                       onclick={() => copyPath(project.path)}
                       title="Copy path"
-                    ></button>
+                      aria-label="Copy path for {project.name}">⧉</button
+                    >
                   {/if}
                 </div>
               </td>
@@ -407,9 +391,7 @@
       <div class="text-xs font-mono">
         <strong class="text-accent text-sm">
           {filteredProjects.filter(
-            p =>
-              getActivityStatus(p.last_activity).class === 'active' ||
-              getActivityStatus(p.last_activity).class === 'recent'
+            p => p.activityStatus.class === 'active' || p.activityStatus.class === 'recent'
           ).length}
         </strong>
         <span class="text-muted ml-1">active</span>

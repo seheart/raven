@@ -37,6 +37,20 @@
 
   // Chart instances
   let charts = $state({});
+  // Pending createCharts timer handle — tracked so the theme observer and
+  // the data $effect don't leave a setTimeout running past unmount/replace.
+  let chartTimer = null;
+  let mounted = false; // First-mount guard for the period/days reload effect.
+
+  // Debounced createCharts: clears any pending handle first so rapid
+  // theme/data changes don't stack timers, and stores the handle for cleanup.
+  function scheduleCharts() {
+    if (chartTimer) clearTimeout(chartTimer);
+    chartTimer = setTimeout(() => {
+      chartTimer = null;
+      createCharts();
+    }, 100);
+  }
 
   // Derived calculations
 
@@ -44,7 +58,11 @@
   const totalModifications = $derived(trends.reduce((sum, t) => sum + (t.modifications || 0), 0));
   const totalCreations = $derived(trends.reduce((sum, t) => sum + (t.creations || 0), 0));
   const totalDeletions = $derived(trends.reduce((sum, t) => sum + (t.deletions || 0), 0));
-  const totalUniqueFiles = $derived(Math.max(...trends.map(t => t.unique_files || 0), 0));
+  // NOTE: this is the busiest single bucket's distinct-file count, NOT a
+  // distinct-across-the-whole-window total — the per-bucket rows don't carry
+  // the file identities needed to dedupe across buckets. Labeled honestly in
+  // the UI as "Peak Files/Bucket" so it isn't mistaken for a window total.
+  const peakUniqueFiles = $derived(Math.max(...trends.map(t => t.unique_files || 0), 0));
 
   const timeSinceUpdate = $derived.by(() => {
     const seconds = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
@@ -98,8 +116,17 @@
   }
 
   function formatPeriod(periodStr) {
-    if (period === 'hourly' || period === 'daily') {
-      // Parse and format date
+    if (period === 'hourly') {
+      // Hourly buckets share a date, so a month/day-only label collapses
+      // every row and x-axis tick to the same string. Include the hour.
+      const date = new Date(periodStr);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric'
+      });
+    }
+    if (period === 'daily') {
       const date = new Date(periodStr);
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
@@ -200,17 +227,13 @@
           legend: {
             display: false
           },
-          title: {
-            display: true,
-            text: 'Trends Over Time',
-            color: colors.text,
-            font: { size: 12, weight: 'bold', family: 'monospace' }
-          },
+          // In-canvas title removed — the HTML section header above the
+          // canvas is the source of truth and matches app fonts.
           tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            backgroundColor: colors.surface,
             titleColor: colors.text,
             bodyColor: colors.text,
-            borderColor: gridColor,
+            borderColor: colors.border,
             borderWidth: 1
           }
         },
@@ -291,17 +314,13 @@
               padding: 8
             }
           },
-          title: {
-            display: true,
-            text: 'Period-over-Period Comparison',
-            color: colors.text,
-            font: { size: 12, weight: 'bold', family: 'monospace' }
-          },
+          // In-canvas title removed — the HTML section header is the
+          // single source of truth and matches the app's fonts.
           tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            backgroundColor: colors.surface,
             titleColor: colors.text,
             bodyColor: colors.text,
-            borderColor: gridColor,
+            borderColor: colors.border,
             borderWidth: 1
           }
         },
@@ -345,12 +364,18 @@
     // Create theme observer
     const themeObserver = createThemeObserver(() => {
       logger.debug('[HistoricalTrends] Theme changed, recreating charts');
-      setTimeout(createCharts, 100);
+      scheduleCharts();
     });
 
     // Cleanup function
     return () => {
       abortRequests();
+
+      // Cancel any pending createCharts timer so it can't fire post-unmount.
+      if (chartTimer) {
+        clearTimeout(chartTimer);
+        chartTimer = null;
+      }
 
       // Disconnect theme observer
       if (themeObserver) {
@@ -362,23 +387,26 @@
     };
   });
 
-  // Reload trends when period or days changes (skip initial mount - onMount handles that)
-  let mounted = false;
+  // Reload trends when period or days changes. The first effect run is the
+  // mount pass — onMount already kicked off loadTrends(), so we just flip the
+  // guard and skip. Every subsequent run is a real user-driven change.
+  // `void period/days` registers both as dependencies without a fake assign.
   $effect(() => {
-    const _currentPeriod = period;
-    const _currentDays = days;
-    if (mounted) {
-      loadTrends();
+    void period;
+    void days;
+    if (!mounted) {
+      mounted = true;
+      return;
     }
-    mounted = true;
+    loadTrends();
   });
 
-  // Recreate charts when trends data or showCharts toggle changes
+  // Recreate charts when trends data or the showCharts toggle changes.
   $effect(() => {
     const shouldShowCharts = showCharts;
     const trendsLength = trends.length;
     if (shouldShowCharts && trendsLength > 0) {
-      setTimeout(createCharts, 100);
+      scheduleCharts();
     }
   });
 </script>
@@ -481,10 +509,10 @@
       </div>
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Unique Files
+          Peak Files/Bucket
         </div>
         <div class="text-sm font-mono text-body">
-          {totalUniqueFiles.toLocaleString()}
+          {peakUniqueFiles.toLocaleString()}
         </div>
       </div>
     </div>
@@ -495,18 +523,16 @@
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
           Analytics Visualizations
         </h3>
-        <button
-          onclick={() => (showCharts = !showCharts)}
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-sans hover:border-accent transition-colors"
-        >
+        <ToolbarButton onClick={() => (showCharts = !showCharts)}>
           {showCharts ? 'Hide Charts' : 'Show Charts'}
-        </button>
+        </ToolbarButton>
       </div>
 
       {#if showCharts}
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <!-- Trends Over Time Chart -->
           <div class="bg-canvas border border-border rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-heading mb-3">Trends Over Time</h4>
             <div role="img" aria-label={trendsOverTimeAriaLabel} style="height: 250px;">
               <canvas id="chart-trends-over-time"></canvas>
             </div>
@@ -514,6 +540,7 @@
 
           <!-- Period Comparison Chart -->
           <div class="bg-canvas border border-border rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-heading mb-3">Period-over-Period Comparison</h4>
             <div role="img" aria-label={periodComparisonAriaLabel} style="height: 250px;">
               <canvas id="chart-period-comparison"></canvas>
             </div>

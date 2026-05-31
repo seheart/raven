@@ -29,6 +29,11 @@
   /** @type {string|null} */
   let loadError = $state(null);
   let copiedPath = $state(null);
+  // Per-plugin scraped description, cached by name once its source is fetched.
+  // Persisting it here means the description keeps showing after the source
+  // viewer is closed (previously it was computed inline only while open).
+  /** @type {Record<string, string|null>} */
+  let descriptions = $state({});
 
   const totals = $derived.by(() => {
     const enabled = plugins.filter(p => p.enabled).length;
@@ -69,11 +74,17 @@
 
   async function toggle(plugin) {
     const path = plugin.enabled ? 'disable' : 'enable';
+    const action = plugin.enabled ? 'disable' : 'enable';
     try {
       await api.post(`/plugins/${encodeURIComponent(plugin.name)}/${path}`, {});
       await load();
     } catch (err) {
-      loadError = err?.message || String(err);
+      const msg = err?.message || String(err);
+      // Reconcile real state before surfacing the error: re-load the list so
+      // the toggle reflects the actual backend state, then keep the error
+      // banner (load() clears loadError on success, so re-set it after).
+      await load().catch(() => {});
+      loadError = `Failed to ${action} ${plugin.name}: ${msg}`;
     }
   }
 
@@ -88,6 +99,10 @@
     try {
       const text = await api.get(`/plugins/${encodeURIComponent(name)}/source`);
       activeSource = typeof text === 'string' ? text : JSON.stringify(text, null, 2);
+      // Cache the scraped description so it persists after the viewer closes.
+      if (descriptions[name] == null) {
+        descriptions = { ...descriptions, [name]: descriptionFromSource(activeSource) };
+      }
     } catch (err) {
       activeSource = `// failed to load source: ${err?.message || err}`;
     }
@@ -222,7 +237,7 @@
          on first start; if it's missing the user should hit reload. -->
     <div class="bg-surface border border-border rounded-lg p-8 text-center mb-6">
       <div class="text-sm font-mono text-body mb-2">No plugins installed</div>
-      <div class="text-xs text-muted font-sans mb-4 max-w-md mx-auto leading-relaxed">
+      <div class="text-xs text-muted font-sans mb-4 max-w-[28rem] mx-auto leading-relaxed">
         The runtime seeds <code class="font-mono text-accent">.raven/plugins/example.js</code> on
         first start. If it's missing, click Reload above. To add your own, drop a
         <code class="font-mono">.js</code>
@@ -238,10 +253,9 @@
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Installed plugins</h3>
         <span class="text-[10px] font-mono text-muted">{plugins.length} total</span>
       </div>
-      <div class="divide-y divide-[var(--border)]">
+      <div class="divide-y divide-border">
         {#each plugins as p (p.name)}
-          {@const desc =
-            activeName === p.name && activeSource ? descriptionFromSource(activeSource) : null}
+          {@const desc = descriptions[p.name] ?? null}
           <div class="px-5 py-4">
             <div class="flex items-start justify-between gap-4 flex-wrap">
               <div class="flex-1 min-w-0">
@@ -275,7 +289,9 @@
                   <span class="text-[10px] opacity-50">{copiedPath === p.file ? '✓' : '⎘'}</span>
                 </button>
                 {#if desc}
-                  <div class="mt-2 text-sm text-body font-sans leading-snug max-w-2xl">{desc}</div>
+                  <div class="mt-2 text-sm text-body font-sans leading-snug max-w-[42rem]">
+                    {desc}
+                  </div>
                 {/if}
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">

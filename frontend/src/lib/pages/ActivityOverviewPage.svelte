@@ -19,6 +19,10 @@
    */
 
   // State - using Svelte 5 runes
+  // `allActivities` is the full filtered result of the last fetch; `activities`
+  // is the client-side page slice rendered. Load-more grows the page without
+  // re-downloading anything.
+  let allActivities = $state([]);
   let activities = $state([]);
   let total = $state(0);
   let loading = $state(false);
@@ -27,9 +31,9 @@
   let expandedActivity = $state(null);
   let lastUpdated = $state(null);
 
-  // Pagination
+  // Pagination — purely client-side over the already-fetched set.
   let limit = $state(100);
-  let offset = $state(0);
+  let visibleCount = $state(100);
   let hasMore = $state(false);
 
   // Stats
@@ -49,9 +53,6 @@
   let showCharts = $state(true);
   let charts = $state({});
   let themeObserver = $state(null);
-
-  // Tracking state
-  let isPaused = $state(false);
 
   // Derived values
   const timeAgo = $derived.by(() => {
@@ -143,21 +144,23 @@
         );
       }
 
-      // Apply pagination
-      if (offset === 0) {
-        activities = filtered.slice(0, limit);
-      } else {
-        activities = [...activities, ...filtered.slice(offset, offset + limit)];
-      }
-
+      // Keep the full filtered set; render only the visible page. A reload
+      // (refresh / WS / filter change) re-derives the slice from the same
+      // visibleCount so the user doesn't lose their scroll position.
+      allActivities = filtered;
       total = filtered.length;
-      hasMore = filtered.length > offset + limit;
+      activities = filtered.slice(0, visibleCount);
+      hasMore = filtered.length > activities.length;
 
       // Calculate stats
       calculateStats();
 
       // Group by session if enabled
       groupActivitiesBySession();
+
+      // Keep charts in sync with the data (was previously only built on the
+      // showCharts false→true transition, so live updates left them stale).
+      refreshChartsIfShown();
 
       lastUpdated = new Date();
       loading = false;
@@ -250,18 +253,23 @@
 
   function setFilter(type) {
     selectedType = type;
-    offset = 0;
+    visibleCount = limit;
     loadActivities();
   }
 
   function search() {
-    offset = 0;
+    visibleCount = limit;
     loadActivities();
   }
 
+  // Grow the visible page over the already-fetched set — no re-download.
   function loadMore() {
-    offset += limit;
-    loadActivities();
+    visibleCount += limit;
+    activities = allActivities.slice(0, visibleCount);
+    hasMore = allActivities.length > activities.length;
+    calculateStats();
+    groupActivitiesBySession();
+    refreshChartsIfShown();
   }
 
   function toggleActivity(activity) {
@@ -269,16 +277,6 @@
       expandedActivity = null;
     } else {
       expandedActivity = activity;
-    }
-  }
-
-  async function _togglePause() {
-    try {
-      const endpoint = isPaused ? '/resume' : '/pause';
-      await api.post(endpoint);
-      isPaused = !isPaused;
-    } catch (error) {
-      logger.error('Failed to toggle tracking:', error);
     }
   }
 
@@ -321,115 +319,20 @@
     }
   }
 
-  async function _exportToCSV() {
-    try {
-      const headers = ['Timestamp', 'Type', 'Category', 'Description', 'Target', 'Session ID'];
-      const rows = activities.map(activity => [
-        activity.timestamp || '',
-        activity.type || '',
-        activity.category || '',
-        activity.description || '',
-        activity.target || '',
-        activity.session_id || ''
-      ]);
-
-      const csv = [
-        headers.join(','),
-        ...rows.map(row =>
-          row
-            .map(cell => {
-              const escaped = String(cell).replace(/"/g, '""');
-              return escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')
-                ? `"${escaped}"`
-                : escaped;
-            })
-            .join(',')
-        )
-      ].join('\n');
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `raven-activity-log-${Date.now()}.csv`;
-      a.click();
-
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      logger.error('CSV export failed:', error);
-    }
-  }
-
-  function _getChangeTypeIcon(changeType) {
-    switch (changeType) {
-      case 'add':
-      case 'create':
-      case 'created':
-        return '';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return '';
-      case 'unlink':
-      case 'delete':
-      case 'deleted':
-        return '';
-      default:
-        return '';
-    }
-  }
-
-  function _getChangeTypeColor(changeType) {
-    switch (changeType) {
-      case 'add':
-      case 'create':
-      case 'created':
-        return 'var(--success)';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return 'var(--warning)';
-      case 'unlink':
-      case 'delete':
-      case 'deleted':
-        return 'var(--error)';
-      default:
-        return 'var(--info)';
-    }
-  }
-
-  function getCategoryIcon(category) {
+  // Utility-class category color for the activity-row marker dot
+  // (SystemPage methodTextClass pattern) — keeps semantic colors out of
+  // inline styles.
+  function getCategoryTextClass(category) {
     switch (category) {
       case 'file':
-        return '';
+        return 'text-info';
       case 'agent':
-        return '';
+        return 'text-accent';
       case 'system':
-        return '';
+        return 'text-warning';
       default:
-        return '';
+        return 'text-muted';
     }
-  }
-
-  function getCategoryColor(category) {
-    switch (category) {
-      case 'file':
-        return 'var(--info)';
-      case 'agent':
-        return 'var(--accent)';
-      case 'system':
-        return 'var(--warning)';
-      default:
-        return 'var(--muted)';
-    }
-  }
-
-  function _truncatePath(path) {
-    if (!path) return '';
-    const parts = path.split('/');
-    if (parts.length <= 2) return path;
-    return '.../' + parts.slice(-2).join('/');
   }
 
   function formatTimestamp(timestamp) {
@@ -455,6 +358,14 @@
     return `${hours}h ${minutes % 60}m`;
   }
 
+  // Rebuild charts if they're currently shown. Deferred a tick so the
+  // canvases exist in the DOM (after the data-driven {#if} renders).
+  function refreshChartsIfShown() {
+    if (showCharts && activities.length > 0) {
+      setTimeout(createCharts, 50);
+    }
+  }
+
   function createCharts() {
     Object.values(charts).forEach(chart => chart?.destroy());
     charts = {};
@@ -469,7 +380,6 @@
     const themeColors = {
       accent: c.primary,
       success: c.success,
-      error: c.error,
       warning: c.warning
     };
 
@@ -677,44 +587,11 @@
     }
   }
 
-  function handleKeydown(event) {
-    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-      return;
-    }
-
-    switch (event.key) {
-      case '1':
-        setFilter('all');
-        break;
-      case '2':
-        setFilter('file');
-        break;
-      case '3':
-        setFilter('agent');
-        break;
-      case '4':
-        setFilter('system');
-        break;
-      case 'r':
-      case 'R':
-        loadActivities(true);
-        break;
-    }
-  }
-
   const handleFileChanged = () => {
-    if (offset === 0) {
-      loadActivities();
-    }
+    loadActivities();
   };
 
   // Effects for Svelte 5
-  $effect(() => {
-    if (sortBy) {
-      groupActivitiesBySession();
-    }
-  });
-
   let prevShowCharts = false;
   $effect(() => {
     if (showCharts && !prevShowCharts) {
@@ -733,8 +610,6 @@
     websocketService.connect();
     websocketService.on('file-changed', handleFileChanged);
 
-    window.addEventListener('keydown', handleKeydown);
-
     themeObserver = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
         if (mutation.attributeName === 'class' && showCharts) {
@@ -751,7 +626,6 @@
     return () => {
       abortRequests();
       websocketService.off('file-changed', handleFileChanged);
-      window.removeEventListener('keydown', handleKeydown);
       if (themeObserver) {
         themeObserver.disconnect();
       }
@@ -861,7 +735,7 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Activities
         </div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {enhancedStats.totalActivities}
         </div>
       </div>
@@ -869,7 +743,7 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Unique Sessions
         </div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {enhancedStats.uniqueSessions}
         </div>
       </div>
@@ -877,7 +751,7 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Avg Session Duration
         </div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {formatDuration(enhancedStats.averageSessionDuration)}
         </div>
       </div>
@@ -885,7 +759,7 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Activities Per Hour
         </div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {enhancedStats.activitiesPerHour}
         </div>
       </div>
@@ -1012,189 +886,27 @@
             </button>
 
             {#if !collapsedSessions.has(session.id)}
-              <div class="p-6 bg-canvas space-y-3">
-                {#each session.activities as activity (activity.id + activity.category)}
-                  {@const isExpanded = expandedActivity?.id === activity.id}
-                  <div
-                    class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
-                      ? 'border-accent'
-                      : ''}"
-                  >
-                    <button
-                      onclick={() => toggleActivity(activity)}
-                      class="w-full flex justify-between items-center p-4"
-                    >
-                      <div class="flex items-center gap-4 flex-1 min-w-0">
-                        <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
-                        <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
-                          {getCategoryIcon(activity.category)}
-                        </span>
-                        <div class="flex-1 min-w-0 text-left">
-                          <div class="text-sm font-medium text-body truncate">
-                            {activity.description}
-                          </div>
-                          <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
-                            <span>{activity.type}</span>
-                            <span>•</span>
-                            <span>{formatTimestamp(activity.timestamp)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-3">
-                        <span class="text-sm text-muted font-mono"
-                          >{formatTimestamp(activity.timestamp)}</span
-                        >
-                        <span
-                          class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
-                        >
-                          {activity.category}
-                        </span>
-                      </div>
-                    </button>
-
-                    {#if isExpanded}
-                      <div class="p-4 border-t border-border">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase">ID:</span>
-                            <span class="text-sm text-body font-mono">{activity.id}</span>
-                          </div>
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase">Type:</span>
-                            <span class="text-sm text-body font-mono">{activity.type}</span>
-                          </div>
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase">Category:</span
-                            >
-                            <span class="text-sm text-body font-mono">{activity.category}</span>
-                          </div>
-                          <div class="flex gap-3">
-                            <span class="text-xs text-muted font-semibold uppercase"
-                              >Timestamp:</span
-                            >
-                            <span class="text-sm text-body font-mono">{activity.timestamp}</span>
-                          </div>
-                          {#if activity.target}
-                            <div class="flex gap-3 md:col-span-2">
-                              <span class="text-xs text-muted font-semibold uppercase">Target:</span
-                              >
-                              <span class="text-sm text-body font-mono">{activity.target}</span>
-                            </div>
-                          {/if}
-                        </div>
-
-                        {#if activity.metadata && Object.keys(activity.metadata).length > 0}
-                          <div class="mt-4">
-                            <h4 class="text-xs text-muted uppercase font-semibold mb-2">
-                              Metadata
-                            </h4>
-                            <pre
-                              class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
-                                activity.metadata,
-                                null,
-                                2
-                              )}</pre>
-                          </div>
-                        {/if}
-                      </div>
-                    {/if}
-                  </div>
-                {/each}
+              <div class="border-t border-border font-mono text-sm overflow-x-auto">
+                <table class="w-full">
+                  <tbody>
+                    {@render activityRows(session.activities)}
+                  </tbody>
+                </table>
               </div>
             {/if}
           </div>
         {/each}
       </div>
     {:else}
-      <!-- Flat List View — bounded scroller, same rationale as session view. -->
-      <div class="max-h-[640px] overflow-y-auto space-y-4 pr-1">
-        {#each activities as activity (activity.id + activity.category)}
-          {@const isExpanded = expandedActivity?.id === activity.id}
-          <div
-            class="bg-surface border border-border rounded overflow-hidden hover:border-accent transition-colors {isExpanded
-              ? 'border-accent'
-              : ''}"
-          >
-            <button
-              onclick={() => toggleActivity(activity)}
-              class="w-full flex justify-between items-center p-4"
-            >
-              <div class="flex items-center gap-4 flex-1 min-w-0">
-                <span class="text-xs text-muted">{isExpanded ? '' : ''}</span>
-                <span class="text-sm" style="color: {getCategoryColor(activity.category)}">
-                  {getCategoryIcon(activity.category)}
-                </span>
-                <div class="flex-1 min-w-0 text-left">
-                  <div class="text-sm font-medium text-body truncate">
-                    {activity.description}
-                  </div>
-                  <div class="flex items-center gap-2 text-xs text-muted font-mono mt-1">
-                    <span>{activity.type}</span>
-                    <span>•</span>
-                    <span>{formatTimestamp(activity.timestamp)}</span>
-                    {#if activity.session_id}
-                      <span>•</span>
-                      <span class="text-accent font-semibold"
-                        >{activity.session_id.substring(0, 8)}</span
-                      >
-                    {/if}
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-sm text-muted font-mono"
-                  >{formatTimestamp(activity.timestamp)}</span
-                >
-                <span
-                  class="px-2 py-1 bg-canvas border border-border rounded text-xs font-bold uppercase text-muted"
-                >
-                  {activity.category}
-                </span>
-              </div>
-            </button>
-
-            {#if isExpanded}
-              <div class="p-4 border-t border-border">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase">ID:</span>
-                    <span class="text-sm text-body font-mono">{activity.id}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase">Type:</span>
-                    <span class="text-sm text-body font-mono">{activity.type}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase">Category:</span>
-                    <span class="text-sm text-body font-mono">{activity.category}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
-                    <span class="text-sm text-body font-mono">{activity.timestamp}</span>
-                  </div>
-                  {#if activity.target}
-                    <div class="flex gap-3 md:col-span-2">
-                      <span class="text-xs text-muted font-semibold uppercase">Target:</span>
-                      <span class="text-sm text-body font-mono">{activity.target}</span>
-                    </div>
-                  {/if}
-                </div>
-
-                {#if activity.metadata && Object.keys(activity.metadata).length > 0}
-                  <div class="mt-4">
-                    <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
-                    <pre
-                      class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
-                        activity.metadata,
-                        null,
-                        2
-                      )}</pre>
-                  </div>
-                {/if}
-              </div>
-            {/if}
-          </div>
-        {/each}
+      <!-- Flat List View — flat dense table, bounded scroller. -->
+      <div
+        class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[640px]"
+      >
+        <table class="w-full">
+          <tbody>
+            {@render activityRows(activities)}
+          </tbody>
+        </table>
       </div>
       {#if hasMore}
         <div class="text-center pt-6">
@@ -1210,3 +922,76 @@
     {/if}
   </div>
 </PageLayout>
+
+<!-- Shared flat-row renderer for both the session-grouped and flat-list
+     views — keeps the dense-table markup in one place. -->
+{#snippet activityRows(items)}
+  {#each items as activity (activity.id + activity.category)}
+    {@const isExpanded = expandedActivity?.id === activity.id}
+    <tr
+      class="hover:bg-surface/40 cursor-pointer align-top {isExpanded ? 'bg-surface/40' : ''}"
+      onclick={() => toggleActivity(activity)}
+    >
+      <td class="px-3 py-0.5 w-6 text-center {getCategoryTextClass(activity.category)}">●</td>
+      <td class="px-3 py-0.5 text-body">
+        <span class="truncate" title={activity.description}>{activity.description}</span>
+      </td>
+      <td class="px-3 py-0.5 text-muted hidden md:table-cell w-24">{activity.type}</td>
+      <td class="px-3 py-0.5 hidden lg:table-cell w-24">
+        {#if activity.session_id}
+          <span class="text-accent font-semibold">{activity.session_id.substring(0, 8)}</span>
+        {/if}
+      </td>
+      <td class="px-3 py-0.5 text-muted text-right whitespace-nowrap w-28">
+        {formatTimestamp(activity.timestamp)}
+      </td>
+      <td class="px-3 py-0.5 text-right w-24">
+        <span class="text-[11px] font-bold uppercase {getCategoryTextClass(activity.category)}"
+          >{activity.category}</span
+        >
+      </td>
+    </tr>
+    {#if isExpanded}
+      <tr class="bg-canvas">
+        <td colspan="6" class="px-4 py-4 border-t border-border font-sans">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="flex gap-3">
+              <span class="text-xs text-muted font-semibold uppercase">ID:</span>
+              <span class="text-sm text-body font-mono">{activity.id}</span>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-xs text-muted font-semibold uppercase">Type:</span>
+              <span class="text-sm text-body font-mono">{activity.type}</span>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-xs text-muted font-semibold uppercase">Category:</span>
+              <span class="text-sm text-body font-mono">{activity.category}</span>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-xs text-muted font-semibold uppercase">Timestamp:</span>
+              <span class="text-sm text-body font-mono">{activity.timestamp}</span>
+            </div>
+            {#if activity.target}
+              <div class="flex gap-3 md:col-span-2">
+                <span class="text-xs text-muted font-semibold uppercase">Target:</span>
+                <span class="text-sm text-body font-mono">{activity.target}</span>
+              </div>
+            {/if}
+          </div>
+
+          {#if activity.metadata && Object.keys(activity.metadata).length > 0}
+            <div class="mt-4">
+              <h4 class="text-xs text-muted uppercase font-semibold mb-2">Metadata</h4>
+              <pre
+                class="bg-canvas border border-border rounded p-3 text-xs font-mono text-body overflow-x-auto max-h-[300px] overflow-y-auto">{JSON.stringify(
+                  activity.metadata,
+                  null,
+                  2
+                )}</pre>
+            </div>
+          {/if}
+        </td>
+      </tr>
+    {/if}
+  {/each}
+{/snippet}

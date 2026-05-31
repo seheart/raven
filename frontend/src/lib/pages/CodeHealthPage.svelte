@@ -45,6 +45,13 @@
     return { elapsed, remaining: Math.round(remaining), total: Math.round(estimatedTotal) };
   });
 
+  // Live elapsed ms for the running banner. Reads elapsedTick so it
+  // recomputes every second (the 1s timer increments elapsedTick).
+  const liveElapsed = $derived.by(() => {
+    void elapsedTick;
+    return analysisStartTime ? Date.now() - analysisStartTime : 0;
+  });
+
   // The run to display — either selected from history or latest
   const displayRun = $derived(selectedRun || data.latest);
 
@@ -105,6 +112,7 @@
   }
 
   let elapsedInterval = null;
+  let pollInterval = null;
 
   function startElapsedTimer() {
     clearInterval(elapsedInterval);
@@ -131,12 +139,16 @@
   }
 
   function pollForCompletion() {
-    const interval = setInterval(async () => {
+    // Guard against starting two pollers — the triggerAnalysis path and the
+    // onMount "already running" path could both call this.
+    if (pollInterval) return;
+    pollInterval = setInterval(async () => {
       try {
         const result = await api.get('/analysis/code-health');
         data = result;
         if (!result.is_running) {
-          clearInterval(interval);
+          clearInterval(pollInterval);
+          pollInterval = null;
           triggering = false;
           progress = null;
           completedChecks = [];
@@ -145,7 +157,8 @@
           selectedRun = null;
         }
       } catch {
-        clearInterval(interval);
+        clearInterval(pollInterval);
+        pollInterval = null;
         triggering = false;
       }
     }, 5000);
@@ -183,6 +196,14 @@
     if (status === 'pass') return 'var(--success)';
     if (status === 'warn') return 'var(--warning)';
     return 'var(--error)';
+  }
+
+  // Semantic class pair (subtle background + matching text) for status pills —
+  // replaces the old hex-alpha inline styles (e.g. `{color}20`).
+  function statusBadgeClass(status) {
+    if (status === 'pass') return 'bg-success-subtle text-success';
+    if (status === 'warn') return 'bg-warning-subtle text-warning';
+    return 'bg-error-subtle text-error';
   }
 
   function categoryLabel(cat) {
@@ -241,21 +262,23 @@
   }
 
   onMount(() => {
-    loadData();
+    // Await loadData so the resume-polling-on-mount path sees the real
+    // is_running value rather than the pre-fetch default (always false).
+    loadData().then(() => {
+      if (data.is_running) {
+        triggering = true;
+        analysisStartTime = Date.now();
+        startElapsedTimer();
+        pollForCompletion();
+      }
+    });
 
-    // If already running, start polling and timer
-    if (data.is_running) {
-      triggering = true;
-      analysisStartTime = Date.now();
-      startElapsedTimer();
-      pollForCompletion();
-    }
-
-    // Listen for live progress updates
-    const handleProgress = data => {
-      progress = data;
-      if (data.completedCheck) {
-        completedChecks = [...completedChecks, data.completedCheck];
+    // Listen for live progress updates. Param is `payload` (not `data`) so it
+    // doesn't shadow the component's `let data = $state(...)`.
+    const handleProgress = payload => {
+      progress = payload;
+      if (payload.completedCheck) {
+        completedChecks = [...completedChecks, payload.completedCheck];
       }
     };
     websocketService.on('analysis-progress', handleProgress);
@@ -264,6 +287,10 @@
       abortRequests();
       websocketService.off('analysis-progress', handleProgress);
       clearInterval(elapsedInterval);
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
     };
   });
 </script>
@@ -361,7 +388,7 @@
   {:else}
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-      <div class="bg-surface border border-border rounded p-4">
+      <div class="bg-surface border border-border rounded-lg p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Overall</div>
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full" style="background: {overallColor}"></span>
@@ -369,7 +396,7 @@
         </div>
       </div>
 
-      <div class="bg-surface border border-border rounded p-4">
+      <div class="bg-surface border border-border rounded-lg p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Passed</div>
         <div class="flex items-center gap-2">
           <span class="text-lg font-mono font-bold" style="color: var(--success)"
@@ -379,7 +406,7 @@
         </div>
       </div>
 
-      <div class="bg-surface border border-border rounded p-4">
+      <div class="bg-surface border border-border rounded-lg p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Warnings</div>
         <div class="flex items-center gap-2">
           <span
@@ -390,7 +417,7 @@
         </div>
       </div>
 
-      <div class="bg-surface border border-border rounded p-4">
+      <div class="bg-surface border border-border rounded-lg p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Failed</div>
         <div class="flex items-center gap-2">
           <span
@@ -418,9 +445,9 @@
               Starting analysis...
             {/if}
           </span>
-          {#if timeEstimate && elapsedTick >= 0}
+          {#if timeEstimate}
             <span class="text-xs font-mono text-muted flex-shrink-0">
-              {formatDuration(Date.now() - analysisStartTime)}
+              {formatDuration(liveElapsed)}
               {#if timeEstimate.remaining !== null}
                 <span class="text-border mx-1">/</span>
                 <span class="text-body">~{formatDuration(timeEstimate.total)}</span>
@@ -481,8 +508,7 @@
                   class="flex items-center gap-3 px-3 py-2 bg-canvas rounded border border-border hover:border-accent transition-colors"
                 >
                   <span
-                    class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style="background: {statusColor(check.status)}20; color: {statusColor(
+                    class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 {statusBadgeClass(
                       check.status
                     )}"
                   >
@@ -493,10 +519,7 @@
                     >{formatDuration(check.duration_ms)}</span
                   >
                   <span
-                    class="text-xs px-2 py-0.5 rounded font-mono"
-                    style="background: {statusColor(check.status)}15; color: {statusColor(
-                      check.status
-                    )}"
+                    class="text-xs px-2 py-0.5 rounded font-mono {statusBadgeClass(check.status)}"
                   >
                     {check.summary}
                   </span>

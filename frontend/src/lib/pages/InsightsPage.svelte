@@ -33,7 +33,8 @@
   let windowMinutes = $state(60);
   let filterType = $state('all');
   let advancedOpen = $state(false);
-  let loadError = $state(null);
+  let loadError = $state(null); // List-load failures only — drives the retry-reload banner.
+  let generateError = $state(null); // Story-generation failures — separate affordance, no list reload.
 
   // The most recent story across all kinds — featured at the top when
   // it's fresh enough to be relevant. Cuts the page from "press a button
@@ -160,7 +161,7 @@
       insights = insightsData || [];
       status = statusData || { available: false, generating: false, models: [] };
       preview = previewData;
-      if (!selectedModel && status.models.length > 0) {
+      if (!selectedModel && status.models?.length > 0) {
         selectedModel = status.models[0];
       }
     } catch (err) {
@@ -169,11 +170,18 @@
     loading = false;
   }
 
+  // Timer/RAF/abort handles tracked at module scope so onDestroy can
+  // clear them — otherwise the 1s elapsed interval, the 3s highlight
+  // timeout, and the scroll rAF can all fire after the component is gone.
   let elapsedTimer = null;
+  let highlightTimer = null;
+  let scrollRaf = null;
+  let destroyed = false;
 
   async function generateStory(kind) {
     if (!status.available) return;
     generating = kind;
+    generateError = null;
     const story = stories.find(s => s.generate === kind);
     generatingLabel = story?.label || 'your story';
     generatingStartedAt = Date.now();
@@ -184,17 +192,24 @@
       const url = `/insights/generate/${kind}`;
       const body = kind === 'summary' ? { windowMinutes } : {};
       const result = await api.post(url, body, { timeout: 180_000 });
+      // The component may have been torn down (route change / unmount)
+      // while the local model was thinking. Don't write state into a dead
+      // component — that's a Svelte 5 runes warning and a leak.
+      if (destroyed) return;
       if (result?.id) {
         await loadInsights();
+        if (destroyed) return;
         // Brief glow on the new story so the user can see "your thing
         // landed there" instead of just guessing it's somewhere in the
         // list. Cleared after 3s.
         highlightInsightId = result.id;
-        setTimeout(() => {
+        highlightTimer = setTimeout(() => {
           if (highlightInsightId === result.id) highlightInsightId = null;
+          highlightTimer = null;
         }, 3000);
         // Scroll the new story into view.
-        requestAnimationFrame(() => {
+        scrollRaf = requestAnimationFrame(() => {
+          scrollRaf = null;
           const el = document.getElementById(`insight-${result.id}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
@@ -203,20 +218,24 @@
         // Could be "no activity to summarize" or a model failure (Ollama
         // 400 on a wrong model class, OOM, etc). Surface it loudly so the
         // user doesn't think the click was ignored.
-        loadError =
+        generateError =
           result?.message ||
           "Raven couldn't write that story. The model might be wrong for the job — try opening Advanced and picking a different one.";
       }
     } catch (err) {
-      loadError = `Couldn't write that story: ${err?.message || err}`;
+      if (destroyed) return;
+      generateError = `Couldn't write that story: ${err?.message || err}`;
+    } finally {
+      if (elapsedTimer) {
+        clearInterval(elapsedTimer);
+        elapsedTimer = null;
+      }
+      if (!destroyed) {
+        generating = null;
+        generatingLabel = '';
+        generatingStartedAt = 0;
+      }
     }
-    if (elapsedTimer) {
-      clearInterval(elapsedTimer);
-      elapsedTimer = null;
-    }
-    generating = null;
-    generatingLabel = '';
-    generatingStartedAt = 0;
   }
 
   function formatDate(ts) {
@@ -336,7 +355,14 @@
   }
 
   onMount(() => loadInsights());
-  onDestroy(() => abortRequests());
+  onDestroy(() => {
+    destroyed = true;
+    abortRequests();
+    // Clear any in-flight timers/rAF so nothing fires after unmount.
+    if (elapsedTimer) clearInterval(elapsedTimer);
+    if (highlightTimer) clearTimeout(highlightTimer);
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
+  });
 </script>
 
 <PageLayout>
@@ -423,10 +449,34 @@
   {#if loadError}
     <DataFetchError
       endpoint="/api/insights"
-      message="Something went wrong"
+      message="Couldn't load your stories"
       hint={loadError}
       onRetry={loadInsights}
     />
+  {/if}
+
+  {#if generateError}
+    <!-- Generation failure is distinct from a list-load failure: the list
+         is fine, one story just didn't get written. Reloading the list
+         wouldn't help, so this gets its own dismissible banner instead of
+         the retry-reload affordance above. -->
+    <div
+      class="bg-error-subtle border border-error rounded-lg p-4 mb-4 flex items-start gap-3"
+      role="alert"
+    >
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold text-error">Couldn't write that story</div>
+        <div class="text-xs text-muted mt-0.5">{generateError}</div>
+      </div>
+      <button
+        type="button"
+        onclick={() => (generateError = null)}
+        class="text-xs font-mono text-muted hover:text-body transition-colors cursor-pointer flex-shrink-0"
+        title="Dismiss"
+      >
+        ✕ dismiss
+      </button>
+    </div>
   {/if}
 
   {#if preview?.right_now}
@@ -498,7 +548,7 @@
           </button>
         {/if}
       </header>
-      <h2 class="text-lg font-semibold text-heading mb-3">{featuredInsight.title}</h2>
+      <h3 class="text-lg font-semibold text-heading mb-3">{featuredInsight.title}</h3>
       <div class="text-base text-body font-sans leading-relaxed min-w-0 break-words">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->
         {@html renderMarkdown(featuredInsight.content)}

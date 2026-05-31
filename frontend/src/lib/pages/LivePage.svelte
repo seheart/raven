@@ -8,6 +8,7 @@
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
+  import { debounce } from '../utils/debounce.js';
   import LiveStatusBar from '../components/live/LiveStatusBar.svelte';
   import DiffViewer from '../components/live/DiffViewer.svelte';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
@@ -18,6 +19,11 @@
   let lastUpdated = $state(null);
   let unsubscribe = null;
   let pollInterval = null;
+
+  // Coalesce bursts of WS file-changed events into a single reload — a busy
+  // editing session can fire dozens a second, and the 5s poll already covers
+  // the slow path.
+  const debouncedReload = debounce(loadRecentFiles, 300);
 
   async function loadRecentFiles() {
     try {
@@ -84,7 +90,7 @@
   onMount(() => {
     loadRecentFiles();
     unsubscribe = websocketService.subscribe('file-changed', () => {
-      loadRecentFiles();
+      debouncedReload();
     });
     // Poll every 5s as fallback in case WebSocket misses events
     pollInterval = setInterval(loadRecentFiles, 5000);
@@ -92,6 +98,7 @@
 
   onDestroy(() => {
     abortRequests();
+    debouncedReload.cancel();
     if (unsubscribe) unsubscribe();
     if (pollInterval) clearInterval(pollInterval);
   });

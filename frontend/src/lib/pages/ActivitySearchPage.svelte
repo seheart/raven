@@ -137,28 +137,31 @@
     return DOMPurify.sanitize(highlighted, { ALLOWED_TAGS: ['mark'], ALLOWED_ATTR: [] });
   }
 
-  function getEventColor(changeType) {
+  // Utility-class color for the event-type chip (text + matching subtle bg).
+  // Mirrors SystemPage's methodTextClass pattern — keeps semantic colors out
+  // of inline styles.
+  function getEventChipClass(changeType) {
     switch (changeType) {
       case 'add':
       case 'create':
-        return 'var(--success)';
+        return 'text-success bg-success/15';
       case 'change':
       case 'edit':
       case 'modified':
-        return 'var(--accent)';
+        return 'text-accent bg-accent/15';
       case 'unlink':
       case 'delete':
-        return 'var(--error)';
+        return 'text-error bg-error/15';
       case 'tool_call':
-        return 'var(--warning)';
+        return 'text-warning bg-warning/15';
       case 'tool_result':
-        return 'var(--info)';
+        return 'text-info bg-info/15';
       case 'user_message':
-        return 'var(--accent)';
+        return 'text-accent bg-accent/15';
       case 'assistant_text':
-        return 'var(--info)';
+        return 'text-info bg-info/15';
       default:
-        return 'var(--muted)';
+        return 'text-muted bg-surface';
     }
   }
 
@@ -193,6 +196,12 @@
     if (!timestamp) return 'N/A';
     return formatDateTime(timestamp);
   }
+
+  // Autofocus the search box on mount — this page is search-first, the user
+  // shouldn't have to click before typing.
+  function autofocus(node) {
+    node.focus();
+  }
 </script>
 
 <PageLayout>
@@ -206,6 +215,7 @@
     <div class="flex gap-3 mb-3">
       <input
         type="text"
+        use:autofocus
         bind:value={searchQuery}
         onkeypress={handleKeyPress}
         placeholder="Search file paths, messages, or your AI tools..."
@@ -271,51 +281,59 @@
       </div>
     </div>
 
-    <!-- Results List — bounded so big result sets scroll within the page
-         instead of dwarfing it. Plays well with the existing filter chips. -->
-    <div class="space-y-3 max-h-[640px] overflow-y-auto pr-1">
-      {#each filteredResults as result, i (result.id || result.timestamp + ':' + i)}
-        <div
-          class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
-          style="border-left: 3px solid {getEventColor(result.change_type)}"
-        >
-          <div class="flex justify-between items-start mb-2">
-            <div class="flex items-center gap-2">
-              <span
-                class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
-                style="background: {getEventColor(result.change_type)}15; color: {getEventColor(
-                  result.change_type
-                )}"
-              >
-                {getEventLabel(result.change_type)}
-              </span>
-              {#if result.agent}
-                <span class="text-xs text-muted font-mono">
+    <!-- Results — flat dense table, bounded so big result sets scroll within
+         the page instead of dwarfing it. -->
+    <div
+      class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[640px]"
+    >
+      <table class="w-full">
+        <thead class="bg-canvas sticky top-0 z-10">
+          <tr class="text-[11px] text-muted uppercase tracking-wide">
+            <th class="text-left font-semibold px-3 py-1 w-20">Type</th>
+            <th class="text-left font-semibold px-3 py-1">Path / Message</th>
+            <th class="text-left font-semibold px-3 py-1 hidden md:table-cell w-32">Agent</th>
+            <th class="text-right font-semibold px-3 py-1 w-40">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each filteredResults as result, i (result.id || result.timestamp + ':' + i)}
+            <tr class="hover:bg-surface/40 align-top">
+              <td class="px-3 py-0.5">
+                <span
+                  class="text-[11px] px-1.5 py-0.5 rounded font-semibold {getEventChipClass(
+                    result.change_type
+                  )}"
+                >
+                  {getEventLabel(result.change_type)}
+                </span>
+              </td>
+              <td class="px-3 py-0.5 text-body max-w-[40rem]">
+                {#if result.filepath}
+                  <div class="truncate">
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                    {@html highlightMatch(result.filepath, searchQuery)}
+                  </div>
+                {/if}
+                {#if result.message}
+                  <div class="text-muted truncate">
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                    {@html highlightMatch(result.message, searchQuery)}
+                  </div>
+                {/if}
+              </td>
+              <td class="px-3 py-0.5 text-muted hidden md:table-cell truncate max-w-[8rem]">
+                {#if result.agent}
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   {@html highlightMatch(result.agent, searchQuery)}
-                </span>
-              {/if}
-            </div>
-            <span class="text-xs text-muted font-mono flex-shrink-0">
-              {formatTimestamp(result.timestamp)}
-            </span>
-          </div>
-
-          {#if result.filepath}
-            <div class="text-sm font-mono text-body truncate mb-1">
-              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              {@html highlightMatch(result.filepath, searchQuery)}
-            </div>
-          {/if}
-
-          {#if result.message}
-            <div class="text-xs text-muted font-mono truncate">
-              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              {@html highlightMatch(result.message, searchQuery)}
-            </div>
-          {/if}
-        </div>
-      {/each}
+                {/if}
+              </td>
+              <td class="px-3 py-0.5 text-muted text-right whitespace-nowrap">
+                {formatTimestamp(result.timestamp)}
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
   {/if}
 </PageLayout>

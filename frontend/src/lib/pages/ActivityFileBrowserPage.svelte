@@ -36,6 +36,38 @@
   let lastUpdated = $state(null);
   let unsubscribeFileChanged = null;
 
+  // Whether the current theme is dark. We snapshot it so getFileTypeColor
+  // can read a memoized color map instead of calling getComputedStyle per
+  // chip per render. Bumping this (on theme change) recomputes the map.
+  let isDark = $state(false);
+
+  // Memoized file-type → color map. getChartColors() is a getComputedStyle
+  // DOM read; doing it per chip per render was wasteful. Recomputes only
+  // when the theme flips (isDark dependency).
+  const fileTypeColorMap = $derived.by(() => {
+    // Reference isDark so this recomputes on theme change.
+    void isDark;
+    const c = getChartColors();
+    return {
+      '.py': c.primary,
+      '.js': c.warning,
+      '.jsx': c.warning,
+      '.ts': c.primary,
+      '.tsx': c.primary,
+      '.svelte': c.error,
+      '.json': c.success,
+      '.css': c.primary,
+      '.scss': c.primary,
+      '.html': c.error,
+      '.md': c.muted,
+      '.rs': c.warning,
+      '.toml': c.muted,
+      '.yml': c.muted,
+      '.yaml': c.muted,
+      _default: c.muted
+    };
+  });
+
   // Reload on incoming WS events but coalesce so a flurry of edits doesn't
   // hammer the API. Earlier this page was strictly onMount-only — totals
   // stayed frozen while reality moved underneath the user.
@@ -52,22 +84,24 @@
       selectedProject = projectParam;
     }
 
+    isDark = document.documentElement.classList.contains('dark');
+
+    // loadFileMetadata schedules createCharts once after metadata is ready
+    // (charts depend on it). loadFiles alone isn't enough, so we don't
+    // double-schedule here.
     await loadFiles();
     await loadFileMetadata();
 
-    // Create charts after data loads
-    if (showCharts && files.length > 0) {
-      setTimeout(createCharts, 200);
-    }
-
-    // Watch for theme changes
-    themeObserver = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.attributeName === 'class' && showCharts) {
-          logger.info('[FileBrowser] Theme changed, recreating charts');
-          setTimeout(createCharts, 100);
-        }
-      });
+    // Watch for theme changes — only react when the `dark` class actually
+    // toggles, not on every unrelated <html> class mutation.
+    themeObserver = new MutationObserver(() => {
+      const nextDark = document.documentElement.classList.contains('dark');
+      if (nextDark === isDark) return;
+      isDark = nextDark;
+      if (showCharts) {
+        logger.info('[FileBrowser] Theme changed, recreating charts');
+        setTimeout(createCharts, 100);
+      }
     });
 
     themeObserver.observe(document.documentElement, {
@@ -173,42 +207,8 @@
     return match ? '.' + match[1] : '';
   }
 
-  function getFileIcon(filepath) {
-    if (!filepath || typeof filepath !== 'string') return '';
-    if (filepath.endsWith('.py')) return '';
-    if (filepath.endsWith('.js') || filepath.endsWith('.jsx')) return '';
-    if (filepath.endsWith('.ts') || filepath.endsWith('.tsx')) return '';
-    if (filepath.endsWith('.json')) return '';
-    if (filepath.endsWith('.md')) return '';
-    if (filepath.endsWith('.rs')) return '';
-    if (filepath.endsWith('.toml')) return '';
-    if (filepath.endsWith('.svelte')) return '';
-    if (filepath.endsWith('.css') || filepath.endsWith('.scss')) return '';
-    if (filepath.endsWith('.html')) return '';
-    if (filepath.endsWith('.yml') || filepath.endsWith('.yaml')) return '';
-    return '';
-  }
-
   function getFileTypeColor(ext) {
-    const c = getChartColors();
-    const colors = {
-      '.py': c.primary,
-      '.js': c.warning,
-      '.jsx': c.warning,
-      '.ts': c.primary,
-      '.tsx': c.primary,
-      '.svelte': c.error,
-      '.json': c.success,
-      '.css': c.primary,
-      '.scss': c.primary,
-      '.html': c.error,
-      '.md': c.muted,
-      '.rs': c.warning,
-      '.toml': c.muted,
-      '.yml': c.muted,
-      '.yaml': c.muted
-    };
-    return colors[ext] || c.muted;
+    return fileTypeColorMap[ext] || fileTypeColorMap._default;
   }
 
   function getFileName(filepath) {
@@ -678,71 +678,73 @@
       </div>
     </div>
 
-    <!-- File List — bounded so a thousand tracked files don't push the
-         filter bar off the screen. User scrolls within the list. -->
-    <div class="space-y-2 mb-6 max-h-[560px] overflow-y-auto pr-1">
-      {#if filteredFiles.length === 0}
-        <EmptyState
-          size="compact"
-          title="No files match"
-          description="Try adjusting your search or filters."
-        />
-      {:else}
-        {#each filteredFiles as filepath (filepath)}
-          <div class="bg-surface border border-border rounded-lg overflow-hidden">
-            <button
-              onclick={() => toggleFileHistory(filepath)}
-              class="w-full px-4 py-3 flex items-center gap-3 hover:bg-canvas transition-colors text-left"
-              class:bg-canvas={expandedFile === filepath}
-            >
-              <span
-                class="text-xs text-muted transition-transform"
-                class:rotate-90={expandedFile === filepath}
+    <!-- File List — flat dense table, bounded so a thousand tracked files
+         don't push the filter bar off the screen. User scrolls within it. -->
+    {#if filteredFiles.length === 0}
+      <EmptyState
+        size="compact"
+        title="No files match"
+        description="Try adjusting your search or filters."
+      />
+    {:else}
+      <div
+        class="border-t border-b border-border font-mono text-sm overflow-x-auto overflow-y-auto max-h-[560px] mb-6"
+      >
+        <table class="w-full">
+          <thead class="bg-canvas sticky top-0 z-10">
+            <tr class="text-[11px] text-muted uppercase tracking-wide">
+              <th class="text-left font-semibold px-3 py-1">File</th>
+              <th class="text-left font-semibold px-3 py-1 hidden md:table-cell">Path</th>
+              <th class="text-right font-semibold px-3 py-1 w-28">Modified</th>
+              <th class="text-right font-semibold px-3 py-1 w-24">Changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each filteredFiles as filepath (filepath)}
+              <tr
+                class="hover:bg-surface/40 cursor-pointer align-top {expandedFile === filepath
+                  ? 'bg-surface/40'
+                  : ''}"
+                onclick={() => toggleFileHistory(filepath)}
               >
-              </span>
-              <span class="text-sm flex-shrink-0">{getFileIcon(filepath)}</span>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-body font-mono truncate">
-                    {getFileName(filepath)}
-                  </span>
-                  {#if isRecent(fileMetadata.get(filepath)?.lastModified)}
+                <td class="px-3 py-0.5 text-body">
+                  <div class="flex items-center gap-2">
                     <span
-                      class="px-2 py-0.5 bg-success text-white text-xs font-semibold rounded uppercase"
+                      class="text-muted transition-transform"
+                      class:rotate-90={expandedFile === filepath}>›</span
                     >
-                      Recent
-                    </span>
-                  {/if}
-                </div>
-                <div class="text-xs text-muted font-mono truncate">
+                    <span class="truncate" title={filepath}>{getFileName(filepath)}</span>
+                    {#if isRecent(fileMetadata.get(filepath)?.lastModified)}
+                      <span class="text-[10px] font-semibold uppercase text-success">recent</span>
+                    {/if}
+                  </div>
+                </td>
+                <td class="px-3 py-0.5 text-muted hidden md:table-cell truncate max-w-[24rem]">
                   {getFilePath(filepath)}
-                </div>
-              </div>
-              <div class="flex items-center gap-4 flex-shrink-0">
-                {#if fileMetadata.has(filepath)}
-                  <div class="flex items-center gap-1 text-xs text-muted font-mono">
-                    <span></span>
+                </td>
+                <td class="px-3 py-0.5 text-muted text-right whitespace-nowrap">
+                  {#if fileMetadata.has(filepath)}
                     {formatTimestamp(fileMetadata.get(filepath).lastModified)}
-                  </div>
-                  <div class="text-xs text-muted font-mono">
-                    {fileMetadata.get(filepath).changeCount} changes
-                  </div>
-                {/if}
-              </div>
-              <span class="hidden sm:inline text-sm text-muted font-sans">
-                {expandedFile === filepath ? 'Hide' : 'Show'} History
-              </span>
-            </button>
-
-            {#if expandedFile === filepath}
-              <div class="px-4 py-4 bg-canvas border-t border-border">
-                <FileHistory {filepath} inline={true} />
-              </div>
-            {/if}
-          </div>
-        {/each}
-      {/if}
-    </div>
+                  {:else}
+                    —
+                  {/if}
+                </td>
+                <td class="px-3 py-0.5 text-muted text-right">
+                  {fileMetadata.get(filepath)?.changeCount ?? 0}
+                </td>
+              </tr>
+              {#if expandedFile === filepath}
+                <tr class="bg-canvas">
+                  <td colspan="4" class="px-4 py-4 border-t border-border">
+                    <FileHistory {filepath} inline={true} />
+                  </td>
+                </tr>
+              {/if}
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
 
     {#if filteredFiles.length > 0}
       <div class="text-center text-sm text-muted font-sans">

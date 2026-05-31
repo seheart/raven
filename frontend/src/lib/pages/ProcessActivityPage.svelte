@@ -49,6 +49,15 @@
     return 'var(--muted)';
   }
 
+  // Semantic text+subtle-bg classes for the activity badge. Replaces the
+  // old inline `style="...{color}15"` which appended `15` to a `var(--x)`
+  // and produced invalid CSS.
+  function activityBadgeClass(state) {
+    if (state === 'thinking') return 'text-warning bg-warning-subtle';
+    if (state === 'executing') return 'text-success bg-success-subtle';
+    return 'text-muted bg-surface-2';
+  }
+
   function activityLabel(state) {
     if (state === 'thinking') return 'API Call';
     if (state === 'executing') return 'Executing';
@@ -97,26 +106,47 @@
 
   function handleApiLatency(data) {
     latencyData = [...latencyData, data].slice(-500);
+    // requests_per_min is a server-computed rate; bumping `count` alone would
+    // leave the displayed rate stale. Derive a live rate from the points that
+    // actually fall inside the current chart window instead.
     latencyStats = {
       ...latencyStats,
-      count: latencyStats.count + 1
+      count: latencyStats.count + 1,
+      requests_per_min: computeRequestsPerMin()
     };
     lastUpdated = new Date();
-    // Add point to chart
-    if (latencyChart) {
-      latencyChart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
-      latencyChart.data.datasets[0].data.push(data.latency_ms / 1000);
-      if (latencyChart.data.labels.length > 200) {
-        latencyChart.data.labels.shift();
-        latencyChart.data.datasets[0].data.shift();
-      }
-      latencyChart.update('none');
-    }
+    // Rebuild from the windowed source so out-of-window points don't
+    // accumulate on the chart until the next full reload.
+    rebuildLatencyChart();
+  }
+
+  // Requests per minute over the active chart window, from the windowed data.
+  function computeRequestsPerMin() {
+    const points = chartLatencyData;
+    if (points.length < 2) return latencyStats.requests_per_min || 0;
+    const first = new Date(points[0].timestamp).getTime();
+    const last = new Date(points[points.length - 1].timestamp).getTime();
+    const minutes = Math.max((last - first) / 60000, 1 / 60);
+    return Math.round(points.length / minutes);
+  }
+
+  // Debounce chart rebuilds so a burst of WS latency events (or rapid range
+  // toggles) collapses into a single repaint instead of thrashing Chart.js.
+  let rebuildTimer = null;
+  function rebuildLatencyChart() {
+    if (rebuildTimer) clearTimeout(rebuildTimer);
+    rebuildTimer = setTimeout(() => {
+      rebuildTimer = null;
+      buildLatencyChart();
+    }, 150);
   }
 
   function buildLatencyChart() {
-    destroyChart(latencyChart);
     const colors = getChartColors();
+    // Single windowed source of truth: the derived chartLatencyData is the
+    // same window the table and stats read from, so the chart can't drift
+    // from a separately-fetched window. createChart() destroys the prior
+    // chart on this canvas, so no manual destroy dance here.
     const filtered = chartLatencyData;
     latencyChart = createChart('latency-chart', {
       type: 'line',
@@ -177,6 +207,7 @@
       abortRequests();
       websocketService.off('process-activity', handleProcessActivity);
       websocketService.off('api-latency', handleApiLatency);
+      if (rebuildTimer) clearTimeout(rebuildTimer);
       destroyChart(latencyChart);
       if (themeObserver) themeObserver.disconnect();
     };
@@ -195,7 +226,7 @@
           <FreshnessBadge mode="live" since={lastUpdated} />
           <button
             onclick={() => loadData()}
-            class="px-2 py-1 text-[9px] bg-surface border border-border rounded text-muted hover:text-body transition-colors"
+            class="px-2 py-1 text-[11px] bg-surface border border-border rounded text-muted hover:text-body transition-colors"
           >
             Refresh
           </button>
@@ -223,16 +254,13 @@
               <span class="text-[11px] font-semibold text-body">{agent.agent_name}</span>
             </div>
             <span
-              class="text-[9px] px-1.5 py-0.5 rounded"
-              style="color: {activityColor(agent.activity_state)}; background: {activityColor(
-                agent.activity_state
-              )}15"
+              class="text-[11px] px-1.5 py-0.5 rounded {activityBadgeClass(agent.activity_state)}"
             >
               {activityLabel(agent.activity_state)}
             </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
             <div class="flex justify-between">
               <span class="text-muted">CPU</span>
               <span class="text-body">{(agent.cpu_usage || 0).toFixed(1)}%</span>
@@ -263,14 +291,14 @@
           </div>
 
           <div class="mt-2 pt-2 border-t border-border">
-            <span class="text-[8px] text-muted">PID {agent.pid}</span>
+            <span class="text-[11px] text-muted">PID {agent.pid}</span>
           </div>
         </div>
       {:else}
         {#if loading}
-          <div class="col-span-full text-center text-[10px] text-muted py-8">Loading agents...</div>
+          <div class="col-span-full text-center text-[11px] text-muted py-8">Loading agents...</div>
         {:else}
-          <div class="col-span-full text-center text-[10px] text-muted py-8">
+          <div class="col-span-full text-center text-[11px] text-muted py-8">
             No agent processes detected
           </div>
         {/if}
@@ -288,9 +316,9 @@
                 chartTimeRange = range;
                 loadData();
               }}
-              class="px-2 py-1 text-[10px] rounded transition-colors min-w-[30px]"
+              class="px-2 py-1 text-[11px] rounded transition-colors min-w-[30px]"
               class:bg-accent={chartTimeRange === range}
-              class:text-white={chartTimeRange === range}
+              class:text-canvas={chartTimeRange === range}
               class:bg-canvas={chartTimeRange !== range}
               class:text-muted={chartTimeRange !== range}
             >
@@ -301,7 +329,7 @@
       </div>
 
       <!-- Stats Row -->
-      <div class="flex gap-4 mb-3 text-[9px]">
+      <div class="flex gap-4 mb-3 text-[11px]">
         <div>
           <span class="text-muted">Avg</span>
           <span class="text-body ml-1 font-semibold"
@@ -348,7 +376,7 @@
     <div class="bg-surface border border-border rounded-lg p-3">
       <h3 class="text-[11px] font-semibold text-body mb-2">Recent API Calls</h3>
       <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
-        <table class="w-full text-[9px]">
+        <table class="w-full text-[11px]">
           <thead>
             <tr class="text-muted border-b border-border">
               <th class="text-left py-1 pr-4">Time</th>

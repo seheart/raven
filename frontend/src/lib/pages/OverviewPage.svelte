@@ -4,7 +4,7 @@
   import { formatRelativeTime, formatDateOnly } from '../timeFormat.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection } from '../components/layout/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { navigate } from '../utils/router.svelte.js';
   import { websocketService } from '../services/websocket.js';
@@ -36,6 +36,11 @@
     total_agents: 0,
     app_errors: 0
   });
+  // Live unresolved-error count. Kept in its own $state (not inside `stats`)
+  // so the WS-driven increments/clears below survive loadData()'s wholesale
+  // `stats = data.stats` reassign, which would otherwise clobber the live
+  // count on every 30s refresh.
+  let appErrors = $state(0);
   let systemMetrics = $state({
     cpu_percent: 0,
     memory_percent: 0,
@@ -44,7 +49,6 @@
   });
   let recentFiles = $state([]);
   let recentAgentEvents = $state([]);
-  let liveEvents = $state([]);
   let agents = $state([]);
 
   // Costs & sub-agent state
@@ -89,8 +93,6 @@
     app_errors: 0
   });
   let statsFlash = $state({});
-  let cpuHistory = $state(new Array(30).fill(0));
-  let memHistory = $state(new Array(30).fill(0));
   let workingStates = $state({}); // agentName -> { text, cycle }
   const workingTexts = [
     'Reading files...',
@@ -413,7 +415,31 @@
   // the tick interval so the line appears to slide continuously left.
   // When the dataset SHAPE changes (new/removed agent), Chart.js can't safely
   // hot-swap the controller list — fall back to full recreate in that case.
+  // Cheap change signature for the two source arrays. The chart slides the
+  // time axis every tick, but rebuilding the datasets (which re-sorts up to
+  // ~700 events twice/sec) is only worth it when the data actually changed
+  // or the bucket window has advanced. We rebuild on a real change OR once
+  // per bucket so the axis still scrolls when idle but visible.
+  let lastTrendSig = '';
+  let lastTrendBucket = -1;
+  function trendSignature() {
+    const f0 = recentFiles[0]?.timestamp || '';
+    const a0 = recentAgentEvents[0]?.timestamp || '';
+    return `${recentFiles.length}:${f0}|${recentAgentEvents.length}:${a0}`;
+  }
+
   function refreshTrendChart() {
+    // Don't burn the main thread re-sorting events for a hidden tab.
+    if (typeof document !== 'undefined' && document.hidden) return;
+
+    // Skip the rebuild when nothing changed and we're still inside the same
+    // 5s bucket — the slide only needs a new frame when the window advances.
+    const sig = trendSignature();
+    const bucket = Math.floor(Date.now() / TREND_BUCKET_MS);
+    if (sig === lastTrendSig && bucket === lastTrendBucket) return;
+    lastTrendSig = sig;
+    lastTrendBucket = bucket;
+
     // Chart.destroy() nulls canvas; use that as the liveness check.
     // `trendChart.update` is a prototype method and stays truthy after destroy.
     if (!trendChart || !trendChart.canvas) return createCharts();
@@ -498,6 +524,10 @@
 
       checkStatChanges(data.stats);
       stats = data.stats;
+      // Re-seed the live error counter from the server's authoritative value.
+      // Tracked separately from `stats` so subsequent WS increments/clears
+      // aren't lost the next time `stats` is reassigned.
+      appErrors = data.stats?.app_errors || 0;
       sessionCosts = data.costs || sessionCosts;
       recentSubagents = Array.isArray(data.subagents) ? data.subagents : [];
       systemMetrics =
@@ -577,9 +607,6 @@
   // WebSocket: live updates
   const handleMetrics = data => {
     systemMetrics = data;
-    // Track history for sparklines
-    cpuHistory = [...cpuHistory.slice(1), data.cpu_percent || 0];
-    memHistory = [...memHistory.slice(1), data.memory_percent || 0];
   };
 
   const handleFileChanged = event => {
@@ -623,6 +650,9 @@
                 agent_source: capturedEvent.agent_source,
                 timestamp: capturedEvent.timestamp
               };
+              // A fresh diff arrived — un-hide the panel so dismissing it
+              // earlier isn't a permanent one-way door.
+              latestDiffHidden = false;
             }
           })
           .catch(() => {
@@ -637,8 +667,6 @@
   };
 
   const handleAgentEvent = event => {
-    liveEvents = [{ ...event, _ts: Date.now() }, ...liveEvents].slice(0, 20);
-
     // Mark agent as actively working
     const agentName = event.agent_name || event.agent;
     if (agentName) {
@@ -700,11 +728,11 @@
   };
 
   const handleAppError = () => {
-    stats.app_errors++;
+    appErrors++;
   };
 
   const handleErrorsCleared = () => {
-    stats.app_errors = 0;
+    appErrors = 0;
   };
 
   const handleHealthAlert = data => {
@@ -858,79 +886,83 @@
 
       <!-- Event Feed + AI Pulse + Active Models -->
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 mb-3 xl:flex-1 xl:min-h-0">
-        <div class="bg-surface border border-border rounded-lg p-4 flex flex-col min-h-0">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Event Feed</h3>
-            <span class="flex items-center gap-1.5 text-[10px] text-success font-mono">
-              <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
-              Live
-            </span>
-          </div>
-          <!-- Tight cap at narrow widths (~3 rows visible, internal scroll
+        <div
+          class="relative bg-surface border border-border rounded-lg p-4 flex flex-col min-h-0 [&>section]:flex [&>section]:flex-col [&>section]:flex-1 [&>section]:min-h-0"
+        >
+          <!-- Live indicator floats top-right; PageSection owns the title. -->
+          <span
+            class="absolute top-4 right-4 flex items-center gap-1.5 text-[11px] text-success font-mono"
+          >
+            <span class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
+            Live
+          </span>
+          <PageSection title="Event Feed">
+            <!-- Tight cap at narrow widths (~3 rows visible, internal scroll
                for the rest) so the AI Pulse graph below stays visible
                without scrolling. xl: drops the cap so the feed fills its
                column when shown side-by-side. -->
-          <div class="space-y-0.5 overflow-y-auto max-h-[96px] xl:max-h-none xl:flex-1">
-            {#if activityFeed.length === 0 && recentFiles.length === 0}
-              <div class="text-center py-6 text-xs text-muted leading-relaxed">
-                <span class="inline-block idle-breathing">Waiting for activity</span>
-                <div class="mt-1.5 text-[10px]">
-                  Edit a file or kick off a Claude session — events stream in here.
-                </div>
-              </div>
-            {:else}
-              {#each activityFeed.length > 0 ? activityFeed : recentFiles
-                    .slice(0, 15)
-                    .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
-                <div
-                  class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
-                    ? 'feed-slide-in'
-                    : 'hover:bg-canvas'}"
-                  style="border-left: 2px solid {item.color}; background: {item.icon === '+'
-                    ? 'var(--success-subtle)'
-                    : item.icon === '-'
-                      ? 'var(--error-subtle)'
-                      : 'transparent'}; {item._new
-                    ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
-                    : ''}"
-                >
-                  <span
-                    class="w-4 text-center text-[9px] font-bold font-mono flex-shrink-0"
-                    style="color: {item.color}">{item.icon}</span
-                  >
-                  <div class="flex-1 min-w-0">
-                    <div
-                      class="text-[10px] font-mono truncate"
-                      style="color: {item.icon === '+'
-                        ? 'var(--success)'
-                        : item.icon === '-'
-                          ? 'var(--error)'
-                          : 'var(--text)'}"
-                    >
-                      {item.text}
-                    </div>
+            <div class="space-y-0.5 overflow-y-auto max-h-[96px] xl:max-h-none xl:flex-1">
+              {#if activityFeed.length === 0 && recentFiles.length === 0}
+                <div class="text-center py-6 text-xs text-muted leading-relaxed">
+                  <span class="inline-block idle-breathing">Waiting for activity</span>
+                  <div class="mt-1.5 text-[11px]">
+                    Edit a file or kick off a Claude session — events stream in here.
                   </div>
-                  {#if item.eventId && riskScores[item.eventId]}
-                    {@const rs = riskScores[item.eventId]}
-                    <span
-                      class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0"
-                      style="background: {rs.score >= 7
-                        ? 'var(--error)'
-                        : rs.score >= 4
-                          ? 'var(--warning)'
-                          : 'var(--success)'}"
-                      title={rs.reason}
-                    >
-                      {rs.score}
-                    </span>
-                  {/if}
-                  <span class="text-[9px] text-muted font-mono flex-shrink-0"
-                    >{formatTime(item.timestamp)}</span
-                  >
                 </div>
-              {/each}
-            {/if}
-          </div>
+              {:else}
+                {#each activityFeed.length > 0 ? activityFeed : recentFiles
+                      .slice(0, 15)
+                      .map( (e, i) => ({ _id: e.id ?? i, _new: false, type: 'file', icon: e.change_type === 'add' ? '+' : e.change_type === 'unlink' ? '-' : '~', color: getChangeColor(e.change_type), text: e.filepath, agent: e.agent_source, timestamp: e.timestamp }) ) as item (item._id)}
+                  <div
+                    class="flex items-center gap-1.5 px-1.5 py-1 rounded transition-all duration-500 {item._new
+                      ? 'feed-slide-in'
+                      : 'hover:bg-canvas'}"
+                    style="border-left: 2px solid {item.color}; background: {item.icon === '+'
+                      ? 'var(--success-subtle)'
+                      : item.icon === '-'
+                        ? 'var(--error-subtle)'
+                        : 'transparent'}; {item._new
+                      ? `box-shadow: inset 3px 0 8px -4px ${item.color}`
+                      : ''}"
+                  >
+                    <span
+                      class="w-4 text-center text-[11px] font-bold font-mono flex-shrink-0"
+                      style="color: {item.color}">{item.icon}</span
+                    >
+                    <div class="flex-1 min-w-0">
+                      <div
+                        class="text-[11px] font-mono truncate"
+                        style="color: {item.icon === '+'
+                          ? 'var(--success)'
+                          : item.icon === '-'
+                            ? 'var(--error)'
+                            : 'var(--text)'}"
+                      >
+                        {item.text}
+                      </div>
+                    </div>
+                    {#if item.eventId && riskScores[item.eventId]}
+                      {@const rs = riskScores[item.eventId]}
+                      <span
+                        class="px-1 py-0.5 text-[11px] font-bold rounded text-white flex-shrink-0"
+                        style="background: {rs.score >= 7
+                          ? 'var(--error)'
+                          : rs.score >= 4
+                            ? 'var(--warning)'
+                            : 'var(--success)'}"
+                        title={rs.reason}
+                      >
+                        {rs.score}
+                      </span>
+                    {/if}
+                    <span class="text-[11px] text-muted font-mono flex-shrink-0"
+                      >{formatTime(item.timestamp)}</span
+                    >
+                  </div>
+                {/each}
+              {/if}
+            </div>
+          </PageSection>
         </div>
         <!-- AI Pulse — particle viz. Compact height at narrow widths so
              the Event Feed, AI Pulse, Active Models, and Agent Activity
@@ -959,15 +991,13 @@
             title={stat.tip}
           >
             <span class="text-muted">{stat.label}</span>
-            <span class="font-semibold" style="color: {stat.color || 'var(--text)'}"
-              >{formatNumber(stat.value)}</span
-            >
+            <span class="font-semibold text-body">{formatNumber(stat.value)}</span>
           </span>
           <span class="text-border">|</span>
         {/each}
         <span
           class="text-[11px] font-mono"
-          title="File events per minute, averaged across the 100 most recent file changes. Throughput, not an instant rate."
+          title="File events per minute, averaged across the 200 most recent file changes. Throughput, not an instant rate."
         >
           <span class="text-muted">Rate</span>
           <span class="font-semibold text-body">{eventsPerMin}/m</span>
@@ -997,14 +1027,14 @@
           </button>
         {/if}
 
-        {#if stats.app_errors > 0}
+        {#if appErrors > 0}
           <span class="text-border">|</span>
           <button
             onclick={() => navigate('/system/errors')}
             class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0"
             title="Unresolved app errors caught by the global error handler. Click to view & clear."
           >
-            <span class="text-error font-semibold">{stats.app_errors} errors</span>
+            <span class="text-error font-semibold">{appErrors} errors</span>
           </button>
         {/if}
 
@@ -1073,7 +1103,7 @@
               <span class="text-body">{formatTokens(cRead)}</span>
               {#if cacheHitPct !== null}
                 <span
-                  class="text-[10px]"
+                  class="text-[11px]"
                   style="color: {cacheHitPct >= 80
                     ? 'var(--success)'
                     : cacheHitPct >= 50
@@ -1107,51 +1137,49 @@
         <!-- Agents — top-level + sub-agents in one list, most recent first.
              At narrow widths this slots last so the diff/chart get visual priority. -->
         <div
-          class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col order-3 xl:order-1"
+          class="bg-surface border border-border rounded-lg p-3 cursor-pointer hover:border-accent transition-colors flex flex-col order-3 xl:order-1 [&>section]:flex [&>section]:flex-col [&>section]:flex-1 [&>section]:min-h-0 [&>section>h2]:mb-2"
           onclick={() => navigate('/agents')}
           onkeydown={e => (e.key === 'Enter' || e.key === ' ') && navigate('/agents')}
           role="link"
           tabindex="0"
         >
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Agents</h3>
-            <span class="text-[10px] text-muted">{allAgents.length} · →</span>
-          </div>
-          {#if allAgents.length > 0}
-            <!-- Bounded scroll at narrow widths; full-height at xl. -->
-            <div class="space-y-1 overflow-y-auto max-h-[400px] xl:max-h-none xl:flex-1">
-              {#each allAgents.slice(0, 10) as agent (agent.key)}
-                <div class="flex items-center gap-2 py-0.5">
-                  <span
-                    class="px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex-shrink-0"
-                    style="background: {agent.color}"
-                    title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
-                    >{agent.chip}</span
-                  >
-                  <span
-                    class="text-[10px] text-body truncate flex-1"
-                    title={agent.labelTitle || agent.label}>{agent.label}</span
-                  >
-                  {#if agent.detail}
-                    <span class="text-[9px] text-muted font-mono flex-shrink-0 hidden sm:inline"
-                      >{agent.detail}</span
+          <PageSection title="Agents" meta="{allAgents.length} · →">
+            {#if allAgents.length > 0}
+              <!-- Bounded scroll at narrow widths; full-height at xl. -->
+              <div class="space-y-1 overflow-y-auto max-h-[400px] xl:max-h-none xl:flex-1">
+                {#each allAgents.slice(0, 10) as agent (agent.key)}
+                  <div class="flex items-center gap-2 py-0.5">
+                    <span
+                      class="px-1.5 py-0.5 rounded text-[11px] font-bold text-white flex-shrink-0"
+                      style="background: {agent.color}"
+                      title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
+                      >{agent.chip}</span
                     >
-                  {/if}
-                  <span class="text-[9px] text-muted font-mono flex-shrink-0"
-                    >{formatTime(agent.time)}</span
-                  >
-                </div>
-              {/each}
-            </div>
-          {:else}
-            <div class="text-xs text-muted py-2 leading-relaxed">
-              No agents yet.
-              <div class="text-[10px] mt-1">
-                Run <code class="font-mono text-body">claude</code> in any tracked project and it'll
-                appear here.
+                    <span
+                      class="text-[11px] text-body truncate flex-1"
+                      title={agent.labelTitle || agent.label}>{agent.label}</span
+                    >
+                    {#if agent.detail}
+                      <span class="text-[11px] text-muted font-mono flex-shrink-0 hidden sm:inline"
+                        >{agent.detail}</span
+                      >
+                    {/if}
+                    <span class="text-[11px] text-muted font-mono flex-shrink-0"
+                      >{formatTime(agent.time)}</span
+                    >
+                  </div>
+                {/each}
               </div>
-            </div>
-          {/if}
+            {:else}
+              <div class="text-xs text-muted py-2 leading-relaxed">
+                No agents yet.
+                <div class="text-[11px] mt-1">
+                  Run <code class="font-mono text-body">claude</code> in any tracked project and it'll
+                  appear here.
+                </div>
+              </div>
+            {/if}
+          </PageSection>
         </div>
 
         <!-- Latest Diff — full-width at narrow widths so the code is
@@ -1169,19 +1197,19 @@
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                   <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"
                   ></span>
-                  <span class="text-[10px] font-mono text-body truncate"
+                  <span class="text-[11px] font-mono text-body truncate"
                     >{latestDiff.filepath}<span class="cursor-blink">|</span></span
                   >
                 </div>
                 {#if latestDiff.agent_source}
                   <span
-                    class="px-1 py-0.5 text-[8px] font-bold rounded text-white flex-shrink-0"
+                    class="px-1 py-0.5 text-[11px] font-bold rounded text-white flex-shrink-0"
                     style="background: {getAgentColorByName(latestDiff.agent_source)}"
                     >{latestDiff.agent_source}</span
                   >
                 {/if}
               {:else}
-                <span class="text-[10px] font-semibold text-muted uppercase tracking-wide flex-1"
+                <span class="text-[11px] font-semibold text-muted uppercase tracking-wide flex-1"
                   >Latest Change</span
                 >
               {/if}
@@ -1196,7 +1224,7 @@
             <div class="flex-1 overflow-auto">
               {#if latestDiff}
                 <pre
-                  class="text-[10px] font-mono m-0 bg-surface leading-[1.6]">{#each latestDiff.diff
+                  class="text-[11px] font-mono m-0 bg-surface leading-[1.6]">{#each latestDiff.diff
                     .split('\n')
                     .slice(0, 20) as line, li (li)}{@const c = line.charAt(0)}{#if c === '+'}<span
                         class="text-success block px-2"
@@ -1212,7 +1240,7 @@
                   class="flex flex-col items-center justify-center h-full text-xs text-muted text-center px-3 leading-relaxed"
                 >
                   <span>Waiting for changes</span>
-                  <span class="text-[10px] mt-1"
+                  <span class="text-[11px] mt-1"
                     >The next file Claude (or you) edits will land here as a live diff.</span
                   >
                 </div>
@@ -1225,24 +1253,24 @@
              when stacked at narrow widths. order-1 puts it first in the
              narrow stack (above the diff and the agents list). -->
         <div
-          class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-[160px] xl:min-h-0 order-1 xl:order-3"
+          class="bg-surface border border-border rounded-lg p-3 flex flex-col min-h-[160px] xl:min-h-0 order-1 xl:order-3 [&>section]:flex [&>section]:flex-col [&>section]:flex-1 [&>section]:min-h-0 [&>section>h2]:mb-1"
         >
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-1 flex-shrink-0">
-            Agent Activity (5m)
-          </h3>
-          <div class="flex-1 min-h-[130px] xl:min-h-0 relative">
-            <canvas id="chart-trend"></canvas>
-            {#if recentFiles.length === 0 && recentAgentEvents.length === 0}
-              <div
-                class="absolute inset-0 flex flex-col items-center justify-center text-center px-3 leading-relaxed pointer-events-none"
-              >
-                <span class="text-xs text-muted">No activity in the last 5 minutes</span>
-                <span class="text-[10px] text-muted/70 mt-1"
-                  >The line will start drawing as soon as files change or a Claude tool call fires.</span
+          <PageSection title="Agent Activity (5m)">
+            <div class="flex-1 min-h-[130px] xl:min-h-0 relative">
+              <canvas id="chart-trend"></canvas>
+              {#if recentFiles.length === 0 && recentAgentEvents.length === 0}
+                <div
+                  class="absolute inset-0 flex flex-col items-center justify-center text-center px-3 leading-relaxed pointer-events-none"
                 >
-              </div>
-            {/if}
-          </div>
+                  <span class="text-xs text-muted">No activity in the last 5 minutes</span>
+                  <span class="text-[11px] text-muted/70 mt-1"
+                    >The line will start drawing as soon as files change or a Claude tool call
+                    fires.</span
+                  >
+                </div>
+              {/if}
+            </div>
+          </PageSection>
         </div>
       </div>
 

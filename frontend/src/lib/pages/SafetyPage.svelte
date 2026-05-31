@@ -4,6 +4,7 @@
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import DataFetchError from '../components/ui/DataFetchError.svelte';
   import { RefreshButton, EmptyState, FilterToggle } from '../components/ui/index.js';
+  import { toasts } from '../toastStore.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let warnings = $state([]);
@@ -13,6 +14,11 @@
   let severityFilter = $state('all');
   let copied = $state(false);
   let ignoresOpen = $state(false);
+  let loadError = $state(null);
+  // Inline ignore prompt — replaces the blocking native prompt(). Holds the
+  // warning being ignored plus the editable reason; null when closed.
+  let ignoreTarget = $state(null);
+  let ignoreReason = $state('false positive');
 
   const filteredWarnings = $derived.by(() => {
     let filtered = warnings;
@@ -32,8 +38,6 @@
   });
 
   const status = $derived(loadError ? 'unknown' : warnings.length === 0 ? 'healthy' : 'warning');
-
-  let loadError = $state(null);
 
   async function loadWarnings() {
     try {
@@ -58,28 +62,38 @@
     try {
       await api.post(`/pattern-warnings/${id}/resolve`);
       await loadWarnings();
+      toasts.success('Warning resolved');
     } catch (err) {
-      alert('Failed to resolve: ' + err.message);
+      toasts.error('Failed to resolve: ' + (err?.message || String(err)));
     }
   }
 
-  async function ignoreWarning(warning) {
-    const reason = prompt(
-      `Ignore this warning permanently?\n\n` +
-        `${warning.pattern_name} in ${shortenPath(warning.filepath)}\n\n` +
-        `Reason (recorded for audit — leave blank to skip):`,
-      'false positive'
-    );
-    if (reason === null) return;
+  // Opens the inline ignore prompt (non-blocking, replaces native prompt()).
+  function startIgnore(warning) {
+    ignoreTarget = warning;
+    ignoreReason = 'false positive';
+  }
+
+  function cancelIgnore() {
+    ignoreTarget = null;
+  }
+
+  async function confirmIgnore() {
+    const warning = ignoreTarget;
+    if (!warning) return;
+    const reason = ignoreReason.trim();
+    ignoreTarget = null;
     try {
       await api.post(`/pattern-warnings/${warning.id}/ignore`, { reason: reason || undefined });
       await loadWarnings();
+      toasts.success('Warning ignored');
     } catch (err) {
-      alert('Failed to ignore: ' + err.message);
+      toasts.error('Failed to ignore: ' + (err?.message || String(err)));
     }
   }
 
   async function unignore(ignore) {
+    // Destructive-ish (re-raises on next scan) — keep a native confirm.
     if (
       !confirm(
         `Un-ignore this suppression?\n\n` +
@@ -91,18 +105,21 @@
     try {
       await api.delete(`/pattern-warnings/ignores/${ignore.id}`);
       await loadWarnings();
+      toasts.success('Suppression removed');
     } catch (err) {
-      alert('Failed to un-ignore: ' + err.message);
+      toasts.error('Failed to un-ignore: ' + (err?.message || String(err)));
     }
   }
 
   async function resolveAll() {
+    // Bulk destructive action — keep a native confirm.
     if (!confirm(`Resolve all ${filteredWarnings.length} warnings?`)) return;
     try {
       await api.post('/pattern-warnings/resolve-all');
       await loadWarnings();
+      toasts.success('All warnings resolved');
     } catch (err) {
-      alert('Failed: ' + err.message);
+      toasts.error('Failed to resolve all: ' + (err?.message || String(err)));
     }
   }
 
@@ -131,7 +148,7 @@
       copied = true;
       setTimeout(() => (copied = false), 1500);
     } catch (err) {
-      alert('Copy failed: ' + err.message);
+      toasts.error('Copy failed: ' + (err?.message || String(err)));
     }
   }
 
@@ -171,6 +188,45 @@
 
   {#if loadError}
     <DataFetchError message={loadError} onRetry={loadWarnings} />
+  {/if}
+
+  <!-- Inline ignore prompt — non-blocking replacement for native prompt(). -->
+  {#if ignoreTarget}
+    <div class="bg-surface border border-accent rounded-lg p-4 mb-4">
+      <div class="text-sm font-mono font-semibold text-body mb-1">
+        Ignore this warning permanently?
+      </div>
+      <div class="text-xs text-muted font-mono mb-3">
+        {ignoreTarget.pattern_name} in {shortenPath(ignoreTarget.filepath)}
+      </div>
+      <label class="block text-xs text-muted mb-1" for="ignore-reason">
+        Reason (recorded for audit — leave blank to skip)
+      </label>
+      <input
+        id="ignore-reason"
+        type="text"
+        bind:value={ignoreReason}
+        onkeydown={e => {
+          if (e.key === 'Enter') confirmIgnore();
+          if (e.key === 'Escape') cancelIgnore();
+        }}
+        class="w-full px-3 py-1.5 mb-3 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
+      />
+      <div class="flex gap-2">
+        <button
+          onclick={confirmIgnore}
+          class="px-3 py-1.5 bg-surface border border-accent rounded text-sm font-sans text-accent hover:bg-accent-subtle transition-colors"
+        >
+          Ignore
+        </button>
+        <button
+          onclick={cancelIgnore}
+          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-muted hover:text-body hover:border-accent transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   {/if}
 
   {#if loading}
@@ -219,7 +275,7 @@
         <EmptyState size="compact" title="No matching warnings" />
       {:else}
         <div class="bg-surface border border-border rounded-lg">
-          <div class="divide-y divide-[var(--border)] max-h-[500px] overflow-y-auto">
+          <div class="divide-y divide-border max-h-[500px] overflow-y-auto">
             {#each filteredWarnings as warning (warning.id)}
               <div class="px-5 py-3 flex items-start gap-3">
                 <span
@@ -251,7 +307,7 @@
                 </div>
                 <div class="flex gap-1.5 flex-shrink-0">
                   <button
-                    onclick={() => ignoreWarning(warning)}
+                    onclick={() => startIgnore(warning)}
                     title="Suppress this exact match permanently (false positive)"
                     class="px-2 py-1 bg-surface border border-border rounded text-xs font-sans text-muted hover:text-body hover:border-accent transition-colors"
                   >
@@ -289,9 +345,7 @@
           <span class="text-muted text-xs">{ignoresOpen ? '▾' : '▸'}</span>
         </button>
         {#if ignoresOpen}
-          <div
-            class="divide-y divide-[var(--border)] border-t border-[var(--border)] max-h-[400px] overflow-y-auto"
-          >
+          <div class="divide-y divide-border border-t border-border max-h-[400px] overflow-y-auto">
             {#each ignores as ignore (ignore.id)}
               <div class="px-5 py-3 flex items-start gap-3">
                 <div class="flex-1 min-w-0">

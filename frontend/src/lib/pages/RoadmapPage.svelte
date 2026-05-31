@@ -96,11 +96,6 @@
       detail:
         'Replaced cold "No data" copy with action-oriented text on CompactActiveModel, CombinedLlmCard, ActiveModelCard, LibraryCard, ModelsPage, OverviewPage (Live activity / Agents / Latest Change), and AgentMonitoring. Each one names the next command (`ollama run llama3`, `claude`) so a new user knows exactly what action makes the panel light up.'
     },
-    {
-      label: 'Multi-machine roll-up — Phase 1',
-      detail:
-        'host_id auto-written to .raven/host.json on first start (host_name overridable via RAVEN_HOST_NAME). New /api/sync/export streams NDJSON of events / agent_events / token_usage / api_latency keyed by row id, with Bearer auth against .raven/peers.json (5s cache). Dormant by default — returns 503 until peers are configured. Identity also surfaces on /api/health and /api/sync/identity.'
-    },
     // ── May 2026 batch — Phase 01, 02, and most of 03 ──────────
     {
       label: 'Year-end Raven Wrapped',
@@ -395,9 +390,9 @@
           <div
             class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
           >
-            <span class="text-text">{totalQueued}</span>
+            <span class="text-body">{totalQueued}</span>
             {totalQueued === 1 ? 'item' : 'items'} queued ·
-            <span class="text-text">{publicLaunch.length}</span>
+            <span class="text-body">{publicLaunch.length}</span>
             {publicLaunch.length === 1 ? 'blocks' : 'block'} public launch
           </div>
         </div>

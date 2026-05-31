@@ -99,7 +99,9 @@
       // sub-rollups (by-project, by-model, ...) tolerate empty arrays
       // independently so a partial outage still renders what works.
       const summaryData = await api.get(`/costs/summary?${params}`);
-      summary = summaryData;
+      // Guard against a null/empty summary so downstream reads
+      // (summary.total_requests, etc.) never throw on a partial response.
+      summary = summaryData || {};
 
       const [projectData, modelData, sessionData, timelineData] = await Promise.all([
         api.get(`/costs/by-project?${params}`).catch(() => []),
@@ -280,7 +282,7 @@
 </script>
 
 <PageLayout>
-  <PageHeader title="Token Usage">
+  <PageHeader title="Costs">
     {#snippet actions()}
       <div class="flex items-center gap-3">
         <div class="flex bg-surface border border-border rounded overflow-hidden">
@@ -298,7 +300,7 @@
   <div class="flex items-center gap-2 -mt-4 flex-wrap">
     <span
       class="px-2 py-0.5 rounded text-[10px] font-semibold {isApi
-        ? 'bg-warning text-black'
+        ? 'bg-warning/15 text-warning border border-warning/30'
         : 'bg-accent text-canvas'}">{isApi ? 'API Billing' : planName}</span
     >
     <p class="text-sm text-muted font-sans">
@@ -530,29 +532,35 @@
 
     <!-- Recent Sessions -->
     {#if bySessions.length > 0}
-      <div class="bg-surface border border-border rounded p-4">
+      <div class="mb-6">
         <h3 class="text-sm font-semibold text-heading mb-3">Recent Sessions</h3>
-        <div class="space-y-2">
-          {#each bySessions as session (session.session_id)}
-            <div class="flex items-center justify-between py-2 px-3 rounded bg-canvas text-sm">
-              <div>
-                <span class="text-body font-medium"
-                  >{session.project_name || session.session_id?.slice(0, 8)}</span
-                >
-                <span class="text-muted text-xs ml-2">{session.requests} requests</span>
-              </div>
-              <div class="flex items-center gap-4">
-                <span class="text-xs text-muted"
-                  >{formatTokens(session.input_tokens + session.output_tokens)} tokens</span
-                >
-                {#if isApi}
-                  <span class="text-accent font-mono font-semibold"
-                    >{formatCost(session.cost_usd)}</span
+        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-canvas">
+              <tr class="text-[11px] text-muted uppercase tracking-wide">
+                <th class="text-left font-semibold px-3 py-1">Session</th>
+                <th class="text-right font-semibold px-3 py-1">Requests</th>
+                <th class="text-right font-semibold px-3 py-1">Tokens</th>
+                {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
+              </tr>
+            </thead>
+            <tbody>
+              {#each bySessions as session (session.session_id)}
+                <tr class="hover:bg-surface/40">
+                  <td class="px-3 py-0.5 text-body"
+                    >{session.project_name || session.session_id?.slice(0, 8)}</td
                   >
-                {/if}
-              </div>
-            </div>
-          {/each}
+                  <td class="px-3 py-0.5 text-right text-muted">{session.requests}</td>
+                  <td class="px-3 py-0.5 text-right text-muted"
+                    >{formatTokens(session.input_tokens + session.output_tokens)}</td
+                  >
+                  {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
+                      >{formatCost(session.cost_usd)}</td
+                    >{/if}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       </div>
     {/if}

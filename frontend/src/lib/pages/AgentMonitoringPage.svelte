@@ -15,7 +15,8 @@
     createChart,
     destroyChart,
     createThemeObserver,
-    getChartColors
+    getChartColors,
+    getChartPalette
   } from '../utils/chartUtils.js';
   let agentsStatus = $state([]);
   let recentEvents = $state([]);
@@ -26,6 +27,11 @@
   let refreshInterval = null;
   let eventsLimit = $state(50);
   let loadingMore = $state(false);
+  // True only when the last fetch returned a full page, i.e. the server
+  // likely has more rows. This is the honest "more available" signal —
+  // unlike comparing filtered length to total, it doesn't toggle as the
+  // user filters the already-loaded events.
+  let hasMoreEvents = $state(false);
   let charts = $state({});
   let themeObserver = $state(null);
   let showNewEventAnimation = $state(false);
@@ -248,11 +254,9 @@
       const agentNames = Object.keys(agentCounts);
       const agentValues = Object.values(agentCounts);
 
-      // Generate colors for each agent
-      const agentColors = agentNames.map((_, i) => {
-        const hue = (i * 360) / agentNames.length;
-        return `hsl(${hue}, 70%, 60%)`;
-      });
+      // Use the theme chart palette (--chart-1..8) so the donut stays on
+      // brand and theme-aware instead of arbitrary rainbow hsl() values.
+      const agentColors = getChartPalette(agentNames.length);
 
       charts['distribution'] = createChart('agent-distribution-chart', {
         type: 'doughnut',
@@ -325,10 +329,13 @@
         api.get(`/agent-events?limit=${eventsLimit}`)
       ]);
 
-      // Normalize agent status - add confidence from requests_handled
+      // Normalize agent status. Confidence is shown only when the backend
+      // actually supplies it — we no longer invent a 0.95/"Very High" (or a
+      // 0%) reading from requests_handled, which displayed a fabricated
+      // measurement the backend never made.
       agentsStatus = (Array.isArray(statusData) ? statusData : []).map(a => ({
         ...a,
-        confidence: a.confidence ?? (a.requests_handled > 0 ? 0.95 : 0)
+        confidence: typeof a.confidence === 'number' ? a.confidence : null
       }));
 
       // Normalize events - map 'agent' to 'agent_name', add description
@@ -338,6 +345,8 @@
         agent_name: e.agent_name || e.agent || 'Unknown',
         description: e.message || e.file || e.event_type
       }));
+      // A full page back from the server means there's probably more to load.
+      hasMoreEvents = rawEvents.length >= eventsLimit;
 
       loading = false;
       lastUpdated = new Date();
@@ -402,9 +411,9 @@
         themeObserver.disconnect();
       }
 
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
+      // The 30s refresh interval is owned entirely by the $effect above
+      // (it creates it and returns its own teardown). Clearing it here too
+      // was redundant double-ownership; removed.
 
       Object.values(charts).forEach(chart => destroyChart(chart));
     };
@@ -464,7 +473,7 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Agents
         </div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {formatNumber(agentsStatus.length)}
         </div>
       </div>
@@ -473,14 +482,14 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Currently Running
         </div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {formatNumber(runningAgents.length)}
         </div>
       </div>
 
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Idle Agents</div>
-        <div class="text-sm font-mono text-body">
+        <div class="text-lg font-mono text-body">
           {formatNumber(idleAgents.length)}
         </div>
       </div>
@@ -543,7 +552,6 @@
         {#each runningAgents as agent (agent.agent_name)}
           <div
             class="bg-canvas border border-border rounded-lg p-4 hover:border-accent transition-all"
-            style="border-left: 3px solid {getConfidenceColor(agent.confidence)}"
           >
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
@@ -561,15 +569,17 @@
                   {agent.is_running ? 'Running' : 'Active'}
                 </span>
               </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-muted">Confidence:</span>
-                <span
-                  class="font-semibold font-mono"
-                  style="color: {getConfidenceColor(agent.confidence)}"
-                >
-                  {(agent.confidence * 100).toFixed(0)}% ({getConfidenceLabel(agent.confidence)})
-                </span>
-              </div>
+              {#if agent.confidence != null}
+                <div class="flex justify-between text-sm">
+                  <span class="text-muted">Confidence:</span>
+                  <span
+                    class="font-semibold font-mono"
+                    style="color: {getConfidenceColor(agent.confidence)}"
+                  >
+                    {(agent.confidence * 100).toFixed(0)}% ({getConfidenceLabel(agent.confidence)})
+                  </span>
+                </div>
+              {/if}
               {#if agent.last_seen}
                 <div class="flex justify-between text-sm">
                   <span class="text-muted">Last Seen:</span>
@@ -625,21 +635,25 @@
                   </span>
                 </td>
                 <td class="px-3 py-1">
-                  <div class="flex items-center gap-3">
-                    <div class="flex-1 h-2 bg-canvas rounded overflow-hidden">
-                      <div
-                        class="h-full transition-all duration-300"
-                        style="width: {agent.confidence * 100}%; background: {getConfidenceColor(
-                          agent.confidence
-                        )}"
-                      ></div>
+                  {#if agent.confidence != null}
+                    <div class="flex items-center gap-3">
+                      <div class="flex-1 h-2 bg-canvas rounded overflow-hidden">
+                        <div
+                          class="h-full transition-all duration-300"
+                          style="width: {agent.confidence * 100}%; background: {getConfidenceColor(
+                            agent.confidence
+                          )}"
+                        ></div>
+                      </div>
+                      <span
+                        class="font-semibold"
+                        style="color: {getConfidenceColor(agent.confidence)}"
+                        >{(agent.confidence * 100).toFixed(0)}%</span
+                      >
                     </div>
-                    <span
-                      class="font-semibold"
-                      style="color: {getConfidenceColor(agent.confidence)}"
-                      >{(agent.confidence * 100).toFixed(0)}%</span
-                    >
-                  </div>
+                  {:else}
+                    <span class="text-muted">—</span>
+                  {/if}
                 </td>
                 <td class="px-3 py-1 text-body">{formatDateTime(agent.last_seen)}</td>
               </tr>
@@ -664,9 +678,9 @@
           <span class="text-sm text-muted font-sans font-semibold">Event Type:</span>
           {#each availableEventTypes as type (type)}
             <button
-              class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
+              class="px-3 py-1.5 rounded text-xs font-mono transition-colors border"
               class:bg-accent={selectedEventTypes.includes(type)}
-              class:text-white={selectedEventTypes.includes(type)}
+              class:text-canvas={selectedEventTypes.includes(type)}
               class:border-accent={selectedEventTypes.includes(type)}
               class:bg-canvas={!selectedEventTypes.includes(type)}
               class:border-border={!selectedEventTypes.includes(type)}
@@ -674,7 +688,6 @@
               onclick={() => toggleEventType(type)}
             >
               {type}
-              {#if selectedEventTypes.includes(type)}{/if}
             </button>
           {/each}
         </div>
@@ -684,9 +697,9 @@
           <span class="text-sm text-muted font-sans font-semibold">Date Range:</span>
           {#each ['all', 'today', '7d', '30d'] as range (range)}
             <button
-              class="px-3 py-1.5 rounded text-sm font-sans transition-colors border"
+              class="px-3 py-1.5 rounded text-xs font-mono transition-colors border"
               class:bg-accent={dateRange === range}
-              class:text-white={dateRange === range}
+              class:text-canvas={dateRange === range}
               class:border-accent={dateRange === range}
               class:bg-canvas={dateRange !== range}
               class:border-border={dateRange !== range}
@@ -700,7 +713,6 @@
                   : range === '7d'
                     ? 'Last 7 Days'
                     : 'Last 30 Days'}
-              {#if dateRange === range}{/if}
             </button>
           {/each}
         </div>
@@ -778,13 +790,13 @@
       </div>
 
       <!-- Load More Button -->
-      {#if filteredEvents.length > 0 && filteredEvents.length >= eventsLimit && filteredEvents.length < recentEvents.length}
+      {#if hasMoreEvents}
         <div class="mt-4 text-center">
           <ToolbarButton variant="primary" onClick={loadMoreEvents} disabled={loadingMore}>
             {#if loadingMore}
               <span class="inline-flex items-center gap-2">
                 <span
-                  class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                  class="w-4 h-4 border-2 border-canvas border-t-transparent rounded-full animate-spin"
                 ></span>
                 Loading...
               </span>
@@ -793,7 +805,11 @@
             {/if}
           </ToolbarButton>
           <p class="mt-2 text-sm text-muted font-sans">
-            Showing {filteredEvents.length} of {recentEvents.length} events
+            {#if hasActiveFilters}
+              Showing {filteredEvents.length} of {recentEvents.length} loaded events
+            {:else}
+              Showing {recentEvents.length} events
+            {/if}
           </p>
         </div>
       {/if}

@@ -151,7 +151,6 @@
     </div>
   {:else if data.entries.length === 0}
     <EmptyState
-      icon="💬"
       title="No Activity Yet"
       description="Start a conversation with Claude Code to see activity here."
     />

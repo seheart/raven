@@ -482,7 +482,7 @@
             <PlaceholderPage title="Design System" description="Failed to load" />
           {/await}
         </ErrorBoundary>
-      {:else if activeTab === 'style-lab'}
+      {:else if activeTab === 'style-lab' && import.meta.env.DEV}
         <ErrorBoundary name="Style Lab">
           {#await import('./lib/pages/StyleLabPage.svelte')}
             <PlaceholderPage title="Style Lab" description="Loading..." />
@@ -492,7 +492,7 @@
             <PlaceholderPage title="Style Lab" description="Failed to load" />
           {/await}
         </ErrorBoundary>
-      {:else if activeTab === 'light-lab'}
+      {:else if activeTab === 'light-lab' && import.meta.env.DEV}
         <ErrorBoundary name="Light Lab">
           {#await import('./lib/pages/LightLabPage.svelte')}
             <PlaceholderPage title="Light Lab" description="Loading..." />
@@ -502,7 +502,7 @@
             <PlaceholderPage title="Light Lab" description="Failed to load" />
           {/await}
         </ErrorBoundary>
-      {:else if activeTab === 'pulse-lab'}
+      {:else if activeTab === 'pulse-lab' && import.meta.env.DEV}
         <ErrorBoundary name="Pulse Lab">
           {#await import('./lib/pages/PulseLabPage.svelte')}
             <PlaceholderPage title="Pulse Lab" description="Loading..." />
@@ -512,7 +512,7 @@
             <PlaceholderPage title="Pulse Lab" description="Failed to load" />
           {/await}
         </ErrorBoundary>
-      {:else if activeTab === 'llm-lab'}
+      {:else if activeTab === 'llm-lab' && import.meta.env.DEV}
         <ErrorBoundary name="LLM Lab">
           {#await import('./lib/pages/LlmLabPage.svelte')}
             <PlaceholderPage title="LLM Lab" description="Loading..." />

@@ -11,6 +11,7 @@
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
+  import { toasts } from '../toastStore.js';
 
   let errors = $state([]);
   let total = $state(0);
@@ -35,7 +36,16 @@
 
       const data = await api.get(`/errors?${params}`);
       errors = data.errors || (Array.isArray(data) ? data : []);
-      total = data.total || errors.length;
+      // Only fall back when total is truly absent. When falling back on a full
+      // page, assume there may be more so pagination doesn't collapse a full
+      // page into a misleading "page 1 of 1".
+      if (data.total != null) {
+        total = data.total;
+      } else if (errors.length === pageSize) {
+        total = (currentPage + 1) * pageSize + 1;
+      } else {
+        total = currentPage * pageSize + errors.length;
+      }
       loadError = null;
     } catch (err) {
       // Don't swallow — surface inline so the page never silently shows
@@ -49,14 +59,16 @@
   }
 
   async function clearAll() {
+    // Destructive — keep a native confirm.
     if (!confirm('Clear all error logs?')) return;
     try {
       await api.delete('/errors/clear');
       errors = [];
       total = 0;
       selectedError = null;
+      toasts.success('Error log cleared');
     } catch (err) {
-      console.error('Failed to clear:', err);
+      toasts.error('Failed to clear error log: ' + (err?.message || String(err)));
     }
   }
 
@@ -175,7 +187,7 @@
     />
   {:else}
     <div class="bg-surface border border-border rounded-lg">
-      <div class="divide-y divide-[var(--border)] max-h-[500px] overflow-y-auto">
+      <div class="divide-y divide-border max-h-[500px] overflow-y-auto">
         {#each errors as err (err.id)}
           <div>
             <button

@@ -8,7 +8,7 @@
   import { onMount } from 'svelte';
   import { dataService } from '../../dataService.js';
   import { projectFilter, availableProjects } from '../../projectFilterStore.js';
-  import { settings } from '../../stores/settingsStore.js';
+  import { settings, uiSettings } from '../../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { formatUsd } from '../../utils/formatUsd.js';
 
@@ -72,6 +72,22 @@
 
   function setProjectFilter(value) {
     projectFilter.set(value);
+  }
+
+  // Footer utility links (About/Design/Roadmap/Diagnostic/Settings + theme)
+  // live in a `hidden lg:block` footer, so below `lg` they have no home.
+  // Surface them in the expanded mobile menu so the half-screen design
+  // center can still reach Settings, the theme toggle, etc.
+  const utilityLinks = [
+    { label: 'Settings', path: '/settings' },
+    { label: 'About', path: '/about' },
+    { label: 'Roadmap', path: '/roadmap' },
+    { label: 'Design System', path: '/design-system' },
+    { label: 'Diagnostic', path: '/diagnostic' }
+  ];
+  let isDark = $derived($uiSettings.theme === 'dark');
+  function toggleTheme() {
+    settings.updateUI({ theme: isDark ? 'light' : 'dark' });
   }
 
   // Five top-level tabs after the May 2026 IA refactor.
@@ -390,5 +406,34 @@
         </nav>
       </div>
     {/if}
+
+    <!--
+      Utility menu — only at narrow widths (<lg), where the footer that
+      normally carries these links is hidden. Mirrors the footer's About /
+      Design / Roadmap / Diagnostic / Settings + theme toggle so every
+      utility page stays reachable at the half-screen design center.
+    -->
+    <div class="lg:hidden border-t border-[var(--border)] bg-[var(--bg)]">
+      <nav
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 font-sans"
+        aria-label="Utility navigation"
+      >
+        {#each utilityLinks as link (link.path)}
+          <button
+            onclick={e => handleNavClick(e, link.path)}
+            class="text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap"
+          >
+            {link.label}
+          </button>
+        {/each}
+        <button
+          onclick={toggleTheme}
+          class="ml-auto text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap"
+          aria-label="Switch to {isDark ? 'light' : 'dark'} theme"
+        >
+          {isDark ? 'Light mode' : 'Dark mode'}
+        </button>
+      </nav>
+    </div>
   </div>
 </header>

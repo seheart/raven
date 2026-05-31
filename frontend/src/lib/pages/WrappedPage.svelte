@@ -81,7 +81,10 @@
   }
 
   function onKey(e) {
-    if (!payload) return;
+    // Bail if there are no cards — a brand-new install with no activity can
+    // return an empty deck, and `cards.length - 1` would be -1 (scrollToCard
+    // would no-op but the preventDefault still hijacks keys for nothing).
+    if (!payload?.cards?.length) return;
     const last = payload.cards.length - 1;
     if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
       e.preventDefault();
@@ -214,6 +217,18 @@
         onRetry={load}
       />
     </div>
+  {:else if payload && !payload.cards?.length}
+    <!-- Empty deck: a fresh install with no activity yet. Without this the
+         rail counter reads "01 / 00" and the keyboard nav has nothing to
+         move through. -->
+    <div class="empty-wrap">
+      <h2 class="empty-title">Nothing to look back on yet</h2>
+      <p class="empty-body">
+        Once you've spent some time working with Raven, this is where your year-in-review will live
+        — the projects you lived in, the tools that carried you, the shape of your months. Come back
+        after a few sessions.
+      </p>
+    </div>
   {:else if payload}
     <!-- Side rail: window label + dot indicators. Fixed so it floats on
          every card. Each dot is a focusable button so keyboard users can
@@ -243,21 +258,38 @@
         <span class="rail-counter-sep">/</span>
         <span class="rail-counter-tot">{String(payload.cards.length).padStart(2, '0')}</span>
       </div>
+      <!-- Discoverability: the global keydown handler hijacks space / arrows
+           to advance cards, so tell the user that's possible. -->
+      <div class="rail-hint">space / ↑ ↓ to move</div>
     </aside>
 
     <!-- Narrow-width progress strip — sticky to the top of the scroll
          region. Replaces the side rail (which is hidden below xl) so
          users still see where they are in the card sequence. -->
-    <div class="narrow-progress xl:hidden" aria-hidden="true">
-      <span class="narrow-progress-num">{String(activeIdx + 1).padStart(2, '0')}</span>
-      <span class="narrow-progress-sep">/</span>
-      <span class="narrow-progress-tot">{String(payload.cards.length).padStart(2, '0')}</span>
-      <span class="narrow-progress-bar">
+    <!-- Below xl the side rail (the accessible position indicator) is
+         display:none, so this strip is the ONLY position cue. Make it a
+         polite live region with a spoken label so SR users at narrow widths
+         still hear where they are as cards advance. -->
+    <div
+      class="narrow-progress xl:hidden"
+      role="status"
+      aria-live="polite"
+      aria-label="Card {activeIdx + 1} of {payload.cards.length}. Use space or arrow keys to move."
+    >
+      <span class="narrow-progress-num" aria-hidden="true"
+        >{String(activeIdx + 1).padStart(2, '0')}</span
+      >
+      <span class="narrow-progress-sep" aria-hidden="true">/</span>
+      <span class="narrow-progress-tot" aria-hidden="true"
+        >{String(payload.cards.length).padStart(2, '0')}</span
+      >
+      <span class="narrow-progress-bar" aria-hidden="true">
         <span
           class="narrow-progress-bar-fill"
           style="width: {((activeIdx + 1) / payload.cards.length) * 100}%"
         ></span>
       </span>
+      <span class="narrow-progress-hint" aria-hidden="true">space / arrows</span>
     </div>
 
     {#each payload.cards as rawCard, i (rawCard.id)}
@@ -320,19 +352,21 @@
     height: 8px;
     border-radius: 50%;
     background: var(--chart-1);
-    box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.5);
+    /* Token-derived so the pulse halo adapts between light/dark instead of
+       being pinned to the light-mode --chart-1 literal. */
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--chart-1) 50%, transparent);
     animation: pulse 1.6s infinite;
   }
 
   @keyframes pulse {
     0% {
-      box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.4);
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--chart-1) 40%, transparent);
     }
     70% {
-      box-shadow: 0 0 0 14px rgba(217, 119, 87, 0);
+      box-shadow: 0 0 0 14px color-mix(in oklab, var(--chart-1) 0%, transparent);
     }
     100% {
-      box-shadow: 0 0 0 0 rgba(217, 119, 87, 0);
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--chart-1) 0%, transparent);
     }
   }
 
@@ -340,6 +374,27 @@
     max-width: 36rem;
     margin: 4rem auto;
     padding: 0 1.5rem;
+  }
+
+  .empty-wrap {
+    max-width: 36rem;
+    margin: 6rem auto;
+    padding: 0 1.5rem;
+    text-align: center;
+  }
+  .empty-title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-heading);
+    margin: 0 0 1rem 0;
+  }
+  .empty-body {
+    color: var(--muted);
+    font-family: var(--font-sans, system-ui);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
   }
 
   /* Side rail. Fixed positioning + a small responsive breakpoint hide on
@@ -414,6 +469,14 @@
   .rail-counter-num {
     color: var(--chart-1);
     font-weight: 600;
+  }
+  .rail-hint {
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-align: right;
+    max-width: 7rem;
   }
 
   /* Hide rail below xl (1280px) — at half-screen / tablet widths the
@@ -490,10 +553,9 @@
     color: var(--card-color);
     margin-bottom: 1.5rem;
     word-break: break-word;
-    /* Subtle text shadow that picks up the card color so the giant stat
-       doesn't sit dead on the canvas. Tuned faint enough that light mode
-       still reads as crisp. */
-    text-shadow: 0 4px 20px color-mix(in oklab, var(--card-color) 22%, transparent);
+    /* No text-shadow glow — RULE-1 ("legit but with the nebula") keeps the
+       atmospheric radial/gradient card wash but drops decorative glow on
+       every element. The card background already supplies the depth. */
   }
   .card-support {
     color: var(--text);
@@ -564,5 +626,11 @@
     height: 100%;
     background: var(--accent);
     transition: width 0.3s ease;
+  }
+  .narrow-progress-hint {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    white-space: nowrap;
   }
 </style>
