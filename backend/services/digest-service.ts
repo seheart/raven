@@ -61,6 +61,42 @@ interface WeeklyDigest {
   };
 }
 
+// ── Daily digest types ────────────────────────────────────────────
+interface DailyDigestLead {
+  kind: 'quiet' | 'returning' | 'busy' | 'late-night' | 'focus' | 'streak' | 'top-project';
+  text: string;
+}
+
+interface DailyDigest {
+  /** Local calendar day, YYYY-MM-DD. */
+  day: string;
+  /** Friendly label, e.g. "Today" / "Saturday". */
+  day_label: string;
+  day_start: string;
+  day_end: string;
+  lead: DailyDigestLead;
+  beats: WeeklyDigestBeat[];
+  stats: {
+    events: number;
+    files: number;
+    cost_usd: number;
+    requests: number;
+    top_project: string | null;
+    top_project_share: number;
+    top_project_events: number;
+    longest_session_seconds: number;
+    top_model: string | null;
+    top_model_requests: number;
+    projects: Array<{ project: string; events: number }>;
+    /** Trailing-7-day daily averages (excluding the digest day). */
+    avg_events_7d: number;
+    avg_cost_7d: number;
+    peak_hour: number | null;
+    streak_days: number;
+    returning_project: { project: string; days_since_last: number } | null;
+  };
+}
+
 export interface DigestService {
   /**
    * Returns (and caches) the digest for the week containing `at`.
@@ -72,6 +108,13 @@ export interface DigestService {
   recompute(at?: Date): WeeklyDigest;
   /** Recent digests (descending by week_start). */
   recent(limit?: number): WeeklyDigest[];
+  /**
+   * Returns (and caches) the digest for the calendar day containing `at`.
+   * Short TTL while the day is in progress so "today" stays live.
+   */
+  getDailyOrCompute(at?: Date): DailyDigest;
+  /** Force recompute and persist the daily digest. */
+  recomputeDaily(at?: Date): DailyDigest;
 }
 
 // ── Date helpers ──────────────────────────────────────────────────
@@ -398,6 +441,343 @@ export function createDigestService(db: RavenDB): DigestService {
     return digest;
   }
 
+  // ── Daily digest ──────────────────────────────────────────────
+  // Narrates one calendar day against a trailing-7-day baseline, so a
+  // standout day ("your busiest in a while") reads as a moment rather
+  // than a raw count. Local-day boundaries — the digest day is the
+  // user's wall-clock day, matching how they'd describe "today".
+  function computeDaily(at: Date): DailyDigest {
+    const dayStart = new Date(at);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+    const startIso = dayStart.toISOString();
+    const endIso = dayEnd.toISOString();
+    // YYYY-MM-DD in local time (not toISOString, which is UTC).
+    const dayKey = `${dayStart.getFullYear()}-${String(dayStart.getMonth() + 1).padStart(2, '0')}-${String(dayStart.getDate()).padStart(2, '0')}`;
+
+    const now = new Date();
+    const isToday =
+      dayStart.getFullYear() === now.getFullYear() &&
+      dayStart.getMonth() === now.getMonth() &&
+      dayStart.getDate() === now.getDate();
+    const dayLabel = isToday
+      ? 'Today'
+      : dayStart.toLocaleDateString(undefined, { weekday: 'long' });
+
+    const projects = db.db
+      .prepare(
+        `SELECT project_name AS project, COUNT(*) AS events
+         FROM events
+         WHERE timestamp >= ? AND timestamp <= ?
+           AND project_name IS NOT NULL AND project_name != ''
+         GROUP BY project_name ORDER BY events DESC`
+      )
+      .all(startIso, endIso) as Array<{ project: string; events: number }>;
+
+    const totals = db.db
+      .prepare(
+        `SELECT COUNT(*) AS events, COUNT(DISTINCT filepath) AS files
+         FROM events WHERE timestamp >= ? AND timestamp <= ?`
+      )
+      .get(startIso, endIso) as { events: number; files: number } | undefined;
+
+    const costRow = db.db
+      .prepare(
+        `SELECT COALESCE(SUM(estimated_cost_usd), 0) AS cost_usd, COUNT(*) AS requests
+         FROM token_usage WHERE timestamp >= ? AND timestamp <= ?`
+      )
+      .get(startIso, endIso) as { cost_usd: number; requests: number } | undefined;
+
+    const topModelRow = db.db
+      .prepare(
+        `SELECT model, COUNT(*) AS requests
+         FROM token_usage
+         WHERE timestamp >= ? AND timestamp <= ? AND model IS NOT NULL AND model != '' AND model NOT LIKE '<%'
+         GROUP BY model ORDER BY requests DESC LIMIT 1`
+      )
+      .get(startIso, endIso) as { model: string; requests: number } | undefined;
+
+    const longestRow = db.db
+      .prepare(
+        `SELECT MAX(span) AS s FROM (
+           SELECT (julianday(MAX(timestamp)) - julianday(MIN(timestamp))) * 86400 AS span
+           FROM events
+           WHERE timestamp >= ? AND timestamp <= ? AND session_id IS NOT NULL
+           GROUP BY session_id HAVING COUNT(*) > 1
+         )`
+      )
+      .get(startIso, endIso) as { s: number | null } | undefined;
+    const longestSessionSeconds = Math.floor(longestRow?.s ?? 0);
+
+    const peakRow = db.db
+      .prepare(
+        `SELECT CAST(strftime('%H', timestamp, 'localtime') AS INTEGER) AS hr, COUNT(*) AS c
+         FROM events WHERE timestamp >= ? AND timestamp <= ?
+         GROUP BY hr ORDER BY c DESC LIMIT 1`
+      )
+      .get(startIso, endIso) as { hr: number; c: number } | undefined;
+    const peakHour = peakRow?.hr ?? null;
+
+    // Trailing 7-day baseline (the 7 days *before* the digest day), used
+    // to decide whether this day was unusually busy or quiet.
+    const baseStart = new Date(dayStart);
+    baseStart.setDate(baseStart.getDate() - 7);
+    const baseRows = db.db
+      .prepare(
+        `SELECT date(timestamp, 'localtime') AS d,
+                COUNT(*) AS events
+         FROM events
+         WHERE timestamp >= ? AND timestamp < ?
+         GROUP BY d`
+      )
+      .all(baseStart.toISOString(), startIso) as Array<{ d: string; events: number }>;
+    const baseCostRows = db.db
+      .prepare(
+        `SELECT date(timestamp, 'localtime') AS d,
+                COALESCE(SUM(estimated_cost_usd), 0) AS cost
+         FROM token_usage
+         WHERE timestamp >= ? AND timestamp < ?
+         GROUP BY d`
+      )
+      .all(baseStart.toISOString(), startIso) as Array<{ d: string; cost: number }>;
+    // Average across the 7 calendar days (active days only — zero-days
+    // would drag the baseline down and make every working day look "busy").
+    const avgEvents7d =
+      baseRows.length > 0 ? baseRows.reduce((a, r) => a + r.events, 0) / baseRows.length : 0;
+    const avgCost7d =
+      baseCostRows.length > 0
+        ? baseCostRows.reduce((a, r) => a + r.cost, 0) / baseCostRows.length
+        : 0;
+
+    // Returning-to-project: any project whose first edit today was preceded
+    // by a >= 2-day gap (matches the Today-narrative threshold).
+    const returningRows = db.db
+      .prepare(
+        `SELECT cur.project_name AS project, cur.first_today AS first_today, prev.last_before AS last_before
+         FROM (
+           SELECT project_name, MIN(timestamp) AS first_today FROM events
+           WHERE timestamp >= ? AND timestamp <= ? AND project_name IS NOT NULL AND project_name != ''
+           GROUP BY project_name
+         ) AS cur
+         LEFT JOIN (
+           SELECT project_name, MAX(timestamp) AS last_before FROM events
+           WHERE timestamp < ? AND project_name IS NOT NULL AND project_name != ''
+           GROUP BY project_name
+         ) AS prev ON cur.project_name = prev.project_name`
+      )
+      .all(startIso, endIso, startIso) as Array<{
+      project: string;
+      first_today: string;
+      last_before: string | null;
+    }>;
+    let returning: { project: string; days_since_last: number } | null = null;
+    for (const r of returningRows) {
+      if (!r.last_before) continue;
+      const lastMidnight = new Date(r.last_before);
+      lastMidnight.setHours(0, 0, 0, 0);
+      const days = Math.round((dayStart.getTime() - lastMidnight.getTime()) / 86400000);
+      if (days >= 2 && (!returning || days > returning.days_since_last)) {
+        returning = { project: r.project, days_since_last: days };
+      }
+    }
+
+    // Streak: consecutive active days ending on the digest day.
+    const streakRows = db.db
+      .prepare(
+        `SELECT DISTINCT date(timestamp, 'localtime') AS d
+         FROM events WHERE timestamp >= ? AND timestamp <= ?
+         ORDER BY d DESC`
+      )
+      .all(new Date(dayStart.getTime() - 60 * 86400000).toISOString(), endIso) as Array<{
+      d: string;
+    }>;
+    let streakDays = 0;
+    if (streakRows.length > 0 && streakRows[0].d === dayKey) {
+      streakDays = 1;
+      for (let i = 1; i < streakRows.length; i++) {
+        const a = new Date(streakRows[i - 1].d + 'T00:00:00');
+        const b = new Date(streakRows[i].d + 'T00:00:00');
+        if (Math.round((a.getTime() - b.getTime()) / 86400000) === 1) streakDays++;
+        else break;
+      }
+    }
+
+    const events = totals?.events ?? 0;
+    const files = totals?.files ?? 0;
+    const cost = costRow?.cost_usd ?? 0;
+    const requests = costRow?.requests ?? 0;
+    const top = projects[0] ?? null;
+    const topShare = top && events > 0 ? top.events / events : 0;
+    const isLateNight = peakHour != null && (peakHour >= 22 || peakHour <= 4);
+
+    // ── Lead selection (priority order) ───────────────────────────
+    let lead: DailyDigestLead;
+    if (events === 0) {
+      lead = {
+        kind: 'quiet',
+        text: isToday
+          ? 'Quiet so far today — Raven is keeping watch.'
+          : 'A quiet day — nothing recorded.'
+      };
+    } else if (returning) {
+      lead = {
+        kind: 'returning',
+        text: `You came back to ${returning.project} after ${returning.days_since_last} ${plural(
+          returning.days_since_last,
+          'day',
+          'days'
+        )} away.`
+      };
+    } else if (avgEvents7d > 0 && events >= avgEvents7d * 1.6 && events >= 30) {
+      const ratio = (events / avgEvents7d).toFixed(1);
+      lead = {
+        kind: 'busy',
+        text: `${isToday ? "Today's" : 'A'} heavy day — ${events.toLocaleString()} ${plural(
+          events,
+          'change',
+          'changes'
+        )}, ${ratio}× your recent daily pace.`
+      };
+    } else if (isLateNight && events >= 20) {
+      lead = {
+        kind: 'late-night',
+        text: top ? `Burning the midnight oil on ${top.project}.` : 'Burning the midnight oil.'
+      };
+    } else if (top && topShare >= 0.7) {
+      const pct = Math.round(topShare * 100);
+      lead = {
+        kind: 'focus',
+        text: `Heads-down on ${top.project} — ${pct}% of ${isToday ? "today's" : "the day's"} work.`
+      };
+    } else if (streakDays >= 3) {
+      lead = {
+        kind: 'streak',
+        text: `Day ${streakDays} of your current streak — still going.`
+      };
+    } else if (top) {
+      lead = {
+        kind: 'top-project',
+        text: `${top.project} led ${isToday ? 'today' : 'the day'} with ${top.events} ${plural(
+          top.events,
+          'change',
+          'changes'
+        )}.`
+      };
+    } else {
+      lead = {
+        kind: 'top-project',
+        text: `${events} ${plural(events, 'change', 'changes')} logged.`
+      };
+    }
+
+    // ── Beats ─────────────────────────────────────────────────────
+    const beats: WeeklyDigestBeat[] = [];
+    if (cost > 0) {
+      const vsAvg =
+        avgCost7d > 0 && cost >= avgCost7d * 1.4
+          ? ` — above your ${fmtUsd(avgCost7d)}/day average`
+          : avgCost7d > 0 && cost <= avgCost7d * 0.6
+            ? ` — a lighter spend than usual`
+            : '';
+      beats.push({
+        glyph: '$',
+        tone: 'accent',
+        text: `${fmtUsd(cost)} across ${requests.toLocaleString()} ${plural(requests, 'request', 'requests')}${vsAvg}.`
+      });
+    }
+    if (files > 0) {
+      beats.push({
+        glyph: '◆',
+        tone: 'info',
+        text: `${files.toLocaleString()} ${plural(files, 'file', 'files')} touched, ${events.toLocaleString()} ${plural(events, 'change', 'changes')} in all.`
+      });
+    }
+    if (top && lead.kind !== 'focus' && lead.kind !== 'top-project' && projects.length >= 2) {
+      const pct = Math.round(topShare * 100);
+      beats.push({
+        glyph: '★',
+        tone: 'success',
+        text: `${top.project} took ${pct}%${projects.length >= 3 ? `, ahead of ${projects.length - 1} other projects` : ` over ${projects[1].project}`}.`
+      });
+    }
+    const dur = fmtDuration(longestSessionSeconds);
+    if (dur && longestSessionSeconds >= 25 * 60) {
+      beats.push({ glyph: '◐', tone: 'info', text: `Longest session: ${dur}.` });
+    }
+    if (topModelRow && lead.kind !== 'late-night') {
+      beats.push({
+        glyph: '◇',
+        tone: 'muted',
+        text: `Mostly ${topModelRow.model} (${topModelRow.requests.toLocaleString()} ${plural(topModelRow.requests, 'call', 'calls')}).`
+      });
+    }
+
+    return {
+      day: dayKey,
+      day_label: dayLabel,
+      day_start: startIso,
+      day_end: endIso,
+      lead,
+      beats: beats.slice(0, 4),
+      stats: {
+        events,
+        files,
+        cost_usd: cost,
+        requests,
+        top_project: top?.project ?? null,
+        top_project_share: topShare,
+        top_project_events: top?.events ?? 0,
+        longest_session_seconds: longestSessionSeconds,
+        top_model: topModelRow?.model ?? null,
+        top_model_requests: topModelRow?.requests ?? 0,
+        projects,
+        avg_events_7d: avgEvents7d,
+        avg_cost_7d: avgCost7d,
+        peak_hour: peakHour,
+        streak_days: streakDays,
+        returning_project: returning
+      }
+    };
+  }
+
+  function persistDaily(digest: DailyDigest): void {
+    db.db
+      .prepare(`DELETE FROM insights WHERE type = ? AND title = ?`)
+      .run('daily_recap', digest.day);
+    db.db
+      .prepare(
+        `INSERT INTO insights (id, timestamp, type, title, content, model, duration_ms, context_events)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        `dr_${randomUUID()}`,
+        new Date().toISOString(),
+        'daily_recap',
+        digest.day,
+        JSON.stringify(digest),
+        'aggregator',
+        0,
+        digest.stats.events
+      );
+  }
+
+  function getCachedDaily(dayKey: string, maxAgeMs: number): DailyDigest | null {
+    const row = db.db
+      .prepare(
+        `SELECT timestamp, content FROM insights
+         WHERE type = 'daily_recap' AND title = ? ORDER BY timestamp DESC LIMIT 1`
+      )
+      .get(dayKey) as { timestamp: string; content: string } | undefined;
+    if (!row) return null;
+    if (Date.now() - new Date(row.timestamp).getTime() > maxAgeMs) return null;
+    try {
+      return JSON.parse(row.content) as DailyDigest;
+    } catch {
+      return null;
+    }
+  }
+
   function persist(digest: WeeklyDigest): void {
     // One row per week, replace prior cached version. Stored on the
     // existing insights table to avoid a new schema for what is
@@ -475,6 +855,31 @@ export function createDigestService(db: RavenDB): DigestService {
         }
       }
       return out;
+    },
+
+    getDailyOrCompute(at = new Date()) {
+      const d = new Date(at);
+      d.setHours(0, 0, 0, 0);
+      const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      // Today is still in motion → short TTL so it stays live. Past days are
+      // settled → cache hard.
+      const now = new Date();
+      const isToday =
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate();
+      const ttl = isToday ? 5 * 60 * 1000 : 24 * 60 * 60 * 1000;
+      const cached = getCachedDaily(dayKey, ttl);
+      if (cached) return cached;
+      const fresh = computeDaily(at);
+      persistDaily(fresh);
+      return fresh;
+    },
+
+    recomputeDaily(at = new Date()) {
+      const fresh = computeDaily(at);
+      persistDaily(fresh);
+      return fresh;
     }
   };
 }

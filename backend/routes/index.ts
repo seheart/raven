@@ -32,6 +32,7 @@ import type { DiffRiskRepository } from '../repositories/diff-risk-repository.js
 import type { DiffAnnotationsRepository } from '../repositories/diff-annotations-repository.js';
 import type { DiffAnnotationService } from '../services/diff-annotation-service.js';
 import type { DigestService } from '../services/digest-service.js';
+import type { PersonaService } from '../services/persona-service.js';
 import type { DecisionsService } from '../services/decisions-service.js';
 import type { DerivedDecisionsService } from '../services/derived-decisions-service.js';
 import type { PluginRuntime } from '../services/plugin-runtime.js';
@@ -67,6 +68,7 @@ import { createDashboardRouter } from './dashboard.js';
 import { createDevRouter } from './dev.js';
 import { createDiffsRouter } from './diffs.js';
 import { createDigestsRouter } from './digests.js';
+import { createPersonaRouter } from './persona.js';
 import { createDecisionsRouter } from './decisions.js';
 import { createContextWindowRouter } from './context-window.js';
 import { createPluginsRouter } from './plugins.js';
@@ -150,6 +152,7 @@ interface WireRoutesDeps {
   diffAnnotationsRepository: DiffAnnotationsRepository;
   diffAnnotationService: DiffAnnotationService;
   digestService: DigestService;
+  personaService: PersonaService;
   decisionsService: DecisionsService;
   derivedDecisionsService: DerivedDecisionsService;
   pluginRuntime: PluginRuntime;
@@ -208,6 +211,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     diffAnnotationsRepository,
     diffAnnotationService,
     digestService,
+    personaService,
     decisionsService,
     derivedDecisionsService,
     pluginRuntime,
@@ -326,6 +330,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     createDiffsRouter(fileEventsRepository, diffAnnotationsRepository, diffAnnotationService)
   );
   app.use('/api/digests', createDigestsRouter(digestService));
+  app.use('/api/persona', createPersonaRouter(personaService));
   app.use('/api/decisions', createDecisionsRouter(decisionsService, derivedDecisionsService));
   app.use('/api/context', createContextWindowRouter(tokenUsageRepository));
   app.use('/api/plugins', createPluginsRouter(pluginRuntime));

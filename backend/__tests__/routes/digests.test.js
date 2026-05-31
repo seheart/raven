@@ -190,3 +190,57 @@ describe('Digest Routes', () => {
     expect(res.body[0]).toHaveProperty('week_key');
   });
 });
+
+describe('Daily Digest', () => {
+  // The day-2 events (Wed) include a 12:00 UTC edit, which stays on the same
+  // calendar day across all common timezones — so these assertions hold
+  // regardless of the test machine's TZ (daily uses local-day boundaries).
+  const DAY = new Date('2026-04-29T12:00:00Z');
+
+  test('computes a well-formed digest for the day', () => {
+    const d = svc.getDailyOrCompute(DAY);
+    expect(d.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(typeof d.day_label).toBe('string');
+    expect(typeof d.lead.text).toBe('string');
+    expect(d.lead.text.length).toBeGreaterThan(0);
+    expect(Array.isArray(d.beats)).toBe(true);
+    expect(d.stats.events).toBeGreaterThanOrEqual(1);
+    expect(typeof d.stats.top_project).toBe('string');
+  });
+
+  test('flags atf as a returning project after its multi-day gap', () => {
+    const d = svc.getDailyOrCompute(DAY);
+    // atf was last touched 12 days before its day-2 comeback edit.
+    expect(d.stats.returning_project).not.toBeNull();
+    expect(d.stats.returning_project.project).toBe('atf');
+    expect(d.stats.returning_project.days_since_last).toBeGreaterThanOrEqual(2);
+  });
+
+  test('quiet lead when the day has no events', () => {
+    const d = svc.getDailyOrCompute(new Date('2027-01-04T12:00:00Z'));
+    expect(d.lead.kind).toBe('quiet');
+    expect(d.stats.events).toBe(0);
+    expect(d.beats.length).toBe(0);
+  });
+
+  test('GET /api/digests/daily?at=ISO returns the digest', async () => {
+    const res = await request(app).get('/api/digests/daily?at=2026-04-29T12:00:00Z');
+    expect(res.status).toBe(200);
+    expect(res.body.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(res.body.lead).toHaveProperty('text');
+    expect(Array.isArray(res.body.beats)).toBe(true);
+  });
+
+  test('GET /api/digests/daily rejects an invalid `at`', async () => {
+    const res = await request(app).get('/api/digests/daily?at=not-a-date');
+    expect(res.status).toBe(400);
+  });
+
+  test('POST /api/digests/daily/recompute returns a fresh digest', async () => {
+    const res = await request(app)
+      .post('/api/digests/daily/recompute')
+      .send({ at: '2026-04-29T12:00:00Z' });
+    expect(res.status).toBe(200);
+    expect(res.body.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});

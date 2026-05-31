@@ -13,6 +13,8 @@
   import AnomalyBanner from '../components/today/AnomalyBanner.svelte';
   import MilestonesPanel from '../components/today/MilestonesPanel.svelte';
   import WeekRecap from '../components/today/WeekRecap.svelte';
+  import DailyDigest from '../components/today/DailyDigest.svelte';
+  import PersonaCard from '../components/today/PersonaCard.svelte';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
 
@@ -30,14 +32,6 @@
   /** @type {string|null} */
   let summaryError = $state(null);
   let summaryDisabled = $state(false);
-
-  /**
-   * @typedef {{events:number, files:number, projects:Array<{project:string,events:number,files:number,days_active?:number}>, top_project:string|null, longest_session_seconds:number}} NarrativeToday
-   * @typedef {{events:number, files:number, projects:Array<{project:string,events:number,files:number,days_active:number}>, top_project:string|null, days_active:number}} NarrativeWeek
-   * @typedef {{today:NarrativeToday, week:NarrativeWeek, returning:Array<{project:string,days_since_last_event:number}>}} Narrative
-   */
-  /** @type {Narrative|null} */
-  let narrative = $state(null);
 
   /** @type {Array<{bucket:string, cost_usd:number, requests:number}>} */
   let costTimeline = $state([]);
@@ -296,162 +290,6 @@
     }
   }
 
-  async function loadNarrative() {
-    try {
-      const data = await api.get('/today/narrative');
-      narrative = data;
-    } catch (err) {
-      if (err?.name !== 'AbortError') logger.warn('today/narrative failed:', err);
-    }
-  }
-
-  // ── Narrative beats ────────────────────────────────────────────
-  // Translate aggregated facts into second-person sentences. The
-  // tone: specific, encouraging, never canned. Each beat is only
-  // emitted when the data actually supports it — silence beats noise.
-  /** @param {number} n @param {string} singular @param {string} plural */
-  function plural(n, singular, plural) {
-    return n === 1 ? singular : plural;
-  }
-
-  /** @param {number} seconds */
-  function fmtDuration(seconds) {
-    if (!seconds || seconds < 60) return null;
-    const m = Math.floor(seconds / 60);
-    if (m < 60) return `${m} ${plural(m, 'minute', 'minutes')}`;
-    const h = Math.floor(m / 60);
-    const remM = m % 60;
-    if (remM === 0) return `${h} ${plural(h, 'hour', 'hours')}`;
-    return `${h}h ${remM}m`;
-  }
-
-  /**
-   * @typedef {{glyph:string, tone:'accent'|'success'|'info'|'warning'|'muted', text:string}} Beat
-   */
-  /** @returns {Beat[]} */
-  function deriveBeats() {
-    /** @type {Beat[]} */
-    const beats = [];
-    if (!narrative) return beats;
-    const { today, week, returning } = narrative;
-
-    // 1. Daily tally — one-line summary of today's center of gravity.
-    //    Fires whenever there's been activity AND cost data has loaded.
-    //    The page-opener beat the user reads first.
-    if (today.events > 0 && today.top_project && (Number(costs?.total_cost_usd) || 0) > 0) {
-      const cost = Number(costs.total_cost_usd) || 0;
-      const reqs = Number(costs?.total_requests) || 0;
-      const costStr = cost >= 0.01 ? formatUsd(cost) : '<$0.01';
-      beats.push({
-        glyph: '☼',
-        tone: 'accent',
-        text:
-          reqs > 0
-            ? `Today you've spent ${costStr} on ${today.top_project} across ${reqs} ${plural(reqs, 'request', 'requests')}.`
-            : `Today you've spent ${costStr} on ${today.top_project}.`
-      });
-    }
-
-    // 2. Returning to a project — high relational value.
-    for (const r of returning.slice(0, 1)) {
-      const days = r.days_since_last_event;
-      const phrase =
-        days >= 7
-          ? `${days} ${plural(days, 'day', 'days')} away`
-          : `${days} ${plural(days, 'day', 'days')}`;
-      beats.push({
-        glyph: '↩',
-        tone: 'warning',
-        text: `Back on ${r.project} after ${phrase} — welcome back.`
-      });
-    }
-
-    // 3. Today's center of gravity (project breakdown).
-    if (today.projects.length === 1 && today.events > 0) {
-      const p = today.projects[0];
-      beats.push({
-        glyph: '◆',
-        tone: 'accent',
-        text: `Today you've been heads-down on ${p.project} — ${p.files} ${plural(p.files, 'file', 'files')}, ${p.events} ${plural(p.events, 'event', 'events')}.`
-      });
-    } else if (today.projects.length >= 2) {
-      const [a, b] = today.projects;
-      // If one clearly dominates (≥70%), call it out as focus.
-      const dominance = a.events / (a.events + b.events);
-      if (dominance >= 0.7) {
-        beats.push({
-          glyph: '◆',
-          tone: 'accent',
-          text: `Today you've been heads-down on ${a.project} (${a.events} of ${today.events} events).`
-        });
-      } else {
-        beats.push({
-          glyph: '◆',
-          tone: 'accent',
-          text: `Today you've moved between ${a.project} (${a.events}) and ${b.project} (${b.events}).`
-        });
-      }
-    }
-
-    // 4. The week's leader, when there's enough data to mean anything.
-    if (week.top_project && week.events >= 50 && week.projects.length >= 2) {
-      const lead = week.projects[0];
-      const share = Math.round((lead.events / week.events) * 100);
-      if (share >= 40) {
-        beats.push({
-          glyph: '★',
-          tone: 'success',
-          text: `This week, ${lead.project} has been your main focus — ${share}% of your activity, across ${lead.days_active} ${plural(lead.days_active, 'day', 'days')}.`
-        });
-      } else if (week.projects.length >= 3) {
-        beats.push({
-          glyph: '★',
-          tone: 'info',
-          text: `This week you've spread across ${week.projects.length} projects, ${week.days_active} ${plural(week.days_active, 'day', 'days')} active.`
-        });
-      }
-    }
-
-    // 5. Longest session today (only worth noting if substantial).
-    const dur = fmtDuration(today.longest_session_seconds);
-    if (dur && today.longest_session_seconds >= 30 * 60) {
-      beats.push({
-        glyph: '◐',
-        tone: 'info',
-        text: `Longest stretch today: ${dur}.`
-      });
-    }
-
-    // 6. First-day fallback when nothing else fired and there's no data.
-    if (beats.length === 0 && today.events === 0 && week.events === 0) {
-      beats.push({
-        glyph: '✶',
-        tone: 'muted',
-        text: 'No activity yet — your first session with Raven watching will fill this in.'
-      });
-    }
-
-    return beats.slice(0, 4);
-  }
-
-  const beats = $derived(deriveBeats());
-
-  /** @param {Beat['tone']} t */
-  function beatToneClass(t) {
-    switch (t) {
-      case 'accent':
-        return 'text-accent';
-      case 'success':
-        return 'text-success';
-      case 'info':
-        return 'text-info';
-      case 'warning':
-        return 'text-warning';
-      default:
-        return 'text-muted';
-    }
-  }
-
   // ── Summary loading ────────────────────────────────────────────
   // Strategy: try a fresh recent summary first. If none, request generation.
   // The backend may return 200 with content, or 202 if a generation is already
@@ -569,18 +407,14 @@
   }
 
   onMount(() => {
-    Promise.allSettled([
-      loadCosts(),
-      loadCostTimeline(),
-      loadActivity(),
-      loadEvents(),
-      loadNarrative()
-    ]).then(results => {
-      const firstFail = results.find(r => r.status === 'rejected');
-      if (firstFail && firstFail.reason?.name !== 'AbortError') {
-        loadError = firstFail.reason?.message || 'Failed to load Today data';
+    Promise.allSettled([loadCosts(), loadCostTimeline(), loadActivity(), loadEvents()]).then(
+      results => {
+        const firstFail = results.find(r => r.status === 'rejected');
+        if (firstFail && firstFail.reason?.name !== 'AbortError') {
+          loadError = firstFail.reason?.message || 'Failed to load Today data';
+        }
       }
-    });
+    );
 
     // Fire the LLM summary in parallel — it's slow and not blocking.
     loadSummary();
@@ -618,115 +452,81 @@
        was leaving an awkward dead band before any content; this is a
        narrative landing page, not a dashboard, so a tight top reads
        more "magazine cover" than "settings panel". -->
-  <div class="-mt-4 space-y-10">
-    <!-- Hero — narrated summary. The trust pill, h1, and subtitle sit
-         on a single tight stack so the eye lands on "Today" within the
-         first viewport-height even on shorter laptop screens.
-         The narrative is a single readable column (capped width) rather
-         than a dashboard grid. -->
-    <section>
+  <div class="-mt-4 space-y-8">
+    <!-- Top line — presence pill (doubling as live-connection indicator)
+         on the left, today's date on the right. Slim, so the persona hero
+         below lands as the first real content. -->
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div
+        class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
+        title={websocketConnected
+          ? 'Connected — live updates flowing'
+          : 'Disconnected from live updates'}
+      >
+        <span
+          class="w-1.5 h-1.5 rounded-full {websocketConnected
+            ? 'bg-success animate-pulse'
+            : 'bg-warning'}"
+          aria-hidden="true"
+        ></span>
+        <span>Always perched · your AI's steady companion</span>
+      </div>
+      <p class="hidden sm:block text-[11px] font-mono uppercase tracking-wide text-muted/80">
+        {todayLabel}
+      </p>
+    </div>
+
+    <!-- Persona hero — Raven's read on who you are at the keyboard. The
+         relationship anchor: a deterministic, data-derived profile that
+         makes the page feel like Raven has been paying attention. -->
+    <PersonaCard />
+
+    <!-- Raven's note — the optional LLM-narrated line. Supplemental color
+         under the persona, never load-bearing; quietly hidden when the
+         local model is disabled so the disabled state never dominates. -->
+    {#if summary || summaryLoading || summaryError}
       <div class="max-w-[48rem]">
-        <!-- Presence pill + live-connection indicator. The pulsing dot
-             doubles as WS-status (success when connected, warning when
-             not), absorbing what used to be a separate status strip.
-             Hero (pill + h1 + subtitle) only renders at lg+; at narrow
-             widths the collapsed nav already says "Dashboard › Narrative"
-             and the page lands directly on the narrative beats. -->
-        <div
-          class="hidden lg:inline-flex mb-3 items-center gap-2 px-2.5 py-1 rounded-full bg-surface border border-border text-[10px] font-mono uppercase tracking-wide text-muted"
-          title={websocketConnected
-            ? 'Connected — live updates flowing'
-            : 'Disconnected from live updates'}
-        >
-          <span
-            class="w-1.5 h-1.5 rounded-full {websocketConnected
-              ? 'bg-success animate-pulse'
-              : 'bg-warning'}"
-            aria-hidden="true"
-          ></span>
-          <span>Always perched · your AI's steady companion</span>
-        </div>
-        <h1
-          class="sr-only lg:not-sr-only text-3xl font-bold text-heading tracking-[-0.015em] leading-tight"
-        >
-          Today
-        </h1>
-        <p class="sr-only lg:not-sr-only lg:mt-0.5 text-sm text-muted font-sans">
-          {todayLabel} — a quick read of what's happened so far.
-        </p>
-
-        <!-- Narrative beats — deterministic 'you' copy from real data,
-             always rendered first. The LLM-generated paragraph below is
-             a nice-to-have, not the page's load-bearing content. Before
-             this rewrite, when the LLM was disabled (the common case
-             during dev) the entire hero collapsed into a config-error
-             message — making the landing read as broken. -->
-        <div class="mt-6 space-y-3">
-          {#if beats.length > 0}
-            {#each beats as beat (beat.text)}
-              <p class="flex items-baseline gap-3 text-base text-body font-sans leading-relaxed">
-                <span
-                  class="font-mono text-lg flex-shrink-0 {beatToneClass(beat.tone)}"
-                  aria-hidden="true">{beat.glyph}</span
-                >
-                <span>{beat.text}</span>
-              </p>
-            {/each}
-          {:else if !narrative}
-            <!-- Pre-load skeleton; only shows for the first ~second of page life. -->
-            <div class="space-y-2 animate-pulse" aria-label="Loading today's beats">
-              <div class="h-4 bg-surface-2 rounded w-3/4"></div>
-              <div class="h-4 bg-surface-2 rounded w-1/2"></div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- LLM-narrated paragraph — appears underneath the beats when
-             available, framed as one-line color rather than the page's
-             primary content. Quietly hidden when insights are disabled
-             so the disabled state doesn't dominate the landing. -->
-        {#if summary || summaryLoading || summaryError}
-          <div class="mt-6 pt-5 border-t border-border">
-            {#if summaryLoading && !summary}
-              <div class="space-y-2 animate-pulse" aria-label="Generating narrated summary">
-                <div class="h-4 bg-surface-2 rounded w-3/4"></div>
-                <div class="h-4 bg-surface-2 rounded w-1/2"></div>
-              </div>
-            {:else if summary}
-              <p class="text-base text-muted font-sans italic leading-relaxed">
-                <span aria-hidden="true" class="text-accent mr-1">“</span>{summary}<span
-                  aria-hidden="true"
-                  class="text-accent ml-1">”</span
-                >
-              </p>
-              <button
-                type="button"
-                onclick={loadSummary}
-                disabled={summaryLoading}
-                class="mt-2 text-[11px] font-mono uppercase tracking-wide text-muted hover:text-accent transition-colors disabled:opacity-50"
-              >
-                {summaryLoading ? 'Refreshing…' : '↻ Re-narrate'}
-              </button>
-            {:else if summaryError}
-              <p class="text-xs text-muted font-sans">
-                Narration unavailable: {summaryError}
-                <button
-                  type="button"
-                  onclick={loadSummary}
-                  class="ml-2 underline hover:text-accent transition-colors">try again</button
-                >
-              </p>
-            {/if}
+        {#if summaryLoading && !summary}
+          <div class="space-y-2 animate-pulse" aria-label="Generating narrated summary">
+            <div class="h-4 bg-surface-2 rounded w-3/4"></div>
+            <div class="h-4 bg-surface-2 rounded w-1/2"></div>
           </div>
-        {/if}
-
-        {#if loadError}
-          <div class="mt-4 bg-error/10 border-l-4 border-error text-error rounded-r p-3 text-sm">
-            {loadError}
+        {:else if summary}
+          <div class="text-[10px] font-mono uppercase tracking-wide text-muted mb-1.5">
+            Raven's note
           </div>
+          <p class="text-base text-muted font-sans italic leading-relaxed">
+            <span aria-hidden="true" class="text-accent mr-1">“</span>{summary}<span
+              aria-hidden="true"
+              class="text-accent ml-1">”</span
+            >
+          </p>
+          <button
+            type="button"
+            onclick={loadSummary}
+            disabled={summaryLoading}
+            class="mt-2 text-[11px] font-mono uppercase tracking-wide text-muted hover:text-accent transition-colors disabled:opacity-50"
+          >
+            {summaryLoading ? 'Refreshing…' : '↻ Re-narrate'}
+          </button>
+        {:else if summaryError}
+          <p class="text-xs text-muted font-sans">
+            Narration unavailable: {summaryError}
+            <button
+              type="button"
+              onclick={loadSummary}
+              class="ml-2 underline hover:text-accent transition-colors">try again</button
+            >
+          </p>
         {/if}
       </div>
-    </section>
+    {/if}
+
+    {#if loadError}
+      <div class="bg-error/10 border-l-4 border-error text-error rounded-r p-3 text-sm">
+        {loadError}
+      </div>
+    {/if}
 
     <!-- Anomaly banner — only renders when an agent is drifting. Sits
          right under the hero so a real problem can interrupt before the
@@ -739,12 +539,13 @@
          only when there's an unviewed milestone. -->
     <MilestonesPanel />
 
-    <!-- Week recap — Mon-anchored ISO-week digest with lead + supporting
-         beats. Inline, replaces the auto-popup modal. -->
-    <WeekRecap />
-
-    <!-- Beats now render in the hero (above), so the previous duplicate
-         "Narrative beats" section that lived here was removed. -->
+    <!-- Digests — today and this week, side by side. The daily recap
+         narrates the day against your recent baseline; the weekly is the
+         Mon-anchored ISO-week digest. Both deterministic, both inline. -->
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+      <DailyDigest />
+      <WeekRecap />
+    </section>
 
     <!-- Cost ticker — the hero. The single most educational visualization
          for someone new to AI. Big number, ticking up in real time as

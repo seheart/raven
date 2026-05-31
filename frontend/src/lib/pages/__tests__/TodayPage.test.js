@@ -1,12 +1,15 @@
 /**
- * TodayPage tests — first-run landing view.
+ * TodayPage tests — the Narrative landing view.
  *
  * Mocks the apiClient (createPageApi), websocketService, and the router so
- * we can render the page in jsdom. Confirms the cost number, narrative
- * beats, and file list all render with realistic data.
+ * we can render the page in jsdom. The page now leads with Raven's persona
+ * (PersonaCard) and the daily + weekly digests (DailyDigest / WeekRecap),
+ * each a child component fetching its own endpoint through the same mocked
+ * api. These tests confirm the cost number, the persona, the digests, and
+ * the file list all render with realistic data.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 
 const { mockApiGet, mockApiPost } = vi.hoisted(() => ({
@@ -68,25 +71,42 @@ function setupApi({
       project_name: 'raven'
     }
   ],
-  narrative = {
-    today: {
-      events: 33,
-      files: 4,
-      projects: [{ project: 'atf', events: 33, files: 4 }],
-      top_project: 'atf',
-      longest_session_seconds: 1840
-    },
-    week: {
-      events: 6338,
-      files: 2421,
-      projects: [
-        { project: 'raven', events: 3906, files: 1370, days_active: 3 },
-        { project: 'atf', events: 364, files: 141, days_active: 2 }
-      ],
-      top_project: 'raven',
-      days_active: 4
-    },
-    returning: [{ project: 'atf', days_since_last_event: 4 }]
+  persona = {
+    has_data: true,
+    window_days: 30,
+    tenure_days: 44,
+    title: 'The Evening Juggler',
+    tagline: 'You build in the evenings at a steady rhythm, mostly in Python.',
+    current_streak: 2,
+    languages: [
+      { language: 'Python', share: 0.22 },
+      { language: 'JavaScript', share: 0.12 }
+    ],
+    rhythm: { active_days: 15 },
+    traits: [
+      {
+        glyph: '☾',
+        tone: 'info',
+        label: 'Evening',
+        text: 'Evenings are when you come alive — your activity crests around 8pm.'
+      }
+    ]
+  },
+  dailyDigest = {
+    day: '2026-05-31',
+    day_label: 'Today',
+    day_start: new Date().toISOString(),
+    lead: { kind: 'top-project', text: 'raven led today with 241 changes.' },
+    beats: [{ glyph: '$', tone: 'accent', text: '$6.75 across 4,407 requests.' }],
+    stats: { events: 558 }
+  },
+  weeklyDigest = {
+    week_key: '2026-W22',
+    week_start: new Date().toISOString(),
+    week_end: new Date().toISOString(),
+    lead: { kind: 'returning', text: 'You came back to atf after 16 days away.' },
+    beats: [{ glyph: '$', tone: 'accent', text: '$14,548 spent across 18,740 requests.' }],
+    stats: { events: 1874 }
   },
   insightsLatest = null
 } = {}) {
@@ -94,7 +114,9 @@ function setupApi({
     if (endpoint.startsWith('/costs/summary')) return Promise.resolve(costs);
     if (endpoint.startsWith('/session-activity')) return Promise.resolve({ entries: activity });
     if (endpoint.startsWith('/events/recent')) return Promise.resolve(events);
-    if (endpoint.startsWith('/today/narrative')) return Promise.resolve(narrative);
+    if (endpoint.startsWith('/persona')) return Promise.resolve(persona);
+    if (endpoint.startsWith('/digests/daily')) return Promise.resolve(dailyDigest);
+    if (endpoint.startsWith('/digests/weekly')) return Promise.resolve(weeklyDigest);
     if (endpoint.startsWith('/insights/latest')) return Promise.resolve(insightsLatest);
     return Promise.resolve(null);
   });
@@ -120,50 +142,29 @@ describe('TodayPage', () => {
     await waitFor(() => expect(screen.getByText('$4.32')).toBeTruthy());
   });
 
-  it('renders the "returning to" beat from narrative data', async () => {
+  it('renders the persona title and tagline from /persona', async () => {
     setupApi();
     render(TodayPage);
-    // 4 days, "Back on atf after 4 days — welcome back."
-    expect(await screen.findByText(/Back on atf after 4 days/)).toBeTruthy();
+    expect(await screen.findByText('The Evening Juggler')).toBeTruthy();
+    expect(await screen.findByText(/You build in the evenings at a steady rhythm/)).toBeTruthy();
   });
 
-  it('renders a focus beat when one project dominates today', async () => {
-    setupApi({
-      narrative: {
-        today: {
-          events: 33,
-          files: 4,
-          projects: [{ project: 'atf', events: 33, files: 4 }],
-          top_project: 'atf',
-          longest_session_seconds: 0
-        },
-        week: { events: 0, files: 0, projects: [], top_project: null, days_active: 0 },
-        returning: []
-      }
-    });
+  it('renders a persona trait beat', async () => {
+    setupApi();
     render(TodayPage);
-    expect(await screen.findByText(/heads-down on atf/)).toBeTruthy();
+    expect(await screen.findByText(/Evenings are when you come alive/)).toBeTruthy();
   });
 
-  it('renders the week leader beat when one project takes ≥40% of activity', async () => {
-    setupApi({
-      narrative: {
-        today: { events: 0, files: 0, projects: [], top_project: null, longest_session_seconds: 0 },
-        week: {
-          events: 200,
-          files: 50,
-          projects: [
-            { project: 'raven', events: 150, files: 40, days_active: 4 },
-            { project: 'atf', events: 50, files: 10, days_active: 1 }
-          ],
-          top_project: 'raven',
-          days_active: 5
-        },
-        returning: []
-      }
-    });
+  it('renders the daily digest lead from /digests/daily', async () => {
+    setupApi();
     render(TodayPage);
-    expect(await screen.findByText(/raven has been your main focus/)).toBeTruthy();
+    expect(await screen.findByText('raven led today with 241 changes.')).toBeTruthy();
+  });
+
+  it('renders the weekly recap lead from /digests/weekly', async () => {
+    setupApi();
+    render(TodayPage);
+    expect(await screen.findByText('You came back to atf after 16 days away.')).toBeTruthy();
   });
 
   it('renders the file list with shortened paths', async () => {
@@ -197,14 +198,11 @@ describe('TodayPage', () => {
     expect(screen.queryByText(/·\s*10 unique/)).toBeNull();
   });
 
-  it('renders narrative beats even when LLM summaries are disabled', async () => {
-    // The previous version of this page showed a "Local-LLM summaries
-    // are off" hint as the primary content when insights were disabled,
-    // making the landing read as broken in the common dev case. The
-    // rewrite renders deterministic templated beats from /today/narrative
-    // as the page's actual content and silently hides the LLM section.
-    // This test pins that contract: disabled insights MUST NOT be the
-    // headline, and beats from real data MUST render regardless.
+  it('still renders the persona and digests when LLM narration is disabled', async () => {
+    // The optional "Raven's note" (LLM summary) is supplemental color. When
+    // insights are disabled (the common dev case) it must hide silently and
+    // never become the headline — the deterministic persona + digests carry
+    // the page regardless.
     setupApi();
     mockApiGet.mockImplementation(endpoint => {
       if (endpoint.startsWith('/insights/latest')) {
@@ -214,26 +212,32 @@ describe('TodayPage', () => {
         return Promise.resolve({ total_cost_usd: 1.23, total_requests: 7 });
       if (endpoint.startsWith('/session-activity')) return Promise.resolve({ entries: [] });
       if (endpoint.startsWith('/events/recent')) return Promise.resolve([]);
-      if (endpoint.startsWith('/today/narrative'))
+      if (endpoint.startsWith('/persona'))
         return Promise.resolve({
-          today: {
-            events: 12,
-            files: 3,
-            projects: [{ project: 'raven', events: 12, files: 3 }],
-            top_project: 'raven',
-            longest_session_seconds: 0
-          },
-          week: { events: 12, files: 3, projects: [], top_project: null, days_active: 1 },
-          returning: []
+          has_data: true,
+          window_days: 30,
+          tenure_days: 12,
+          title: 'The Nocturnal Specialist',
+          tagline: 'You build after dark, in long stretches, mostly in Rust.',
+          current_streak: 0,
+          languages: [],
+          rhythm: { active_days: 8 },
+          traits: []
+        });
+      if (endpoint.startsWith('/digests/daily'))
+        return Promise.resolve({
+          day_label: 'Today',
+          day_start: new Date().toISOString(),
+          lead: { kind: 'focus', text: 'Heads-down on raven — 80% of today.' },
+          beats: [],
+          stats: { events: 12 }
         });
       return Promise.resolve(null);
     });
     mockApiPost.mockRejectedValue(new Error('API error (503): {"error":"Insights disabled"}'));
     render(TodayPage);
-    // A daily-tally beat must appear (cost + project + requests).
-    await waitFor(() =>
-      expect(screen.getByText(/Today you've spent \$1\.23 on raven/)).toBeTruthy()
-    );
+    // The persona headline must render even with the LLM disabled.
+    await waitFor(() => expect(screen.getByText('The Nocturnal Specialist')).toBeTruthy());
     // The disabled-insights hint must NOT be the primary content.
     expect(screen.queryByText(/Local-LLM summaries are off/)).toBeNull();
   });

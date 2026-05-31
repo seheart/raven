@@ -71,6 +71,7 @@ import { createDiffRiskRepository } from './repositories/diff-risk-repository.js
 import { createDiffAnnotationsRepository } from './repositories/diff-annotations-repository.js';
 import { createDiffAnnotationService } from './services/diff-annotation-service.js';
 import { createDigestService } from './services/digest-service.js';
+import { createPersonaService } from './services/persona-service.js';
 import { createDecisionsService } from './services/decisions-service.js';
 import { createDerivedDecisionsService } from './services/derived-decisions-service.js';
 import { createPluginRuntime } from './services/plugin-runtime.js';
@@ -377,6 +378,7 @@ const diffRiskRepository = createDiffRiskRepository(db);
 const diffAnnotationsRepository = createDiffAnnotationsRepository(db);
 const diffAnnotationService = createDiffAnnotationService(diffAnnotationsRepository);
 const digestService = createDigestService(db);
+const personaService = createPersonaService(db);
 const decisionsService = createDecisionsService(ravenPaths.repoRoot);
 const derivedDecisionsService = createDerivedDecisionsService(ravenPaths.repoRoot);
 const pluginRuntime = createPluginRuntime(join(RAVEN_DIR, 'plugins'));
@@ -522,6 +524,7 @@ wireRoutes(app, {
   diffAnnotationsRepository,
   diffAnnotationService,
   digestService,
+  personaService,
   decisionsService,
   derivedDecisionsService,
   pluginRuntime,

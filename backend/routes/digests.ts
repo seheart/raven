@@ -47,6 +47,40 @@ export function createDigestsRouter(digestService: DigestService): Router {
   );
 
   /**
+   * GET /api/digests/daily?at=ISO
+   * Returns the daily digest for the calendar day containing `at`.
+   * Short TTL while the day is live; settled days cache hard.
+   */
+  router.get(
+    '/daily',
+    cacheMiddleware(15000),
+    asyncHandler(async (req: Request, res: Response) => {
+      const at = typeof req.query.at === 'string' ? new Date(req.query.at) : new Date();
+      if (Number.isNaN(at.getTime())) {
+        res.status(400).json({ error: 'invalid `at` timestamp' });
+        return;
+      }
+      res.json(digestService.getDailyOrCompute(at));
+    })
+  );
+
+  /**
+   * POST /api/digests/daily/recompute
+   * Force recompute the daily digest (skips cache).
+   */
+  router.post(
+    '/daily/recompute',
+    asyncHandler(async (req: Request, res: Response) => {
+      const at = typeof req.body?.at === 'string' ? new Date(req.body.at) : new Date();
+      if (Number.isNaN(at.getTime())) {
+        res.status(400).json({ error: 'invalid `at` timestamp' });
+        return;
+      }
+      res.json(digestService.recomputeDaily(at));
+    })
+  );
+
+  /**
    * GET /api/digests/list?limit=N
    * Recent digests, newest first.
    */
