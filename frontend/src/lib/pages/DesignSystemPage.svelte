@@ -12,7 +12,10 @@
     RefreshButton,
     ToolbarButton,
     FilterToggle,
-    TabButton
+    TabButton,
+    DataFetchError,
+    FreshnessBadge,
+    LinkButton
   } from '../components/ui/index.js';
   import { websocketService } from '../services/websocket.js';
   import {
@@ -317,10 +320,10 @@
           </div>
 
           <!-- Hero meta block demo — constrained to ~30rem to mimic the
-           hero's main column where this pattern lives in the wild. -->
+           hero where this label/value pattern lives in the wild. -->
           <h4 class="text-xs font-mono text-muted uppercase tracking-wide mb-2">
             Hero meta block <span class="text-muted/60 normal-case font-normal"
-              >· lives in hero main column at ~48rem</span
+              >· label + value rows in the hero</span
             >
           </h4>
           <div class="mb-4 bg-surface border border-border rounded-lg p-4 max-w-[30rem]">
@@ -603,7 +606,7 @@
                 <RefreshButton onClick={() => {}} label="Reload" />
               </div>
               <p class="text-sm text-muted font-sans">
-                Canonical refresh button used in 23+ page headers. Built-in loading state.
+                Canonical refresh button used in most page headers. Built-in loading state.
               </p>
             </div>
 
@@ -656,6 +659,61 @@
               </div>
               <p class="text-sm text-muted font-sans mt-3">
                 Connected tab segment for time-range pickers.
+              </p>
+            </div>
+
+            <!-- DataFetchError -->
+            <div class="bg-surface border border-border rounded-lg p-4">
+              <div class="flex items-baseline justify-between gap-3 mb-3">
+                <code class="font-mono text-sm text-accent">&lt;DataFetchError&gt;</code>
+                <span class="text-xs font-mono text-muted"
+                  >(props: endpoint, message, hint, onRetry)</span
+                >
+              </div>
+              <DataFetchError
+                endpoint="/api/models"
+                message="Couldn't reach the model registry"
+                hint="503 · Ollama unavailable"
+                onRetry={() => {}}
+              />
+              <p class="text-sm text-muted font-sans">
+                Inline error card for a failed fetch — names the endpoint, shows the raw error, and
+                offers a retry. Use instead of a silent empty state when a request fails.
+              </p>
+            </div>
+
+            <!-- FreshnessBadge -->
+            <div class="bg-surface border border-border rounded-lg p-4">
+              <div class="flex items-baseline justify-between gap-3 mb-3">
+                <code class="font-mono text-sm text-accent">&lt;FreshnessBadge&gt;</code>
+                <span class="text-xs font-mono text-muted">live · polled</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-3 mb-3">
+                <FreshnessBadge mode="live" />
+                <FreshnessBadge mode="polled" label="polled · 15s" />
+              </div>
+              <p class="text-sm text-muted font-sans">
+                Tells streaming data ("live") apart from a periodic poll. Sits in a section header
+                or beside a data surface so freshness is never ambiguous.
+              </p>
+            </div>
+
+            <!-- LinkButton -->
+            <div class="bg-surface border border-border rounded-lg p-4">
+              <div class="flex items-baseline justify-between gap-3 mb-3">
+                <code class="font-mono text-sm text-accent">&lt;LinkButton&gt;</code>
+                <span class="text-xs font-mono text-muted"
+                  >default · primary · (href, external)</span
+                >
+              </div>
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <LinkButton href="/today" variant="primary">Open Today →</LinkButton>
+                <LinkButton href="/system">System diagnostics</LinkButton>
+                <LinkButton href="https://github.com/seheart/raven" external>★ GitHub</LinkButton>
+              </div>
+              <p class="text-sm text-muted font-sans">
+                Anchor styled as a button — internal routes or external links. Used for hero action
+                rows like About's "Get started".
               </p>
             </div>
 
