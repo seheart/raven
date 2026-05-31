@@ -111,7 +111,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         RAVEN_FRONTEND_PORT: process.env.RAVEN_E2E_FRONTEND_PORT || '9001',
-        RAVEN_BACKEND_URL: `http://localhost:${process.env.RAVEN_E2E_BACKEND_PORT || '9101'}`
+        RAVEN_BACKEND_URL: `http://127.0.0.1:${process.env.RAVEN_E2E_BACKEND_PORT || '9101'}`
       }
     }
   ],

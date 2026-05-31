@@ -12,11 +12,11 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: process.env.RAVEN_BACKEND_URL || 'http://localhost:9100',
+        target: process.env.RAVEN_BACKEND_URL || 'http://127.0.0.1:9100',
         changeOrigin: true
       },
       '/socket.io': {
-        target: process.env.RAVEN_BACKEND_URL || 'http://localhost:9100',
+        target: process.env.RAVEN_BACKEND_URL || 'http://127.0.0.1:9100',
         changeOrigin: true,
         ws: true
       }
