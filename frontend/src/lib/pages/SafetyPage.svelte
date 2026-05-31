@@ -42,8 +42,6 @@
     return filtered;
   });
 
-  const status = $derived(loadError ? 'unknown' : warnings.length === 0 ? 'healthy' : 'warning');
-
   async function loadWarnings() {
     try {
       loading = true;
@@ -233,23 +231,32 @@
       {/each}
     </div>
   {:else}
-    <!-- Status -->
-    <div class="bg-surface border border-border rounded p-4 mb-6">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full {status === 'healthy' ? 'bg-success' : 'bg-warning'}"
-        ></span>
-        <span class="text-sm font-mono font-semibold text-body">
-          {status === 'healthy'
-            ? 'All Clear — no pattern warnings detected'
-            : `${warnings.length} pattern warning${warnings.length === 1 ? '' : 's'} detected`}
-        </span>
-        {#if ignores.length > 0}
-          <span class="text-xs text-muted font-mono ml-2">
-            · {ignores.length} ignored
+    {#if !loadError && warnings.length === 0}
+      <!-- Rich empty state, matching the Errors sub-page -->
+      <EmptyState
+        title="No pattern warnings"
+        description="Raven scans every change for risky patterns — leaked credentials, debug statements, and code-quality smells. Nothing is flagged right now. When something matches, it shows up here with the file, the matched snippet, and a severity."
+        icon="✓"
+      />
+      {#if ignores.length > 0}
+        <p class="mt-3 text-center text-xs font-mono text-muted">
+          {ignores.length} pattern{ignores.length === 1 ? '' : 's'} ignored — listed below.
+        </p>
+      {/if}
+    {:else if warnings.length > 0}
+      <!-- Status -->
+      <div class="bg-surface border border-border rounded p-4 mb-6">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-warning"></span>
+          <span class="text-sm font-mono font-semibold text-body">
+            {warnings.length} pattern warning{warnings.length === 1 ? '' : 's'} detected
           </span>
-        {/if}
+          {#if ignores.length > 0}
+            <span class="text-xs text-muted font-mono ml-2"> · {ignores.length} ignored </span>
+          {/if}
+        </div>
       </div>
-    </div>
+    {/if}
 
     {#if warnings.length > 0}
       <!-- Search + Filter -->
