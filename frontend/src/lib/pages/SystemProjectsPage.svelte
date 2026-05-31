@@ -454,7 +454,13 @@
                       project.eventCount ??
                       project.event_count ??
                       0
-                    ).toLocaleString()} events
+                    ).toLocaleString()}
+                    {(project.lifetimeEventCount ??
+                      project.eventCount ??
+                      project.event_count ??
+                      0) === 1
+                      ? 'event'
+                      : 'events'}
                   </div>
                   {#if (project.eventCount ?? 0) > 0 && (project.lifetimeEventCount ?? 0) > (project.eventCount ?? 0)}
                     <div class="text-[10px] text-muted/70">

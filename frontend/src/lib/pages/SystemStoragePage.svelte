@@ -293,9 +293,11 @@
                 <th class="text-left py-2 font-normal">Project</th>
                 <th class="text-right py-2 font-normal w-32">Disk</th>
                 <th class="text-right py-2 font-normal hidden md:table-cell w-20">Files</th>
-                <th class="text-left py-2 font-normal hidden md:table-cell w-1/3"> Source size </th>
+                <th class="text-left py-2 pl-4 font-normal hidden md:table-cell w-1/3"
+                  >Source size</th
+                >
                 <th class="text-right py-2 font-normal w-28">DB stored</th>
-                <th class="text-left py-2 font-normal hidden lg:table-cell w-1/4">
+                <th class="text-left py-2 pl-4 font-normal hidden lg:table-cell w-1/4">
                   Raven tracking size
                 </th>
               </tr>
@@ -325,7 +327,7 @@
                   <td class="py-2 pr-2 text-right text-muted tabular-nums hidden md:table-cell">
                     {row.disk_files != null ? formatNumber(row.disk_files) : '—'}
                   </td>
-                  <td class="py-2 pr-2 hidden md:table-cell">
+                  <td class="py-2 pr-2 pl-4 hidden md:table-cell">
                     {#if row.disk_bytes != null}
                       <div class="h-1.5 bg-canvas rounded overflow-hidden border border-border">
                         <div
@@ -338,7 +340,7 @@
                   <td class="py-2 pr-2 text-right text-body tabular-nums">
                     {formatBytes(row.db_bytes)}
                   </td>
-                  <td class="py-2 pr-2 hidden lg:table-cell">
+                  <td class="py-2 pr-2 pl-4 hidden lg:table-cell">
                     {#if row.db_bytes > 0}
                       <div class="h-1.5 bg-canvas rounded overflow-hidden border border-border">
                         <div
