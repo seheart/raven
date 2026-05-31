@@ -1,8 +1,14 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState, ToolbarButton } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    ToolbarButton,
+    LoadingState,
+    DataFetchError
+  } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
@@ -510,6 +516,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Files" />
   <PageHeader
     title="Files Raven has watched"
     description="Every file your AI tools have created, edited, or deleted at least once. Click any row to see its history."
@@ -527,16 +534,14 @@
   </PageHeader>
 
   {#if error}
-    <div class="bg-error-subtle border border-error rounded-lg p-4">
-      <p class="text-sm text-error font-sans">{error}</p>
-      <div class="mt-2">
-        <ToolbarButton variant="danger" onClick={loadFiles}>Retry</ToolbarButton>
-      </div>
-    </div>
+    <DataFetchError
+      endpoint="/api/tracked-files"
+      message="Failed to load tracked files."
+      hint={error}
+      onRetry={refresh}
+    />
   {:else if loading}
-    <div class="text-center py-12">
-      <p class="text-sm text-muted font-sans">Loading tracked files...</p>
-    </div>
+    <LoadingState message="Loading tracked files..." />
   {:else if files.length === 0}
     <EmptyState
       title="No files watched yet"
@@ -644,12 +649,9 @@
             <option value="lastModified">Last Modified</option>
             <option value="changeCount">Most Changes</option>
           </select>
-          <button
-            onclick={toggleSortOrder}
-            class="px-2 py-1.5 bg-canvas border border-border rounded hover:border-accent transition-colors"
-          >
+          <ToolbarButton onClick={toggleSortOrder} title="Toggle sort order">
             {sortOrder === 'asc' ? '↓' : '↑'}
-          </button>
+          </ToolbarButton>
         </div>
 
         {#if availableFileTypes.length > 0}
@@ -661,7 +663,7 @@
                   onclick={() => toggleFileType(ext)}
                   class="px-3 py-1 border rounded text-xs font-mono transition-colors"
                   class:bg-accent={selectedFileTypes.includes(ext)}
-                  class:text-white={selectedFileTypes.includes(ext)}
+                  class:text-canvas={selectedFileTypes.includes(ext)}
                   class:border-accent={selectedFileTypes.includes(ext)}
                   class:bg-surface={!selectedFileTypes.includes(ext)}
                   class:border-border={!selectedFileTypes.includes(ext)}

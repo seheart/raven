@@ -15,8 +15,8 @@
   import { websocketService } from '../services/websocket.js';
   import { navigate } from '../utils/router.svelte.js';
   import { formatShortDateTime } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { ToolbarButton } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import { ToolbarButton, DataFetchError } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   // Section state. Each section tracks its own status independently so
@@ -54,9 +54,6 @@
 
   // Clipboard feedback for the Copy Report button.
   let copyStatus = $state('');
-
-  // Drives the RAVEN.SYSTEM status strip, matching SystemPage/AboutPage.
-  let websocketConnected = $state(false);
 
   // True while any orchestrated step is in flight. Used to disable the
   // Run All button and show the live panel.
@@ -372,7 +369,6 @@
   }
 
   let progressHandler = null;
-  let connectionHandler = null;
   onMount(() => {
     loadInitial();
 
@@ -385,22 +381,11 @@
       }
     };
     websocketService.on('analysis-progress', progressHandler);
-
-    websocketConnected = websocketService.isConnected();
-    connectionHandler = () => {
-      websocketConnected = websocketService.isConnected();
-    };
-    websocketService.on('connect', connectionHandler);
-    websocketService.on('disconnect', connectionHandler);
   });
 
   onDestroy(() => {
     abortRequests();
     if (progressHandler) websocketService.off('analysis-progress', progressHandler);
-    if (connectionHandler) {
-      websocketService.off('connect', connectionHandler);
-      websocketService.off('disconnect', connectionHandler);
-    }
     if (codeHealthPoll) {
       clearInterval(codeHealthPoll);
       codeHealthPoll = null;
@@ -413,25 +398,8 @@
 </script>
 
 <PageLayout>
-  <!-- Status bar -->
-  <div
-    class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2 mb-6"
-  >
-    <div class="flex items-center gap-2">
-      <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
-      <span aria-hidden="true">::</span>
-      <span class="uppercase tracking-wide">Diagnostic · Health · Errors</span>
-    </div>
-    <div class="flex items-center gap-2">
-      <span
-        class="w-1.5 h-1.5 rounded-full {websocketConnected
-          ? 'bg-success animate-pulse'
-          : 'bg-warning'}"
-      ></span>
-      <span class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}">
-        {websocketConnected ? 'Operational' : 'Disconnected'}
-      </span>
-    </div>
+  <div class="mb-6">
+    <StatusBar label="Diagnostic · Health · Errors" />
   </div>
 
   <PageHeader
@@ -477,9 +445,7 @@
   {#if isRunning}
     <div class="bg-surface border border-accent rounded-lg mb-6 overflow-hidden">
       <div class="px-4 py-3 flex items-center gap-3 border-b border-border">
-        <div
-          class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0"
-        ></div>
+        <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"></span>
         <span class="text-sm text-body flex-1">
           {#if progress}
             Code Health: <span class="font-mono text-accent">{progress.currentCheck}</span>
@@ -682,9 +648,11 @@
     </div>
 
     {#if endpointSweep.error}
-      <div class="bg-error-subtle border border-error rounded p-3 mb-3 text-sm text-error">
-        Sweep failed: {endpointSweep.error}
-      </div>
+      <DataFetchError
+        endpoint="/health/comprehensive"
+        message="Sweep failed: {endpointSweep.error}"
+        onRetry={runEndpointSweep}
+      />
     {/if}
 
     {#if endpointSweep.data}
@@ -702,7 +670,7 @@
                 {r.error || 'failed'}
                 {#if r.critical}
                   <span
-                    class="ml-2 text-[10px] uppercase tracking-wide bg-error text-white rounded px-1.5 py-0.5"
+                    class="ml-2 text-[10px] uppercase tracking-wide bg-error text-canvas rounded px-1.5 py-0.5"
                     >critical</span
                   >
                 {/if}

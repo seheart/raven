@@ -1,10 +1,13 @@
 <script>
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     ToolbarButton,
+    FilterToggle,
     EmptyState,
+    LoadingState,
+    DataFetchError,
     FreshnessBadge
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -19,7 +22,8 @@
     createChart,
     destroyChart,
     createThemeObserver,
-    getChartColors
+    getChartColors,
+    getChartPalette
   } from '../utils/chartUtils.js';
   import { websocketService } from '../services/websocket.js';
   import { logger } from '../logger.js';
@@ -362,6 +366,8 @@
     if (typeCanvas && stats.by_type) {
       const typeData = Object.entries(stats.by_type);
       if (typeData.length > 0) {
+        // Theme-aware brand palette instead of a hand-listed color array.
+        const typePalette = getChartPalette(typeData.length);
         charts.typeBreakdown = createChart('chart-type-breakdown', {
           type: 'doughnut',
           data: {
@@ -369,22 +375,8 @@
             datasets: [
               {
                 data: typeData.map(([, count]) => count),
-                backgroundColor: [
-                  colors.primary,
-                  colors.success,
-                  colors.warning,
-                  colors.error,
-                  colors.muted,
-                  colors.text
-                ],
-                borderColor: [
-                  colors.primary,
-                  colors.success,
-                  colors.warning,
-                  colors.error,
-                  colors.muted,
-                  colors.text
-                ],
+                backgroundColor: typePalette,
+                borderColor: typePalette,
                 borderWidth: 2
               }
             ]
@@ -531,6 +523,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Conversations" />
+
   <PageHeader
     title="Agent Conversations"
     description="The back-and-forth between you and your AI tools — your prompts, their replies, the tools they reached for. Search the history, filter by project, or export it."
@@ -663,154 +657,71 @@
     <div class="flex gap-3 flex-wrap items-center mt-5 pt-5 border-t border-border">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">Date Range:</span>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
-          'all'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (dateRange = 'all')}
-        >
+        <FilterToggle active={dateRange === 'all'} onClick={() => (dateRange = 'all')}>
           All Time
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
-          'today'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (dateRange = 'today')}
-        >
+        </FilterToggle>
+        <FilterToggle active={dateRange === 'today'} onClick={() => (dateRange = 'today')}>
           Today
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
-          '7d'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (dateRange = '7d')}
-        >
+        </FilterToggle>
+        <FilterToggle active={dateRange === '7d'} onClick={() => (dateRange = '7d')}>
           7 Days
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
-          '30d'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (dateRange = '30d')}
-        >
+        </FilterToggle>
+        <FilterToggle active={dateRange === '30d'} onClick={() => (dateRange = '30d')}>
           30 Days
-        </button>
+        </FilterToggle>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">Sort By:</span>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {sortBy ===
-          'timestamp'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => toggleSort('timestamp')}
-        >
+        <FilterToggle active={sortBy === 'timestamp'} onClick={() => toggleSort('timestamp')}>
           Time {sortBy === 'timestamp' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {sortBy ===
-          'type'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => toggleSort('type')}
-        >
+        </FilterToggle>
+        <FilterToggle active={sortBy === 'type'} onClick={() => toggleSort('type')}>
           Type {sortBy === 'type' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {sortBy ===
-          'project'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => toggleSort('project')}
-        >
+        </FilterToggle>
+        <FilterToggle active={sortBy === 'project'} onClick={() => toggleSort('project')}>
           Project {sortBy === 'project' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
-        </button>
+        </FilterToggle>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">View:</span>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {viewMode ===
-          'compact'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (viewMode = 'compact')}
-        >
+        <FilterToggle active={viewMode === 'compact'} onClick={() => (viewMode = 'compact')}>
           Compact
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {viewMode ===
-          'detailed'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (viewMode = 'detailed')}
-        >
+        </FilterToggle>
+        <FilterToggle active={viewMode === 'detailed'} onClick={() => (viewMode = 'detailed')}>
           Detailed
-        </button>
+        </FilterToggle>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">Group:</span>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
-          'none'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (groupBy = 'none')}
-        >
+        <FilterToggle active={groupBy === 'none'} onClick={() => (groupBy = 'none')}>
           None
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
-          'session'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (groupBy = 'session')}
-        >
+        </FilterToggle>
+        <FilterToggle active={groupBy === 'session'} onClick={() => (groupBy = 'session')}>
           Session
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
-          'project'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (groupBy = 'project')}
-        >
+        </FilterToggle>
+        <FilterToggle active={groupBy === 'project'} onClick={() => (groupBy = 'project')}>
           Project
-        </button>
-        <button
-          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
-          'date'
-            ? 'bg-accent text-canvas border-accent font-semibold'
-            : 'bg-canvas border-border text-body hover:border-accent'}"
-          onclick={() => (groupBy = 'date')}
-        >
+        </FilterToggle>
+        <FilterToggle active={groupBy === 'date'} onClick={() => (groupBy = 'date')}>
           Date
-        </button>
+        </FilterToggle>
       </div>
     </div>
   </div>
 
   <!-- Conversations Timeline -->
   {#if error}
-    <div
-      class="flex flex-col items-center justify-center gap-4 p-8 bg-[color-mix(in_srgb,var(--error)_5%,transparent)] border border-[color-mix(in_srgb,var(--error)_20%,transparent)] rounded-lg text-center mb-6"
-    >
-      <p class="m-0 text-error text-sm font-medium">Error: {error}</p>
-      <ToolbarButton variant="danger" onClick={loadConversations}>Retry</ToolbarButton>
-    </div>
+    <DataFetchError
+      endpoint="/api/conversations"
+      message="Couldn't load conversations"
+      hint={error}
+      onRetry={loadConversations}
+    />
   {:else if loading}
-    <div class="text-center p-8">
-      <div
-        class="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4"
-      ></div>
-      <p class="text-sm text-muted">Loading conversations...</p>
-    </div>
+    <LoadingState message="Loading conversations..." />
   {:else if filteredConversations.length === 0}
     <EmptyState
       title={stats.total === 0 ? 'No conversations captured yet' : 'No conversations match'}

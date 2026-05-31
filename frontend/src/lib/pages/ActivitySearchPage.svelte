@@ -3,8 +3,8 @@
   import DOMPurify from 'dompurify';
   import { logger } from '../logger.js';
   import { formatDateTime } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { EmptyState, ToolbarButton, FilterToggle } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import { EmptyState, ToolbarButton, FilterToggle, LoadingState } from '../components/ui/index.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -205,6 +205,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Search" />
   <PageHeader
     title="Search"
     description="Look across every file, every AI tool call, and every message Raven has seen. Type a filename, a project name, or part of a path."
@@ -237,9 +238,7 @@
 
   <!-- Search Results -->
   {#if loading}
-    <div class="text-center py-12">
-      <div class="text-sm text-muted font-sans">Searching...</div>
-    </div>
+    <LoadingState message="Searching..." />
   {:else if !hasSearched}
     <EmptyState
       title="Search across everything"

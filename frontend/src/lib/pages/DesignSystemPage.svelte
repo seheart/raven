@@ -4,8 +4,13 @@
    * and System. Static data lives in lib/content/design.js; this file is
    * markup, live demos, and iteration over those arrays.
    */
-  import { onMount } from 'svelte';
-  import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
+  import {
+    PageLayout,
+    PageHeader,
+    PageSection,
+    ProseBlock,
+    StatusBar
+  } from '../components/layout/index.js';
   import {
     EmptyState,
     LoadingState,
@@ -17,7 +22,6 @@
     FreshnessBadge,
     LinkButton
   } from '../components/ui/index.js';
-  import { websocketService } from '../services/websocket.js';
   import {
     HERO,
     INTENT,
@@ -43,22 +47,6 @@
     PRINCIPLES
   } from '../content/design.js';
 
-  let websocketConnected = $state(false);
-
-  onMount(() => {
-    websocketConnected = websocketService.isConnected();
-    const updateStatus = () => {
-      websocketConnected = websocketService.isConnected();
-    };
-    websocketService.on('connect', updateStatus);
-    websocketService.on('disconnect', updateStatus);
-
-    return () => {
-      websocketService.off('connect', updateStatus);
-      websocketService.off('disconnect', updateStatus);
-    };
-  });
-
   // Map callout tone → border + text class so the "color: var(--{tone})"
   // pattern stays in the design system rather than inline styles.
   const TONE_CLASS = {
@@ -74,16 +62,9 @@
 
 <PageLayout>
   <div class="space-y-8">
-    <!-- Status bar — full width across canvas -->
-    <div
-      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
-        <span aria-hidden="true">::</span>
-        <span class="uppercase tracking-wide">Design Reference</span>
-      </div>
-      <div class="flex items-center gap-3">
+    <!-- Status bar — single source of truth: <StatusBar> (zone 01) -->
+    <StatusBar label="Design Reference">
+      {#snippet actions()}
         <a
           href={import.meta.env.DEV
             ? '/src/app.css'
@@ -92,20 +73,8 @@
           rel="noopener noreferrer"
           class="text-muted hover:text-accent transition-colors">[ View app.css ]</a
         >
-        <span class="flex items-center gap-2">
-          <span
-            class="w-1.5 h-1.5 rounded-full {websocketConnected
-              ? 'bg-success animate-pulse'
-              : 'bg-warning'}"
-          ></span>
-          <span
-            class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}"
-          >
-            {websocketConnected ? 'Operational' : 'Disconnected'}
-          </span>
-        </span>
-      </div>
-    </div>
+      {/snippet}
+    </StatusBar>
 
     <!-- Single-column doc layout (on-this-page jump-nav removed). -->
     <div>

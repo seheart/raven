@@ -13,7 +13,7 @@
    *
    * Within each phase, items are listed in priority order (top = highest).
    */
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, StatusBar } from '../components/layout/index.js';
 
   // 00 // Public Launch — must ship before going public.
   // Theme: zero-friction install + a first-run experience that lands new
@@ -325,21 +325,6 @@
     }
   ];
 
-  function toneClass(tone) {
-    switch (tone) {
-      case 'accent':
-        return 'text-accent';
-      case 'info':
-        return 'text-info';
-      case 'success':
-        return 'text-success';
-      case 'warning':
-        return 'text-warning';
-      default:
-        return 'text-muted';
-    }
-  }
-
   const totalQueued = publicLaunch.length + presence.length + reflect.length + powerUser.length;
 
   // Hide phases whose items list is empty — once shipped, the section header
@@ -349,23 +334,13 @@
 
 <PageLayout>
   <div class="space-y-10">
-    <!-- Status bar -->
-    <div
-      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-accent font-semibold">RAVEN.ROADMAP</span>
-        <span>::</span>
-        <span class="uppercase tracking-wide"
-          >Phased toward public launch · Edit RoadmapPage.svelte</span
-        >
-      </div>
-      <div class="flex items-center gap-2">
+    <StatusBar prompt="RAVEN.ROADMAP" label="Phased toward public launch">
+      {#snippet actions()}
         <span class="uppercase tracking-wide"
           >{totalQueued} queued{open.length > 0 ? ` · ${open.length} open` : ''}</span
         >
-      </div>
-    </div>
+      {/snippet}
+    </StatusBar>
 
     <!-- Hero — full-width; size legend + counts inline below. -->
     <div class="space-y-4 max-w-[48rem]">
@@ -392,14 +367,7 @@
 
     <!-- Phases 00 → 03 -->
     {#each activePhases as phase (phase.num)}
-      <section>
-        <div
-          class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
-        >
-          <span>{phase.num} // {phase.title}</span>
-          <span class="flex-1 border-t border-dashed border-border"></span>
-          <span class="{toneClass(phase.tone)} normal-case">{phase.label}</span>
-        </div>
+      <PageSection title="{phase.num} // {phase.title}" meta={phase.label}>
         <p class="text-sm text-body font-sans leading-relaxed mb-3 max-w-[60rem]">{phase.blurb}</p>
         <div class="space-y-3">
           {#each phase.items as item, i (item.title)}
@@ -425,19 +393,12 @@
             </div>
           {/each}
         </div>
-      </section>
+      </PageSection>
     {/each}
 
     <!-- 04 // Open Questions — only renders when something is actually parked. -->
     {#if open.length > 0}
-      <section>
-        <div
-          class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
-        >
-          <span>04 // Open Questions</span>
-          <span class="flex-1 border-t border-dashed border-border"></span>
-          <span class="text-warning normal-case">Parked</span>
-        </div>
+      <PageSection title="04 // Open Questions" meta="Parked">
         <div class="space-y-3">
           {#each open as q (q.title)}
             <div class="bg-surface border border-dashed border-border rounded-lg p-4">
@@ -453,18 +414,11 @@
             </div>
           {/each}
         </div>
-      </section>
+      </PageSection>
     {/if}
 
     <!-- 05 // Recently Shipped -->
-    <section>
-      <div
-        class="text-xs font-mono text-muted uppercase tracking-widest mb-3 flex items-center gap-3"
-      >
-        <span>05 // Recently Shipped</span>
-        <span class="flex-1 border-t border-dashed border-border"></span>
-        <span class="text-success normal-case">Done</span>
-      </div>
+    <PageSection title="05 // Recently Shipped" meta="Done">
       <div class="bg-surface border border-border rounded-lg p-4">
         <ul class="space-y-2.5">
           {#each recentlyShipped as item (item.label)}
@@ -478,6 +432,6 @@
           {/each}
         </ul>
       </div>
-    </section>
+    </PageSection>
   </div>
 </PageLayout>

@@ -15,9 +15,14 @@
   import { createPageApi } from '../apiClient.js';
   import { formatTimeOnly as formatTime, formatShortDateTime } from '../timeFormat.js';
   import { renderMarkdown } from '../utils/markdown.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import JourneyPanel from '../components/insights/JourneyPanel.svelte';
-  import { EmptyState, DataFetchError } from '../components/ui/index.js';
+  import {
+    EmptyState,
+    DataFetchError,
+    LoadingState,
+    FilterToggle
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
 
   let insights = $state([]);
@@ -274,17 +279,20 @@
     return labels[type] || type;
   }
 
+  // Tinted pill classes per story kind. Tinted (subtle bg + matching text)
+  // rather than solid color floods — rule N. These are static semantic
+  // colors, so a class-map keeps Tailwind's JIT happy (no dynamic strings).
   function typeColor(type) {
-    const colors = {
-      session_summary: 'var(--accent)',
-      code_review: 'var(--success)',
-      anomaly: 'var(--warning)',
-      daily_digest: 'var(--accent)',
-      diff_risk: 'var(--error)',
-      agent_comparison: 'var(--success)',
-      project_health: 'var(--accent)'
+    const classes = {
+      session_summary: 'bg-accent-subtle text-accent',
+      code_review: 'bg-success-subtle text-success',
+      anomaly: 'bg-warning-subtle text-warning',
+      daily_digest: 'bg-accent-subtle text-accent',
+      diff_risk: 'bg-error-subtle text-error',
+      agent_comparison: 'bg-success-subtle text-success',
+      project_health: 'bg-accent-subtle text-accent'
     };
-    return colors[type] || 'var(--muted)';
+    return classes[type] || 'bg-surface text-muted';
   }
 
   // Filter chips — only show the kinds that have at least one entry,
@@ -366,6 +374,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Insights" />
   <PageHeader
     title="Insights"
     description="Stories Raven can write about how you and your AI tools have been working together. Tap a card to ask for one. Stories are written by your local AI, so nothing leaves your machine."
@@ -527,9 +536,9 @@
       <header class="flex items-baseline justify-between gap-3 flex-wrap mb-3">
         <div class="flex items-center gap-2 min-w-0">
           <span
-            class="px-1.5 py-0.5 text-[10px] font-bold rounded text-white uppercase tracking-wide"
-            style="background: {typeColor(featuredInsight.type)}"
-            >{typeLabel(featuredInsight.type)}</span
+            class="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase tracking-wide {typeColor(
+              featuredInsight.type
+            )}">{typeLabel(featuredInsight.type)}</span
           >
           <span class="text-xs font-mono text-muted"
             >Latest · {timeAgo(featuredInsight.timestamp)}</span
@@ -679,28 +688,20 @@
 
       {#if filterOptions.length > 1}
         <!-- Show the chips only when there's something to filter through. -->
-        <div class="flex items-center gap-1 px-5 py-3 border-b border-border flex-wrap">
+        <div class="flex items-center gap-2 px-5 py-3 border-b border-border flex-wrap">
           {#each filterOptions as opt (opt.value)}
-            <button
-              type="button"
-              onclick={() => (filterType = opt.value)}
-              class="px-2.5 py-1 text-xs font-sans rounded transition-colors cursor-pointer {filterType ===
-              opt.value
-                ? 'bg-accent text-canvas'
-                : 'text-muted hover:text-body hover:bg-canvas'}"
+            <FilterToggle
+              active={filterType === opt.value}
+              onClick={() => (filterType = opt.value)}
             >
               {opt.label}
-            </button>
+            </FilterToggle>
           {/each}
         </div>
       {/if}
 
       {#if loading && insights.length === 0}
-        <div class="p-5 space-y-3">
-          {#each Array(2) as _, i (i)}
-            <div class="h-24 bg-canvas border border-border rounded animate-pulse"></div>
-          {/each}
-        </div>
+        <LoadingState message="Loading your stories…" />
       {:else if pastInsights.length === 0}
         <EmptyState
           size="compact"
@@ -708,7 +709,7 @@
           description="Try 'All stories' to see everything Raven has written."
         />
       {:else}
-        <div class="divide-y divide-[var(--border)]">
+        <div class="divide-y divide-border">
           {#each pastInsights as insight (insight.id)}
             <article
               id="insight-{insight.id}"
@@ -719,8 +720,9 @@
               <header class="flex items-baseline justify-between gap-3 flex-wrap mb-3">
                 <div class="flex items-center gap-2 min-w-0">
                   <span
-                    class="px-1.5 py-0.5 text-[10px] font-bold rounded text-white uppercase tracking-wide"
-                    style="background: {typeColor(insight.type)}">{typeLabel(insight.type)}</span
+                    class="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase tracking-wide {typeColor(
+                      insight.type
+                    )}">{typeLabel(insight.type)}</span
                   >
                   <span class="text-sm font-semibold text-body font-sans truncate">
                     {insight.title}

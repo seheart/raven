@@ -4,7 +4,7 @@
   import { formatShortDateTime as formatTime } from '../timeFormat.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import { getSubagentTypeColor } from '../utils/agentBrand.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     EmptyState,
@@ -146,6 +146,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Sub-Agents" />
+
   <PageHeader
     title="Sub-Agent Tree"
     description="When Claude Code hands work off to a helper agent, you can see who spawned whom here — the parent, its children, and what each one cost you in tokens and time."

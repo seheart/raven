@@ -944,7 +944,7 @@
                     {#if item.eventId && riskScores[item.eventId]}
                       {@const rs = riskScores[item.eventId]}
                       <span
-                        class="px-1 py-0.5 text-[11px] font-bold rounded text-white flex-shrink-0"
+                        class="px-1 py-0.5 text-[11px] font-bold rounded text-canvas flex-shrink-0"
                         style="background: {rs.score >= 7
                           ? 'var(--error)'
                           : rs.score >= 4
@@ -1150,7 +1150,7 @@
                 {#each allAgents.slice(0, 10) as agent (agent.key)}
                   <div class="flex items-center gap-2 py-0.5">
                     <span
-                      class="px-1.5 py-0.5 rounded text-[11px] font-bold text-white flex-shrink-0"
+                      class="px-1.5 py-0.5 rounded text-[11px] font-bold text-canvas flex-shrink-0"
                       style="background: {agent.color}"
                       title={agent.kind === 'top' ? 'Top-level agent' : 'Sub-agent (Task spawn)'}
                       >{agent.chip}</span
@@ -1203,7 +1203,7 @@
                 </div>
                 {#if latestDiff.agent_source}
                   <span
-                    class="px-1 py-0.5 text-[11px] font-bold rounded text-white flex-shrink-0"
+                    class="px-1 py-0.5 text-[11px] font-bold rounded text-canvas flex-shrink-0"
                     style="background: {getAgentColorByName(latestDiff.agent_source)}"
                     >{latestDiff.agent_source}</span
                   >

@@ -2,13 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
   import { projectFilter } from '../projectFilterStore.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import {
-    RefreshButton,
-    ToolbarButton,
-    EmptyState,
-    LoadingState
-  } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import { RefreshButton, LoadingState, DataFetchError } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Project Health Details Page
@@ -134,6 +129,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Health" />
   <PageHeader
     title="Are your projects busy and healthy?"
     description="How active each project is and whether errors are piling up. The score combines recent activity with a syntax-error penalty — busy and clean is a 90+, quiet or buggy drags it down."
@@ -158,11 +154,12 @@
   {#if loading && !loaded}
     <LoadingState message="Calculating health score..." />
   {:else if error}
-    <EmptyState title={error}>
-      {#snippet actions()}
-        <ToolbarButton onClick={loadHealthSummary}>Try Again</ToolbarButton>
-      {/snippet}
-    </EmptyState>
+    <DataFetchError
+      endpoint="/api/health/projects"
+      message="Failed to load health summary."
+      hint={error}
+      onRetry={loadHealthSummary}
+    />
   {:else if loaded}
     <!-- Overall Health Score -->
     <div class="bg-surface border border-border rounded-lg p-5 mb-6">

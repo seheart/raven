@@ -1,13 +1,14 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, StatusBar } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import {
     RefreshButton,
     TabButton,
     DataFetchError,
     EmptyState,
+    LoadingState,
     FreshnessBadge
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -282,6 +283,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Costs" />
   <PageHeader title="Costs">
     {#snippet actions()}
       <div class="flex items-center gap-3">
@@ -320,11 +322,7 @@
   {/if}
 
   {#if loading && !summary.total_requests}
-    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-      {#each Array(4) as _, i (i)}
-        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
-      {/each}
-    </div>
+    <LoadingState message="Loading cost data…" />
   {:else}
     <!-- Summary Cards. Subscription users see the API-equivalent dollar
          figure as the headline (curiosity-relevant: "what would this
@@ -459,109 +457,112 @@
     <!-- Model Breakdown -->
     {#if byModel.length > 0}
       <div class="mb-6">
-        <h3 class="text-sm font-semibold text-heading mb-3">Usage by Model</h3>
-        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas">
-              <tr class="text-[11px] text-muted uppercase tracking-wide">
-                <th class="text-left font-semibold px-3 py-1">Model</th>
-                <th class="text-right font-semibold px-3 py-1">Requests</th>
-                <th class="text-right font-semibold px-3 py-1">Input</th>
-                <th class="text-right font-semibold px-3 py-1">Output</th>
-                {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
-              </tr>
-            </thead>
-            <tbody>
-              {#each byModel as model (model.model)}
-                <tr class="hover:bg-surface/40">
-                  <td class="px-3 py-0.5 text-body">{model.model_family || model.model}</td>
-                  <td class="px-3 py-0.5 text-right text-muted">{model.requests}</td>
-                  <td class="px-3 py-0.5 text-right text-muted"
-                    >{formatTokens(model.input_tokens)}</td
-                  >
-                  <td class="px-3 py-0.5 text-right text-accent font-semibold"
-                    >{formatTokens(model.output_tokens)}</td
-                  >
-                  {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
-                      >{formatCost(model.cost_usd)}</td
-                    >{/if}
+        <PageSection title="01 // Usage by Model">
+          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-canvas">
+                <tr class="text-[11px] text-muted uppercase tracking-wide">
+                  <th class="text-left font-semibold px-3 py-1">Model</th>
+                  <th class="text-right font-semibold px-3 py-1">Requests</th>
+                  <th class="text-right font-semibold px-3 py-1">Input</th>
+                  <th class="text-right font-semibold px-3 py-1">Output</th>
+                  {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
                 </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {#each byModel as model (model.model)}
+                  <tr class="hover:bg-surface/40">
+                    <td class="px-3 py-0.5 text-body">{model.model_family || model.model}</td>
+                    <td class="px-3 py-0.5 text-right text-muted">{model.requests}</td>
+                    <td class="px-3 py-0.5 text-right text-muted"
+                      >{formatTokens(model.input_tokens)}</td
+                    >
+                    <td class="px-3 py-0.5 text-right text-accent font-semibold"
+                      >{formatTokens(model.output_tokens)}</td
+                    >
+                    {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
+                        >{formatCost(model.cost_usd)}</td
+                      >{/if}
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </PageSection>
       </div>
     {/if}
 
     <!-- Project Breakdown -->
     {#if byProject.length > 0}
       <div class="mb-6">
-        <h3 class="text-sm font-semibold text-heading mb-3">Usage by Project</h3>
-        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas">
-              <tr class="text-[11px] text-muted uppercase tracking-wide">
-                <th class="text-left font-semibold px-3 py-1">Project</th>
-                <th class="text-right font-semibold px-3 py-1">Requests</th>
-                <th class="text-right font-semibold px-3 py-1">Input</th>
-                <th class="text-right font-semibold px-3 py-1">Output</th>
-                {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
-              </tr>
-            </thead>
-            <tbody>
-              {#each byProject as project (project.project_name)}
-                <tr class="hover:bg-surface/40">
-                  <td class="px-3 py-0.5 text-body">{project.project_name || '(unknown)'}</td>
-                  <td class="px-3 py-0.5 text-right text-muted">{project.requests}</td>
-                  <td class="px-3 py-0.5 text-right text-muted"
-                    >{formatTokens(project.input_tokens)}</td
-                  >
-                  <td class="px-3 py-0.5 text-right text-accent font-semibold"
-                    >{formatTokens(project.output_tokens)}</td
-                  >
-                  {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
-                      >{formatCost(project.cost_usd)}</td
-                    >{/if}
+        <PageSection title="02 // Usage by Project">
+          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-canvas">
+                <tr class="text-[11px] text-muted uppercase tracking-wide">
+                  <th class="text-left font-semibold px-3 py-1">Project</th>
+                  <th class="text-right font-semibold px-3 py-1">Requests</th>
+                  <th class="text-right font-semibold px-3 py-1">Input</th>
+                  <th class="text-right font-semibold px-3 py-1">Output</th>
+                  {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
                 </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {#each byProject as project (project.project_name)}
+                  <tr class="hover:bg-surface/40">
+                    <td class="px-3 py-0.5 text-body">{project.project_name || '(unknown)'}</td>
+                    <td class="px-3 py-0.5 text-right text-muted">{project.requests}</td>
+                    <td class="px-3 py-0.5 text-right text-muted"
+                      >{formatTokens(project.input_tokens)}</td
+                    >
+                    <td class="px-3 py-0.5 text-right text-accent font-semibold"
+                      >{formatTokens(project.output_tokens)}</td
+                    >
+                    {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
+                        >{formatCost(project.cost_usd)}</td
+                      >{/if}
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </PageSection>
       </div>
     {/if}
 
     <!-- Recent Sessions -->
     {#if bySessions.length > 0}
       <div class="mb-6">
-        <h3 class="text-sm font-semibold text-heading mb-3">Recent Sessions</h3>
-        <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-canvas">
-              <tr class="text-[11px] text-muted uppercase tracking-wide">
-                <th class="text-left font-semibold px-3 py-1">Session</th>
-                <th class="text-right font-semibold px-3 py-1">Requests</th>
-                <th class="text-right font-semibold px-3 py-1">Tokens</th>
-                {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
-              </tr>
-            </thead>
-            <tbody>
-              {#each bySessions as session (session.session_id)}
-                <tr class="hover:bg-surface/40">
-                  <td class="px-3 py-0.5 text-body"
-                    >{session.project_name || session.session_id?.slice(0, 8)}</td
-                  >
-                  <td class="px-3 py-0.5 text-right text-muted">{session.requests}</td>
-                  <td class="px-3 py-0.5 text-right text-muted"
-                    >{formatTokens(session.input_tokens + session.output_tokens)}</td
-                  >
-                  {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
-                      >{formatCost(session.cost_usd)}</td
-                    >{/if}
+        <PageSection title="03 // Recent Sessions">
+          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-canvas">
+                <tr class="text-[11px] text-muted uppercase tracking-wide">
+                  <th class="text-left font-semibold px-3 py-1">Session</th>
+                  <th class="text-right font-semibold px-3 py-1">Requests</th>
+                  <th class="text-right font-semibold px-3 py-1">Tokens</th>
+                  {#if isApi}<th class="text-right font-semibold px-3 py-1">Est. Cost</th>{/if}
                 </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {#each bySessions as session (session.session_id)}
+                  <tr class="hover:bg-surface/40">
+                    <td class="px-3 py-0.5 text-body"
+                      >{session.project_name || session.session_id?.slice(0, 8)}</td
+                    >
+                    <td class="px-3 py-0.5 text-right text-muted">{session.requests}</td>
+                    <td class="px-3 py-0.5 text-right text-muted"
+                      >{formatTokens(session.input_tokens + session.output_tokens)}</td
+                    >
+                    {#if isApi}<td class="px-3 py-0.5 text-right text-accent font-semibold"
+                        >{formatCost(session.cost_usd)}</td
+                      >{/if}
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </PageSection>
       </div>
     {/if}
 

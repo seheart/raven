@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     ToolbarButton,
+    TabButton,
     EmptyState,
+    LoadingState,
     DataFetchError,
     FreshnessBadge
   } from '../components/ui/index.js';
@@ -105,8 +107,8 @@
     }
   }
 
-  function handlePeriodChange(event) {
-    period = event.target.value;
+  function setPeriod(value) {
+    period = value;
     loadTrends();
   }
 
@@ -412,6 +414,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Trends" />
   <PageHeader
     title="Historical Trends"
     description="How your file activity changes over time, bucketed by hour, day, or week. Pick a window and see the shape of your weeks."
@@ -429,17 +432,12 @@
   <!-- Filters -->
   <div class="bg-surface border border-border rounded-lg p-4 mb-6 flex gap-6 flex-wrap">
     <div class="flex items-center gap-3">
-      <label for="period-select" class="text-sm text-muted">Period</label>
-      <select
-        id="period-select"
-        value={period}
-        onchange={handlePeriodChange}
-        class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
-      >
-        <option value="hourly">Hourly</option>
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-      </select>
+      <span class="text-sm text-muted">Period</span>
+      <div class="flex bg-surface border border-border rounded overflow-hidden">
+        {#each [['hourly', 'Hourly'], ['daily', 'Daily'], ['weekly', 'Weekly']] as [value, label] (value)}
+          <TabButton active={period === value} onClick={() => setPeriod(value)}>{label}</TabButton>
+        {/each}
+      </div>
     </div>
     <div class="flex items-center gap-3">
       <label for="days-select" class="text-sm text-muted">Last</label>
@@ -459,11 +457,7 @@
   </div>
 
   {#if loading}
-    <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-      {#each Array(4) as _, i (i)}
-        <div class="h-24 bg-surface border border-border rounded-lg animate-pulse"></div>
-      {/each}
-    </div>
+    <LoadingState message="Loading trends…" />
   {:else if error}
     <DataFetchError
       endpoint="/api/trends/historical"
@@ -550,10 +544,7 @@
     </div>
 
     <!-- Data Table -->
-    <div>
-      <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
-        Period Breakdown
-      </h3>
+    <PageSection title="01 // Period Breakdown">
       <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
         <table class="w-full">
           <thead class="bg-canvas">
@@ -590,6 +581,6 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </PageSection>
   {/if}
 </PageLayout>

@@ -1,12 +1,13 @@
 <script>
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     ToolbarButton,
     EmptyState,
     LoadingState,
+    DataFetchError,
     FreshnessBadge
   } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -398,6 +399,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Agents · Stats" />
+
   <PageHeader
     title="Agent Performance"
     description="How each of your AI tools has been working — what they touch, how often, and at what pace. The mood and style chips on each row describe how that agent edits in plain language; hover them for the definitions."
@@ -411,12 +414,12 @@
   </PageHeader>
 
   {#if error}
-    <div
-      class="bg-error-subtle border border-error rounded-lg p-4 mb-6 flex justify-between items-center"
-    >
-      <span class="text-sm text-error font-sans">Failed to load agent stats: {error}</span>
-      <ToolbarButton variant="danger" onClick={loadStats}>Retry</ToolbarButton>
-    </div>
+    <DataFetchError
+      endpoint="/api/agent-stats"
+      message="Failed to load agent stats"
+      hint={error}
+      onRetry={loadStats}
+    />
   {/if}
 
   <!-- Summary Cards -->
@@ -647,7 +650,7 @@
                 <div class="flex h-8 rounded overflow-hidden bg-canvas mb-2">
                   {#if createRate > 0}
                     <div
-                      class="bg-success flex items-center justify-center text-white text-xs font-semibold"
+                      class="bg-success flex items-center justify-center text-canvas text-xs font-semibold"
                       style="width: {createRate * 100}%"
                       title="Created: {(createRate * 100).toFixed(0)}%"
                     >
@@ -658,7 +661,7 @@
                   {/if}
                   {#if modifyRate > 0}
                     <div
-                      class="bg-warning flex items-center justify-center text-white text-xs font-semibold"
+                      class="bg-warning flex items-center justify-center text-canvas text-xs font-semibold"
                       style="width: {modifyRate * 100}%"
                       title="Modified: {(modifyRate * 100).toFixed(0)}%"
                     >
@@ -669,7 +672,7 @@
                   {/if}
                   {#if deleteRate > 0}
                     <div
-                      class="bg-error flex items-center justify-center text-white text-xs font-semibold"
+                      class="bg-error flex items-center justify-center text-canvas text-xs font-semibold"
                       style="width: {deleteRate * 100}%"
                       title="Deleted: {(deleteRate * 100).toFixed(0)}%"
                     >

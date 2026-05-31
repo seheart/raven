@@ -2,7 +2,7 @@
   import { createPageApi } from '../apiClient.js';
   import { onMount } from 'svelte';
   import { formatTimeOnly, formatDateOnly, formatShortDateTime } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     EmptyState,
@@ -80,12 +80,17 @@
     return formatShortDateTime(ts);
   }
 
-  function typeColor(type) {
-    if (type === 'user') return 'var(--accent)';
-    if (type === 'assistant') return 'var(--success)';
-    if (type === 'tool') return 'var(--muted)';
-    if (type === 'subagent') return 'var(--warning)';
-    return 'var(--muted)';
+  // Static state colors → semantic utility classes (rule E). Dot color is
+  // keyed off the entry type, which is a fixed enum, so a class map is the
+  // canonical form rather than an inline var(--…) style.
+  const TYPE_DOT_CLASS = {
+    user: 'bg-accent',
+    assistant: 'bg-success',
+    tool: 'bg-muted',
+    subagent: 'bg-warning'
+  };
+  function typeColorClass(type) {
+    return TYPE_DOT_CLASS[type] || 'bg-muted';
   }
 
   function typeLabel(type) {
@@ -124,6 +129,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Sessions" />
+
   <PageHeader title="Session Activity" description="Conversation timeline between you and Claude">
     {#snippet actions()}
       <div class="flex items-center gap-3">
@@ -203,8 +210,7 @@
               <!-- Type indicator -->
               <div class="flex-shrink-0 pt-1.5">
                 <div
-                  class="w-2.5 h-2.5 rounded-full"
-                  style="background: {typeColor(entry.type)}"
+                  class="w-2.5 h-2.5 rounded-full {typeColorClass(entry.type)}"
                   title={typeLabel(entry.type)}
                 ></div>
               </div>

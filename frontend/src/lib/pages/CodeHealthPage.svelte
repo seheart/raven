@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { formatShortDateTime } from '../timeFormat.js';
   import { websocketService } from '../services/websocket.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
   import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
@@ -55,12 +55,19 @@
   // The run to display — either selected from history or latest
   const displayRun = $derived(selectedRun || data.latest);
 
-  const overallColor = $derived.by(() => {
-    if (!displayRun) return 'var(--muted)';
-    if (displayRun.overall_score === 'healthy') return 'var(--success)';
-    if (displayRun.overall_score === 'warning') return 'var(--warning)';
-    return 'var(--error)';
-  });
+  // Semantic dot color class for a run's overall_score. Replaces the old
+  // `var(--success)` inline-style helper — static colors live in the
+  // class-map alongside statusBadgeClass.
+  function scoreDotClass(score) {
+    if (score === 'healthy') return 'bg-success';
+    if (score === 'warning') return 'bg-warning';
+    if (score == null) return 'bg-muted';
+    return 'bg-error';
+  }
+
+  const overallDotClass = $derived(
+    displayRun ? scoreDotClass(displayRun.overall_score) : 'bg-muted'
+  );
 
   const overallLabel = $derived.by(() => {
     if (!displayRun) return 'No Data';
@@ -192,10 +199,12 @@
     return '\u2717';
   }
 
-  function statusColor(status) {
-    if (status === 'pass') return 'var(--success)';
-    if (status === 'warn') return 'var(--warning)';
-    return 'var(--error)';
+  // Semantic text color class for a check status — used by the live
+  // terminal log glyph. Mirrors statusBadgeClass but text-only.
+  function statusTextClass(status) {
+    if (status === 'pass') return 'text-success';
+    if (status === 'warn') return 'text-warning';
+    return 'text-error';
   }
 
   // Semantic class pair (subtle background + matching text) for status pills —
@@ -296,6 +305,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Code Health" />
   <PageHeader title="Code Health" description="On-demand analysis — click Run Now to check">
     {#snippet actions()}
       <div class="flex items-center gap-3">
@@ -332,7 +342,7 @@
       class="bg-surface border border-border rounded-lg px-4 py-2.5 mb-4 flex items-center gap-4 flex-wrap"
     >
       <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full" style="background: {overallColor}"></span>
+        <span class="w-2 h-2 rounded-full {overallDotClass}"></span>
         <span class="text-xs font-semibold text-muted uppercase tracking-wide">Last Run</span>
       </div>
       <span class="text-xs font-mono text-body">{formatTimestamp(displayRun.timestamp)}</span>
@@ -345,12 +355,12 @@
       {/if}
       <span class="text-border">|</span>
       <span class="text-xs font-mono text-muted">
-        <span style="color: var(--success)">{displayRun.passed_checks} passed</span>
+        <span class="text-success">{displayRun.passed_checks} passed</span>
         {#if displayRun.warned_checks > 0}
-          <span class="mx-1" style="color: var(--warning)">{displayRun.warned_checks} warned</span>
+          <span class="mx-1 text-warning">{displayRun.warned_checks} warned</span>
         {/if}
         {#if displayRun.failed_checks > 0}
-          <span class="mx-1" style="color: var(--error)">{displayRun.failed_checks} failed</span>
+          <span class="mx-1 text-error">{displayRun.failed_checks} failed</span>
         {/if}
       </span>
       {#if selectedRun}
@@ -391,7 +401,7 @@
       <div class="bg-surface border border-border rounded-lg p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Overall</div>
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full" style="background: {overallColor}"></span>
+          <span class="w-2.5 h-2.5 rounded-full {overallDotClass}"></span>
           <span class="text-sm font-mono text-body">{overallLabel}</span>
         </div>
       </div>
@@ -399,9 +409,7 @@
       <div class="bg-surface border border-border rounded-lg p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Passed</div>
         <div class="flex items-center gap-2">
-          <span class="text-lg font-mono font-bold" style="color: var(--success)"
-            >{displayRun.passed_checks}</span
-          >
+          <span class="text-lg font-mono font-bold text-success">{displayRun.passed_checks}</span>
           <span class="text-xs text-muted">/ {displayRun.total_checks}</span>
         </div>
       </div>
@@ -410,9 +418,9 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Warnings</div>
         <div class="flex items-center gap-2">
           <span
-            class="text-lg font-mono font-bold"
-            style="color: {displayRun.warned_checks > 0 ? 'var(--warning)' : 'var(--muted)'}"
-            >{displayRun.warned_checks}</span
+            class="text-lg font-mono font-bold {displayRun.warned_checks > 0
+              ? 'text-warning'
+              : 'text-muted'}">{displayRun.warned_checks}</span
           >
         </div>
       </div>
@@ -421,9 +429,9 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Failed</div>
         <div class="flex items-center gap-2">
           <span
-            class="text-lg font-mono font-bold"
-            style="color: {displayRun.failed_checks > 0 ? 'var(--error)' : 'var(--muted)'}"
-            >{displayRun.failed_checks}</span
+            class="text-lg font-mono font-bold {displayRun.failed_checks > 0
+              ? 'text-error'
+              : 'text-muted'}">{displayRun.failed_checks}</span
           >
         </div>
       </div>
@@ -434,9 +442,7 @@
       <div class="bg-surface border border-accent rounded-lg mb-6 overflow-hidden">
         <!-- Progress header -->
         <div class="px-4 py-3 flex items-center gap-3 border-b border-border">
-          <div
-            class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0"
-          ></div>
+          <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"></span>
           <span class="text-sm text-body font-sans flex-1">
             {#if progress}
               Running: <span class="font-mono text-accent">{progress.currentCheck}</span>
@@ -469,10 +475,7 @@
 
         <!-- Live terminal output -->
         {#if completedChecks.length > 0}
-          <div
-            class="px-4 py-3 max-h-64 overflow-y-auto font-mono text-xs"
-            style="background: var(--bg)"
-          >
+          <div class="px-4 py-3 max-h-64 overflow-y-auto font-mono text-xs bg-canvas">
             {#each completedChecks as check, i (i)}
               <div
                 class="flex items-start gap-2 py-1 {i < completedChecks.length - 1
@@ -480,8 +483,8 @@
                   : ''}"
               >
                 <span
-                  class="flex-shrink-0 w-4 text-center font-bold"
-                  style="color: {statusColor(check.status)}">{statusIcon(check.status)}</span
+                  class="flex-shrink-0 w-4 text-center font-bold {statusTextClass(check.status)}"
+                  >{statusIcon(check.status)}</span
                 >
                 <span class="text-body">{check.name}</span>
                 <span class="text-muted">{formatDuration(check.duration_ms)}</span>
@@ -573,13 +576,7 @@
                 ? 'border-accent'
                 : 'border-border hover:border-accent'}"
             >
-              <span
-                class="w-2 h-2 rounded-full flex-shrink-0"
-                style="background: {run.overall_score === 'healthy'
-                  ? 'var(--success)'
-                  : run.overall_score === 'warning'
-                    ? 'var(--warning)'
-                    : 'var(--error)'}"
+              <span class="w-2 h-2 rounded-full flex-shrink-0 {scoreDotClass(run.overall_score)}"
               ></span>
               <span class="text-xs font-mono text-muted">#{run.id}</span>
               <span class="text-xs font-mono text-body flex-1"

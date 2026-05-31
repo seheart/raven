@@ -1,11 +1,12 @@
 <script>
   import { logger } from '../logger.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     ToolbarButton,
     EmptyState,
+    DataFetchError,
     FreshnessBadge,
     TabButton
   } from '../components/ui/index.js';
@@ -454,6 +455,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Performance" />
+
   <PageHeader
     title="Performance Profiling"
     description="How hard your machine is working while AI tools run. The metrics tab shows CPU and memory over time; the correlations tab pairs file changes with system load so you can see whether a heavy task lined up with a spike."
@@ -515,15 +518,12 @@
 
     <!-- Error State -->
   {:else if error}
-    <div
-      class="bg-error-subtle border border-error rounded-lg p-6 flex items-center justify-between"
-    >
-      <div>
-        <p class="text-error font-semibold mb-1">Error loading performance data</p>
-        <p class="text-sm text-muted">{error}</p>
-      </div>
-      <ToolbarButton onClick={() => fetchAllData()}>Try Again</ToolbarButton>
-    </div>
+    <DataFetchError
+      endpoint="/api/system-metrics"
+      message="Error loading performance data"
+      hint={error}
+      onRetry={() => fetchAllData()}
+    />
 
     <!-- Tab Content -->
   {:else if activeTab === 'metrics'}
@@ -846,10 +846,7 @@
         </div>
 
         <!-- Table -->
-        <div>
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
-            File Changes by Resource Usage
-          </h3>
+        <PageSection title="01 // File Changes by Resource Usage">
           <div
             class="border-t border-b border-border font-mono text-sm overflow-x-auto max-h-[500px] overflow-y-auto"
           >
@@ -909,7 +906,7 @@
               </tbody>
             </table>
           </div>
-        </div>
+        </PageSection>
       </div>
     {:else}
       <EmptyState

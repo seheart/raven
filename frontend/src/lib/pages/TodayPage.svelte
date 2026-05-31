@@ -721,7 +721,7 @@
         {/if}
 
         {#if loadError}
-          <div class="mt-4 bg-error/10 border border-error/30 text-error rounded-lg p-3 text-sm">
+          <div class="mt-4 bg-error/10 border-l-4 border-error text-error rounded-r p-3 text-sm">
             {loadError}
           </div>
         {/if}

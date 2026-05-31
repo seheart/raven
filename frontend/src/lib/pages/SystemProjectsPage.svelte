@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { renderMarkdown } from '../utils/markdown.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import { ToolbarButton, EmptyState, DataFetchError } from '../components/ui/index.js';
   import { toasts } from '../toastStore.js';
   const { api, abort: abortRequests } = createPageApi();
@@ -287,6 +287,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Projects" />
   {#if editingProject}
     <!-- Edit/Add Form -->
     <div class="flex items-center gap-3 mb-6">
@@ -464,17 +465,17 @@
                   {/if}
                 </div>
                 <div class="flex flex-wrap gap-2 flex-shrink-0">
-                  <button
-                    onclick={() => getProjectHealth(project.name)}
+                  <ToolbarButton
+                    variant="primary"
+                    onClick={() => getProjectHealth(project.name)}
                     disabled={healthNarratives[project.name]?.loading ||
                       insightsAvailable === false}
                     title={insightsAvailable === false
                       ? 'Local-LLM insights are off. Restart Raven without RAVEN_INSIGHTS_DISABLED=1 to enable.'
                       : ''}
-                    class="px-2 py-1 bg-accent text-canvas rounded text-xs font-sans hover:bg-accent-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {healthNarratives[project.name]?.loading ? 'Analyzing...' : 'AI Summary'}
-                  </button>
+                  </ToolbarButton>
                   <button
                     onclick={() => toggleProject(project)}
                     class="px-2 py-1 rounded text-xs font-sans transition-colors {project.enabled
@@ -483,12 +484,7 @@
                   >
                     {project.enabled ? 'On' : 'Off'}
                   </button>
-                  <button
-                    onclick={() => startEdit(project)}
-                    class="px-2 py-1 bg-surface border border-border rounded text-xs font-sans hover:border-accent transition-colors"
-                  >
-                    Edit
-                  </button>
+                  <ToolbarButton onClick={() => startEdit(project)}>Edit</ToolbarButton>
                   <ToolbarButton variant="danger" onClick={() => deleteProject(project.name)}
                     >Remove</ToolbarButton
                   >
@@ -697,7 +693,7 @@
                     <div
                       class="bg-canvas border rounded p-4 text-base text-body font-sans leading-relaxed transition-colors {highlightProjectName ===
                       project.name
-                        ? 'border-accent shadow-[0_0_0_1px_var(--accent)]'
+                        ? 'border-accent ring-1 ring-accent'
                         : 'border-border'}"
                     >
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -- Output sanitized via DOMPurify in renderMarkdown -->

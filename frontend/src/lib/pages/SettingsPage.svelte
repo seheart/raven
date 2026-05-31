@@ -5,7 +5,7 @@
   import { settings } from '../stores/settingsStore.js';
 
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import { ToolbarButton } from '../components/ui/index.js';
   const { api } = createPageApi();
 
@@ -89,6 +89,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Settings" />
+
   <PageHeader title="Settings" description="Application preferences and configuration">
     {#snippet actions()}
       <div class="flex items-center gap-3">
@@ -207,12 +209,7 @@
                 class="cursor-pointer"
               />
               {#if notificationPermission !== 'granted'}
-                <button
-                  onclick={requestNotificationPermission}
-                  class="px-2 py-1 bg-canvas border border-border rounded text-xs font-sans hover:border-accent transition-colors"
-                >
-                  Allow
-                </button>
+                <ToolbarButton onClick={requestNotificationPermission}>Allow</ToolbarButton>
               {:else}
                 <span class="flex items-center gap-1 text-xs text-success">
                   <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
