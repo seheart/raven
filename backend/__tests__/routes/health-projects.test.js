@@ -13,6 +13,7 @@ import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { createHealthProjectsRouter } from '../../dist/routes/health-projects.js';
+import { createDashboardRepository } from '../../dist/repositories/dashboard-repository.js';
 import { RavenDB } from '../../dist/db.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -30,7 +31,7 @@ function mountRouter(db) {
   // Mount under a unique base so the cache middleware keys don't collide
   // across the suite — `cacheMiddleware` keys on req.originalUrl.
   const base = '/api/health-' + Math.random().toString(36).slice(2, 10);
-  app.use(base, createHealthProjectsRouter({ db }));
+  app.use(base, createHealthProjectsRouter({ dashboardRepo: createDashboardRepository(db) }));
   return { app, base };
 }
 

@@ -37,6 +37,10 @@ import { pipeline } from 'stream/promises';
 import tarPack from 'tar-stream';
 import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
+import {
+  createSchemaRepository,
+  type SchemaRepository
+} from '../repositories/schema-repository.js';
 
 const MAX_EXPORT_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB hard cap
 
@@ -63,23 +67,6 @@ const HIGH_VALUE_TABLES = [
   'analysis_checks',
   'api_latency'
 ] as const;
-
-function existingTables(db: RavenDB, candidates: readonly string[]): string[] {
-  const rows = db.db
-    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
-    .all() as Array<{ name: string }>;
-  const have = new Set(rows.map(r => r.name));
-  return candidates.filter(t => have.has(t));
-}
-
-function allTables(db: RavenDB): string[] {
-  const rows = db.db
-    .prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
-    )
-    .all() as Array<{ name: string }>;
-  return rows.map(r => r.name);
-}
 
 function rowCount(db: RavenDB, table: string): number {
   // Table name comes from sqlite_master, not user input.
@@ -113,6 +100,7 @@ interface ExportDeps {
 
 export function createExportRouter({ db, dbPath }: ExportDeps): Router {
   const router = express.Router();
+  const schema = createSchemaRepository(db);
 
   router.get('/', async (req: Request, res: Response) => {
     const format = (req.query.format as string | undefined)?.toLowerCase();
@@ -120,7 +108,7 @@ export function createExportRouter({ db, dbPath }: ExportDeps): Router {
     try {
       // Descriptor — no format
       if (!format) {
-        const tables = allTables(db);
+        const tables = schema.listTables();
         const row_counts: Record<string, number> = {};
         for (const t of tables) {
           try {
@@ -167,10 +155,10 @@ export function createExportRouter({ db, dbPath }: ExportDeps): Router {
         return await streamSqliteBackup(db, res);
       }
       if (format === 'jsonl') {
-        return streamJsonl(db, res);
+        return streamJsonl(db, schema, res);
       }
       if (format === 'csv') {
-        return await streamCsvTarball(db, res);
+        return await streamCsvTarball(db, schema, res);
       }
 
       return res.status(400).json({
@@ -253,8 +241,8 @@ async function streamSqliteBackup(db: RavenDB, res: Response): Promise<void> {
 
 // ==================== jsonl (line-delimited JSON) ====================
 
-function streamJsonl(db: RavenDB, res: Response): void {
-  const tables = existingTables(db, HIGH_VALUE_TABLES);
+function streamJsonl(db: RavenDB, schema: SchemaRepository, res: Response): void {
+  const tables = schema.listTablesFiltered(HIGH_VALUE_TABLES);
   const filename = `raven-export-${isoDate()}.jsonl`;
 
   res.setHeader('Content-Type', 'application/x-ndjson');
@@ -300,8 +288,12 @@ function streamJsonl(db: RavenDB, res: Response): void {
 
 // ==================== csv (tarball) ====================
 
-async function streamCsvTarball(db: RavenDB, res: Response): Promise<void> {
-  const tables = existingTables(db, allTables(db));
+async function streamCsvTarball(
+  db: RavenDB,
+  schema: SchemaRepository,
+  res: Response
+): Promise<void> {
+  const tables = schema.listTablesFiltered(schema.listTables());
   const filename = `raven-export-${isoDate()}.tar.gz`;
 
   res.setHeader('Content-Type', 'application/gzip');
@@ -334,9 +326,7 @@ async function streamCsvTarball(db: RavenDB, res: Response): Promise<void> {
 
   for (const table of tables) {
     if (aborted) break;
-    const cols = (
-      db.db.prepare(`PRAGMA table_info("${table}")`).all() as Array<{ name: string }>
-    ).map(c => c.name);
+    const cols = schema.tableColumns(table);
     if (cols.length === 0) continue;
 
     // Build the CSV in memory per-table. Streaming each row into tar-stream

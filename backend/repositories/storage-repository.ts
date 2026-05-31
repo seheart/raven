@@ -72,7 +72,7 @@ interface ProjectStorageRow {
   estimated_size: number;
 }
 
-export interface ProjectDiskRow {
+interface ProjectDiskRow {
   project_name: string;
   path: string | null;
   /** Source-tree size on disk, respecting ignore patterns. null = path

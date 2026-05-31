@@ -306,7 +306,7 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
       agentEventsRepo: agentEventsRepository
     })
   );
-  app.use('/api/health', createHealthProjectsRouter({ db }));
+  app.use('/api/health', createHealthProjectsRouter({ dashboardRepo: dashboardRepository }));
   app.use(
     '/api',
     createDashboardRouter({

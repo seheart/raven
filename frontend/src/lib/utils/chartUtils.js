@@ -91,7 +91,7 @@ export function getChartPalette(count = 6) {
  * @param {{ y0?: number, y1?: number, color?: string }} [opts]
  * @returns {CanvasGradient | string}
  */
-export function chartGradient(ctx, opts = {}) {
+function chartGradient(ctx, opts = {}) {
   try {
     if (!ctx?.createLinearGradient) {
       return opts.color || getChartColors().primary || '#d97757';
@@ -134,8 +134,7 @@ export function chartGradient(ctx, opts = {}) {
  * and it'll do the right thing — read chartArea from the Chart.js
  * context and build a gradient anchored to the visible plot region. On
  * the first paint (before chartArea is laid out) it returns the solid
- * primary color so the chart doesn't flicker. For a non-brand series use
- * `chartFillFor('#hex')`.
+ * primary color so the chart doesn't flicker.
  *
  * Arity is fixed at 1 on purpose: Chart.js invokes scriptables as
  * `fn(context, optionsProxy)`, and that options proxy resolves every
@@ -144,16 +143,6 @@ export function chartGradient(ctx, opts = {}) {
  */
 export function chartFill(scriptCtx) {
   return _resolveFill(scriptCtx, undefined);
-}
-
-/**
- * Factory for a `chartFill` variant that paints with a specific base
- * color instead of the brand primary. Use for non-brand series:
- *
- *   backgroundColor: chartFillFor('#22c55e'),
- */
-export function chartFillFor(color) {
-  return scriptCtx => _resolveFill(scriptCtx, color);
 }
 
 function _resolveFill(scriptCtx, color) {
