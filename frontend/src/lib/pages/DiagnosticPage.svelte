@@ -58,21 +58,17 @@
   // Clipboard feedback for the Copy Report button.
   let copyStatus = $state('');
 
-  // True while any orchestrated step is in flight. Used to disable the
-  // Run All button and show the live panel.
-  const isRunning = $derived(
-    codeHealth.running ||
-      codeHealth.loading ||
-      healthMonitor.loading ||
-      errors.loading ||
-      patterns.loading ||
-      endpointSweep.loading
-  );
+  // True ONLY while a user-triggered "Run All Diagnostics" is in flight — not
+  // during the passive initial-load reads. Drives the hero "Running…" state,
+  // the live progress panel, and the elapsed timer. Without this, navigating to
+  // the page looked like a run had kicked off, because the initial endpoint
+  // sweep (now ~107 probes) keeps endpointSweep.loading true for a beat.
+  let runActive = $state(false);
 
   // Aggregate verdict across every section. The button needs an honest
   // top-level signal — a single critical anywhere outranks all warnings.
   const overallStatus = $derived.by(() => {
-    if (isRunning) return 'running';
+    if (runActive) return 'running';
     const ch = codeHealth.data;
     const hm = healthMonitor.data;
     if (!ch && !hm) return 'unknown';
@@ -112,10 +108,10 @@
     return 'Not yet run';
   }
 
-  // Drive the elapsed-time ticker off isRunning: spin up a 1s interval
+  // Drive the elapsed-time ticker off runActive: spin up a 1s interval
   // while anything is running, tear it down the moment it all settles.
   $effect(() => {
-    if (isRunning) {
+    if (runActive) {
       if (!elapsedTimer) {
         nowTick = Date.now();
         elapsedTimer = setInterval(() => {
@@ -313,6 +309,7 @@
   // health monitor in parallel, then refreshes the lighter counts when
   // both finish. Code-health progress streams via WebSocket.
   async function runAll() {
+    runActive = true;
     runStartTime = Date.now();
     runFinishedAt = null;
     progress = null;
@@ -377,6 +374,7 @@
     ]);
 
     runFinishedAt = Date.now();
+    runActive = false;
   }
 
   // The code-health endpoint kicks off async work and returns immediately.
@@ -456,7 +454,7 @@
     <div class="flex items-center gap-3">
       <span
         class="w-3 h-3 rounded-full {statusDotClass(overallStatus)}"
-        class:animate-pulse={isRunning}
+        class:animate-pulse={runActive}
       ></span>
       <div>
         <div class="text-xs uppercase tracking-wide text-muted font-mono mb-0.5">Overall</div>
@@ -466,7 +464,7 @@
 
     <div class="flex-1"></div>
 
-    {#if runFinishedAt && !isRunning}
+    {#if runFinishedAt && !runActive}
       <span class="text-xs text-muted font-mono">
         Last run took {formatDuration(runFinishedAt - runStartTime)}
       </span>
@@ -474,19 +472,19 @@
 
     <ToolbarButton
       onClick={copyReport}
-      disabled={isRunning}
+      disabled={runActive}
       title="Copy a markdown summary of every section to your clipboard. Paste into chat to get help debugging."
     >
       {copyStatus || 'Copy Report'}
     </ToolbarButton>
 
-    <ToolbarButton variant="primary" onClick={runAll} disabled={isRunning}>
-      {isRunning ? 'Running…' : 'Run All Diagnostics'}
+    <ToolbarButton variant="primary" onClick={runAll} disabled={runActive}>
+      {runActive ? 'Running…' : 'Run All Diagnostics'}
     </ToolbarButton>
   </div>
 
   <!-- Live progress (only during a run) -->
-  {#if isRunning}
+  {#if runActive}
     <div class="bg-surface border border-accent rounded-lg mb-6 overflow-hidden">
       <div class="px-4 py-3 flex items-center gap-3 border-b border-border">
         <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0"></span>
