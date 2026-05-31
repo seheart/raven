@@ -84,7 +84,9 @@ const LINE_RULES: AnnotationRule[] = [
     name: 'eval() / Function() / new Function',
     severity: 'critical',
     category: 'security',
-    test: line => /\b(eval|Function)\s*\(/.test(line) || /new\s+Function\s*\(/.test(line),
+    // Lookbehind excludes method calls (`model.eval()`, `obj.Function()`); only
+    // a bare global `eval(`/`Function(` or `new Function(` is the RCE vector.
+    test: line => /(?<![.\w])(eval|Function)\s*\(/.test(line) || /new\s+Function\s*\(/.test(line),
     message:
       'Dynamic code execution is a common RCE vector. Replace with explicit dispatch where possible.'
   },

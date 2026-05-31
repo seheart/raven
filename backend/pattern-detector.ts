@@ -63,7 +63,10 @@ const PATTERNS: Pattern[] = [
     name: 'Dangerous eval() Usage',
     description: 'Using eval() can be a security risk',
     severity: 'critical',
-    pattern: /\beval\s*\(/,
+    // Negative lookbehind excludes method calls like `model.eval()` (PyTorch),
+    // `foo_eval(`, etc. — only a bare global `eval(` call is the risk. Without
+    // this, watched ML/Python projects produce a flood of false positives.
+    pattern: /(?<![.\w])eval\s*\(/,
     category: 'security'
   }
 ];
