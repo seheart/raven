@@ -360,7 +360,10 @@
             <div class="flex items-baseline justify-between gap-3 mb-2">
               <span class="text-sm font-semibold text-accent">{d.name}</span>
               <span class="text-xs font-mono text-muted"
-                >{String(i + 1).padStart(2, '0')}/0{DIFFERENTIATORS.length}</span
+                >{String(i + 1).padStart(2, '0')}/{String(DIFFERENTIATORS.length).padStart(
+                  2,
+                  '0'
+                )}</span
               >
             </div>
             <p class="text-sm text-body font-sans leading-relaxed">{d.body}</p>
@@ -561,7 +564,7 @@
             <div class="flex items-baseline justify-between gap-3 mb-2">
               <span class="text-sm font-semibold text-accent">{p.name}</span>
               <span class="text-xs font-mono text-muted"
-                >{String(i + 1).padStart(2, '0')}/0{PRINCIPLES.length}</span
+                >{String(i + 1).padStart(2, '0')}/{String(PRINCIPLES.length).padStart(2, '0')}</span
               >
             </div>
             <p class="text-sm text-body font-sans leading-relaxed">{p.body}</p>

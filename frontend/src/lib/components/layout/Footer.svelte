@@ -20,13 +20,18 @@
   }
 
   onMount(() => {
-    const interval = setInterval(() => {
-      connected = websocketService.isConnected();
-    }, 2000);
+    // Event-driven instead of polling: the gold-standard pages subscribe to
+    // connect/disconnect rather than burning a 2s interval forever.
     connected = websocketService.isConnected();
+    const updateStatus = () => {
+      connected = websocketService.isConnected();
+    };
+    websocketService.on('connect', updateStatus);
+    websocketService.on('disconnect', updateStatus);
 
     return () => {
-      clearInterval(interval);
+      websocketService.off('connect', updateStatus);
+      websocketService.off('disconnect', updateStatus);
     };
   });
 </script>

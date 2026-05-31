@@ -216,6 +216,19 @@
     URL.revokeObjectURL(url);
   }
 
+  // Debounce chart rebuilds. loadStats() runs on initial load, manual
+  // refresh, AND on every 'agent-event' / 'agent-stats' WS message — a
+  // burst of live events would otherwise tear down and rebuild every
+  // per-agent doughnut repeatedly. Collapse the storm into one rebuild.
+  let chartRebuildTimer = null;
+  function scheduleCharts(delay = 100) {
+    if (chartRebuildTimer) clearTimeout(chartRebuildTimer);
+    chartRebuildTimer = setTimeout(() => {
+      chartRebuildTimer = null;
+      createCharts();
+    }, delay);
+  }
+
   // Create charts for each agent
   function createCharts() {
     // Destroy existing charts
@@ -288,8 +301,10 @@
       loading = true;
       error = null;
 
-      // Fetch agent stats and events
-      const statsData = await api.get('/agent-stats').catch(() => []);
+      // Fetch agent stats. Previously `.catch(() => [])` swallowed backend
+      // outages into an empty "no agents" state — the exact silent-failure
+      // the user objected to. Let it throw to the error path below.
+      const statsData = await api.get('/agent-stats');
       const raw = Array.isArray(statsData) ? statsData : [];
       // Backend appends a synthetic _aggregate row carrying global file stats.
       // Skip it for the per-agent table.
@@ -332,7 +347,6 @@
           edit_count: agent.edit_count || 0,
           delete_count: agent.delete_count || 0,
           changes_per_day: Math.round(fileEvents / daysSinceFirst),
-          avg_change_size: 0,
           unique_files: agent.unique_files || 0,
           total_duration_seconds: totalDurationSec,
           tool_breakdown: agent.tool_breakdown || []
@@ -342,8 +356,8 @@
       loading = false;
       lastUpdated = new Date();
 
-      // Create charts after data loads
-      setTimeout(createCharts, 100);
+      // Create charts after data loads (debounced to absorb WS-driven reloads)
+      scheduleCharts();
     } catch (err) {
       logger.error('Failed to load agent stats:', err);
       error = err.message;
@@ -363,7 +377,7 @@
 
     // Watch for theme changes
     themeObserver = createThemeObserver(() => {
-      setTimeout(createCharts, 100);
+      scheduleCharts();
     });
 
     // Cleanup
@@ -375,6 +389,8 @@
       if (themeObserver) {
         themeObserver.disconnect();
       }
+
+      if (chartRebuildTimer) clearTimeout(chartRebuildTimer);
 
       Object.values(charts).forEach(chart => destroyChart(chart));
     };
@@ -445,10 +461,11 @@
           {formatNumber(summaryStats.total_files)}
         </div>
       </div>
-      <div class="bg-surface border border-border rounded p-4">
-        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-          Total Duration
-        </div>
+      <div
+        class="bg-surface border border-border rounded p-4"
+        title="Sum of each agent's active span (last activity minus first seen). This is wall-clock reach, not compute time spent."
+      >
+        <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Span</div>
         <div class="text-sm font-mono text-body">
           {formatDuration(summaryStats.total_duration)}
         </div>
@@ -463,7 +480,7 @@
         type="text"
         placeholder="Search agents..."
         bind:value={searchQuery}
-        class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-sm text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent font-mono"
+        class="flex-1 min-w-[200px] px-3 py-2 bg-canvas border border-border rounded text-sm text-body placeholder:text-muted focus:outline-none focus:border-accent font-mono"
       />
 
       <RefreshButton onClick={loadStats} {loading} />
@@ -473,10 +490,6 @@
     </div>
 
     <div class="flex items-center gap-4 text-sm font-mono">
-      <span class="text-muted">
-        Sorted by: <strong class="text-accent">{sortBy}</strong> ({sortDesc ? 'desc' : 'asc'})
-      </span>
-      <span class="text-muted">•</span>
       <span
         class="text-muted"
         class:text-warning={showNewEventAnimation}
@@ -562,7 +575,7 @@
           </div>
 
           <!-- Metrics Grid -->
-          <div class="grid grid-cols-2 xl:grid-cols-6 gap-3 mb-4">
+          <div class="grid grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
             <div class="bg-canvas border border-border rounded p-3">
               <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                 Events
@@ -597,15 +610,7 @@
             </div>
             <div class="bg-canvas border border-border rounded p-3">
               <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                Avg Files/Op
-              </div>
-              <div class="text-sm font-mono text-body">
-                {agent.avg_change_size || 0}
-              </div>
-            </div>
-            <div class="bg-canvas border border-border rounded p-3">
-              <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
-                Duration
+                Active over
               </div>
               <div class="text-sm font-mono text-body">
                 {formatDuration(agent.total_duration_seconds)}

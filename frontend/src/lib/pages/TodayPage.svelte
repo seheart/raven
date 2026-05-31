@@ -6,6 +6,7 @@
    * a one-sentence summary narrated by the local model.
    */
   import { onMount, onDestroy } from 'svelte';
+  import { logger } from '../logger.js';
   import { PageLayout, PageSection } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import TokenStream from '../components/today/TokenStream.svelte';
@@ -54,6 +55,11 @@
   let costTicker = null;
   /** @type {ReturnType<typeof setInterval>|null} */
   let timelineTicker = null;
+  /** @type {ReturnType<typeof setTimeout>|null} */
+  let spendDeltaTimer = null;
+  // Lifecycle guard for async loops (loadSummary polling). Flipped false in
+  // onDestroy so a long poll stops re-issuing requests after navigation.
+  let mounted = true;
 
   // ── Date helpers ───────────────────────────────────────────────
   // "Today" = local midnight onward. Convert to ISO for the API.
@@ -220,7 +226,9 @@
       if (lastSpend > 0 && newSpend > lastSpend) {
         spendDelta = newSpend - lastSpend;
         // Auto-clear the delta marker after 4s — keeps it from sticking.
-        setTimeout(() => {
+        // Tracked so onDestroy can clear it (was leaking on unmount).
+        if (spendDeltaTimer) clearTimeout(spendDeltaTimer);
+        spendDeltaTimer = setTimeout(() => {
           spendDelta = 0;
         }, 4000);
       }
@@ -229,7 +237,7 @@
     } catch (err) {
       // Silent — keep prior value rather than blanking the ticker.
       if (err?.name !== 'AbortError') {
-        console.warn('costs/summary failed:', err);
+        logger.warn('costs/summary failed:', err);
       }
     }
   }
@@ -240,7 +248,7 @@
       const data = await api.get(`/costs/timeline?bucket=hour&start=${encodeURIComponent(start)}`);
       costTimeline = Array.isArray(data) ? data : [];
     } catch (err) {
-      if (err?.name !== 'AbortError') console.warn('costs/timeline failed:', err);
+      if (err?.name !== 'AbortError') logger.warn('costs/timeline failed:', err);
     }
   }
 
@@ -277,7 +285,7 @@
       const data = await api.get('/session-activity?limit=12');
       activity = Array.isArray(data?.entries) ? data.entries : [];
     } catch (err) {
-      if (err?.name !== 'AbortError') console.warn('session-activity failed:', err);
+      if (err?.name !== 'AbortError') logger.warn('session-activity failed:', err);
     }
   }
 
@@ -286,7 +294,7 @@
       const data = await api.get('/events/recent?limit=200');
       events = Array.isArray(data) ? data : [];
     } catch (err) {
-      if (err?.name !== 'AbortError') console.warn('events/recent failed:', err);
+      if (err?.name !== 'AbortError') logger.warn('events/recent failed:', err);
     }
   }
 
@@ -295,7 +303,7 @@
       const data = await api.get('/today/narrative');
       narrative = data;
     } catch (err) {
-      if (err?.name !== 'AbortError') console.warn('today/narrative failed:', err);
+      if (err?.name !== 'AbortError') logger.warn('today/narrative failed:', err);
     }
   }
 
@@ -456,9 +464,24 @@
     return Date.now() - new Date(iso).getTime() < 10 * 60 * 1000; // 10 min
   }
 
-  /** @param {number} ms */
+  /**
+   * Sleep that resolves early once the component unmounts, so a polling loop
+   * doesn't keep waiting (and re-issuing requests) after navigation.
+   * @param {number} ms
+   */
   function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
+    return new Promise(r => {
+      const id = setTimeout(r, ms);
+      // Poll the mounted flag cheaply; clears its own timers on unmount.
+      const check = setInterval(() => {
+        if (!mounted) {
+          clearTimeout(id);
+          clearInterval(check);
+          r(undefined);
+        }
+      }, 250);
+      setTimeout(() => clearInterval(check), ms);
+    });
   }
 
   // The insights service returns a multi-paragraph markdown summary; the Today
@@ -516,6 +539,9 @@
       const baseline = latest?.timestamp || null;
       for (let i = 0; i < 20; i++) {
         await sleep(3000);
+        // Bail if the page unmounted while we were waiting — stops the loop
+        // from re-issuing /insights/latest requests after navigation.
+        if (!mounted) return;
         const poll = await api
           .get('/insights/latest?type=session_summary', { silent: true })
           .catch(() => null);
@@ -580,8 +606,10 @@
   });
 
   onDestroy(() => {
+    mounted = false;
     if (costTicker) clearInterval(costTicker);
     if (timelineTicker) clearInterval(timelineTicker);
+    if (spendDeltaTimer) clearTimeout(spendDeltaTimer);
     abort();
   });
 </script>
@@ -779,7 +807,7 @@
           </div>
           <div class="flex items-baseline gap-3 flex-wrap">
             <div
-              class="text-6xl font-bold text-heading tracking-[-0.04em] tabular-nums transition-all"
+              class="text-5xl font-bold text-heading tracking-[-0.04em] tabular-nums transition-all"
             >
               {fmtUsd(costs?.total_cost_usd)}
             </div>

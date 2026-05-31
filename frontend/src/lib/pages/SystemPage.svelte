@@ -37,7 +37,7 @@
   // Tool catalog tier filter
   let toolTier = $state('all');
 
-  onMount(async () => {
+  async function loadSystemData() {
     try {
       const [introRes, tablesRes, routesRes, hwRes, modelsRes] = await Promise.allSettled([
         api.get('/system/introspection'),
@@ -66,13 +66,22 @@
     } catch (err) {
       loadError = err instanceof Error ? err.message : String(err);
     }
+  }
 
+  // Listener registration is SYNCHRONOUS so the returned teardown actually
+  // runs on unmount. An `async` onMount returns a Promise, which Svelte
+  // ignores for cleanup — that previously leaked the connect/disconnect
+  // listeners on every mount.
+  onMount(() => {
     websocketConnected = websocketService.isConnected();
     const updateStatus = () => {
       websocketConnected = websocketService.isConnected();
     };
     websocketService.on('connect', updateStatus);
     websocketService.on('disconnect', updateStatus);
+
+    loadSystemData();
+
     return () => {
       websocketService.off('connect', updateStatus);
       websocketService.off('disconnect', updateStatus);

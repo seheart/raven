@@ -5,6 +5,7 @@
   import { formatShortDateTime } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, ToolbarButton, LinkButton } from '../components/ui/index.js';
+  import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
 
@@ -22,6 +23,7 @@
     cleanupInterval: 'weekly'
   });
   let loading = $state(true);
+  let loadError = $state(null);
   let actionLoading = $state('');
   let actionResult = $state(null);
   let cleanupDays = $state(30);
@@ -50,8 +52,10 @@
 
   function formatBytes(bytes) {
     if (!bytes || bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    // Clamp the index so very large disks don't index past the units array
+    // and render "1024.0 undefined".
+    const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
     return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
   }
 
@@ -81,16 +85,24 @@
   async function loadData() {
     try {
       loading = true;
+      loadError = null;
       const [storageData, retentionData, projectData] = await Promise.all([
         dataService.fetch('/storage', { ttl: 30000 }).catch(() => null),
         api.get('/storage/retention').catch(() => retention),
         dataService.fetch('/storage/projects', { ttl: 10000 }).catch(() => [])
       ]);
-      if (storageData) storage = storageData;
+      if (storageData) {
+        storage = storageData;
+      } else if (!storage) {
+        // Primary payload failed and we have nothing cached — surface an
+        // inline error instead of a permanent "Loading…"/blank page.
+        loadError = 'Could not load storage data from /api/storage';
+      }
       retention = retentionData;
       projectStats = Array.isArray(projectData) ? projectData : [];
     } catch (err) {
       logger.error('Failed to load storage data:', err);
+      if (!storage) loadError = err?.message || 'Failed to load storage data';
     } finally {
       loading = false;
     }
@@ -122,7 +134,7 @@
       };
       await loadData();
     } catch (err) {
-      actionResult = { type: 'error', message: `Vacuum failed: ${err.message}` };
+      actionResult = { type: 'error', message: `Vacuum failed: ${err?.message || String(err)}` };
     } finally {
       actionLoading = '';
     }
@@ -139,7 +151,7 @@
       };
       await loadData();
     } catch (err) {
-      actionResult = { type: 'error', message: `Cleanup failed: ${err.message}` };
+      actionResult = { type: 'error', message: `Cleanup failed: ${err?.message || String(err)}` };
     } finally {
       actionLoading = '';
     }
@@ -152,7 +164,7 @@
       await api.post('/storage/retention', retention);
       actionResult = { type: 'success', message: 'Retention policy saved' };
     } catch (err) {
-      actionResult = { type: 'error', message: `Failed to save: ${err.message}` };
+      actionResult = { type: 'error', message: `Failed to save: ${err?.message || String(err)}` };
     } finally {
       actionLoading = '';
     }
@@ -181,7 +193,14 @@
     </div>
   {/if}
 
-  {#if loading && !storage}
+  {#if loadError && !storage}
+    <DataFetchError
+      endpoint="/api/storage"
+      message="Failed to load storage data"
+      hint={loadError}
+      onRetry={loadData}
+    />
+  {:else if loading && !storage}
     <div class="text-sm text-muted text-center py-12">Loading storage data...</div>
   {:else if storage}
     <!-- Top Stats -->

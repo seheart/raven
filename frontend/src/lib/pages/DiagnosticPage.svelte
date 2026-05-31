@@ -41,8 +41,22 @@
   let runStartTime = $state(null);
   let runFinishedAt = $state(null);
 
+  // Ticks once a second while a run is in flight so the elapsed timer in
+  // the live panel actually advances — reading Date.now() directly in
+  // markup only re-evaluates when some other reactive dep changes.
+  let nowTick = $state(Date.now());
+  /** @type {ReturnType<typeof setInterval>|null} */
+  let elapsedTimer = null;
+  // Tracks the code-health completion poller so onDestroy can clear it —
+  // otherwise it keeps hitting /analysis/code-health every 3s after unmount.
+  /** @type {ReturnType<typeof setInterval>|null} */
+  let codeHealthPoll = null;
+
   // Clipboard feedback for the Copy Report button.
   let copyStatus = $state('');
+
+  // Drives the RAVEN.SYSTEM status strip, matching SystemPage/AboutPage.
+  let websocketConnected = $state(false);
 
   // True while any orchestrated step is in flight. Used to disable the
   // Run All button and show the live panel.
@@ -75,12 +89,15 @@
     return 'unknown';
   });
 
-  function statusColor(s) {
-    if (s === 'healthy') return 'var(--success)';
-    if (s === 'warning') return 'var(--warning)';
-    if (s === 'critical') return 'var(--error)';
-    if (s === 'running') return 'var(--accent)';
-    return 'var(--muted)';
+  // Map an aggregate status to its semantic dot background utility. Keeping
+  // the state→class mapping in JS (rather than inline `style="background:
+  // var(--x)"`) matches SystemPage's TIER_DOT_CLASS pattern.
+  function statusDotClass(s) {
+    if (s === 'healthy') return 'bg-success';
+    if (s === 'warning') return 'bg-warning';
+    if (s === 'critical') return 'bg-error';
+    if (s === 'running') return 'bg-accent';
+    return 'bg-muted';
   }
 
   function statusLabel(s) {
@@ -90,6 +107,22 @@
     if (s === 'critical') return 'Issues found';
     return 'Not yet run';
   }
+
+  // Drive the elapsed-time ticker off isRunning: spin up a 1s interval
+  // while anything is running, tear it down the moment it all settles.
+  $effect(() => {
+    if (isRunning) {
+      if (!elapsedTimer) {
+        nowTick = Date.now();
+        elapsedTimer = setInterval(() => {
+          nowTick = Date.now();
+        }, 1000);
+      }
+    } else if (elapsedTimer) {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
+  });
 
   function formatDuration(ms) {
     if (!ms) return '-';
@@ -318,25 +351,28 @@
   // Poll the read endpoint until the server reports is_running=false.
   async function pollCodeHealthCompletion() {
     return new Promise(resolve => {
-      const interval = setInterval(async () => {
+      const stop = () => {
+        if (codeHealthPoll) {
+          clearInterval(codeHealthPoll);
+          codeHealthPoll = null;
+        }
+        codeHealth.running = false;
+        resolve();
+      };
+      codeHealthPoll = setInterval(async () => {
         try {
           const result = await api.get('/analysis/code-health');
           codeHealth.data = result.latest;
-          if (!result.is_running) {
-            clearInterval(interval);
-            codeHealth.running = false;
-            resolve();
-          }
+          if (!result.is_running) stop();
         } catch {
-          clearInterval(interval);
-          codeHealth.running = false;
-          resolve();
+          stop();
         }
       }, 3000);
     });
   }
 
   let progressHandler = null;
+  let connectionHandler = null;
   onMount(() => {
     loadInitial();
 
@@ -349,15 +385,55 @@
       }
     };
     websocketService.on('analysis-progress', progressHandler);
+
+    websocketConnected = websocketService.isConnected();
+    connectionHandler = () => {
+      websocketConnected = websocketService.isConnected();
+    };
+    websocketService.on('connect', connectionHandler);
+    websocketService.on('disconnect', connectionHandler);
   });
 
   onDestroy(() => {
     abortRequests();
     if (progressHandler) websocketService.off('analysis-progress', progressHandler);
+    if (connectionHandler) {
+      websocketService.off('connect', connectionHandler);
+      websocketService.off('disconnect', connectionHandler);
+    }
+    if (codeHealthPoll) {
+      clearInterval(codeHealthPoll);
+      codeHealthPoll = null;
+    }
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
   });
 </script>
 
 <PageLayout>
+  <!-- Status bar -->
+  <div
+    class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2 mb-6"
+  >
+    <div class="flex items-center gap-2">
+      <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
+      <span aria-hidden="true">::</span>
+      <span class="uppercase tracking-wide">Diagnostic · Health · Errors</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span
+        class="w-1.5 h-1.5 rounded-full {websocketConnected
+          ? 'bg-success animate-pulse'
+          : 'bg-warning'}"
+      ></span>
+      <span class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}">
+        {websocketConnected ? 'Operational' : 'Disconnected'}
+      </span>
+    </div>
+  </div>
+
   <PageHeader
     title="Diagnostic"
     description="One button. Runs every check Raven knows — tests, lint, types, build, system health, errors, safety patterns."
@@ -367,9 +443,8 @@
   <div class="bg-surface border border-border rounded-lg p-6 mb-6 flex items-center gap-6">
     <div class="flex items-center gap-3">
       <span
-        class="w-3 h-3 rounded-full"
+        class="w-3 h-3 rounded-full {statusDotClass(overallStatus)}"
         class:animate-pulse={isRunning}
-        style="background: {statusColor(overallStatus)}"
       ></span>
       <div>
         <div class="text-xs uppercase tracking-wide text-muted font-mono mb-0.5">Overall</div>
@@ -417,7 +492,7 @@
         </span>
         {#if runStartTime}
           <span class="text-xs font-mono text-muted">
-            {formatDuration(Date.now() - runStartTime)}
+            {formatDuration(nowTick - runStartTime)}
           </span>
         {/if}
       </div>
@@ -430,19 +505,15 @@
         </div>
       {/if}
       {#if completedChecks.length > 0}
-        <div
-          class="px-4 py-3 max-h-48 overflow-y-auto font-mono text-xs"
-          style="background: var(--bg)"
-        >
+        <div class="px-4 py-3 max-h-48 overflow-y-auto font-mono text-xs bg-canvas">
           {#each completedChecks as check, i (i)}
             <div class="flex items-start gap-2 py-1">
               <span
-                class="flex-shrink-0 w-4 text-center font-bold"
-                style="color: {check.status === 'pass'
-                  ? 'var(--success)'
+                class="flex-shrink-0 w-4 text-center font-bold {check.status === 'pass'
+                  ? 'text-success'
                   : check.status === 'warn'
-                    ? 'var(--warning)'
-                    : 'var(--error)'}"
+                    ? 'text-warning'
+                    : 'text-error'}"
                 >{check.status === 'pass' ? '✓' : check.status === 'warn' ? '!' : '✗'}</span
               >
               <span class="text-body">{check.name}</span>
@@ -473,8 +544,7 @@
       {#if codeHealth.data}
         <div class="flex items-center gap-2 mb-2">
           <span
-            class="w-2 h-2 rounded-full"
-            style="background: {statusColor(
+            class="w-2 h-2 rounded-full {statusDotClass(
               codeHealth.data.overall_score === 'healthy'
                 ? 'healthy'
                 : codeHealth.data.overall_score
@@ -513,9 +583,7 @@
       </div>
       {#if healthMonitor.data}
         <div class="flex items-center gap-2 mb-2">
-          <span
-            class="w-2 h-2 rounded-full"
-            style="background: {statusColor(healthMonitor.data.overallStatus)}"
+          <span class="w-2 h-2 rounded-full {statusDotClass(healthMonitor.data.overallStatus)}"
           ></span>
           <span class="text-sm font-mono text-body">
             {(healthMonitor.data.overallStatus || 'unknown').toUpperCase()}
@@ -548,14 +616,8 @@
         <span class="text-[10px] text-muted">→ details</span>
       </div>
       <div class="flex items-center gap-2 mb-2">
-        <span
-          class="w-2 h-2 rounded-full"
-          style="background: {errors.count > 0 ? 'var(--error)' : 'var(--success)'}"
-        ></span>
-        <span
-          class="text-sm font-mono"
-          style="color: {errors.count > 0 ? 'var(--error)' : 'var(--body)'}"
-        >
+        <span class="w-2 h-2 rounded-full {errors.count > 0 ? 'bg-error' : 'bg-success'}"></span>
+        <span class="text-sm font-mono {errors.count > 0 ? 'text-error' : 'text-body'}">
           {errors.count}
           {errors.count === 1 ? 'unresolved error' : 'unresolved errors'}
         </span>
@@ -576,14 +638,9 @@
         <span class="text-[10px] text-muted">→ details</span>
       </div>
       <div class="flex items-center gap-2 mb-2">
-        <span
-          class="w-2 h-2 rounded-full"
-          style="background: {patterns.count > 0 ? 'var(--warning)' : 'var(--success)'}"
+        <span class="w-2 h-2 rounded-full {patterns.count > 0 ? 'bg-warning' : 'bg-success'}"
         ></span>
-        <span
-          class="text-sm font-mono"
-          style="color: {patterns.count > 0 ? 'var(--warning)' : 'var(--body)'}"
-        >
+        <span class="text-sm font-mono {patterns.count > 0 ? 'text-warning' : 'text-body'}">
           {patterns.count}
           {patterns.count === 1 ? 'unresolved warning' : 'unresolved warnings'}
         </span>
@@ -609,10 +666,7 @@
       <div class="flex items-center gap-3">
         {#if endpointSweep.data}
           <span class="text-xs font-mono text-muted">
-            <span
-              class="text-body"
-              style="color: {endpointSweep.data.failed === 0 ? 'var(--success)' : 'var(--error)'}"
-            >
+            <span class={endpointSweep.data.failed === 0 ? 'text-success' : 'text-error'}>
               {endpointSweep.data.passed}/{endpointSweep.data.total}
             </span>
             passed

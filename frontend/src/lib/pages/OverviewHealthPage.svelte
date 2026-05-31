@@ -17,7 +17,7 @@
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
 
-  let healthData = $state(null);
+  let loaded = $state(false);
   let projectsData = $state([]);
   let loading = $state(false);
   let error = $state(null);
@@ -44,6 +44,9 @@
   });
   const scoreColor = $derived(getScoreColor(overallScore));
 
+  // Returns a CSS var — used only for the dynamic health-bar fill where the
+  // color is set via inline style (Tailwind can't express a runtime width
+  // + color pair).
   function getScoreColor(score) {
     if (score >= 90) return 'var(--success)';
     if (score >= 75) return 'var(--info)';
@@ -51,15 +54,24 @@
     return 'var(--error)';
   }
 
-  function getSeverityColor(severity) {
-    const colors = {
-      critical: 'var(--error)',
-      high: 'var(--warning)',
-      medium: 'var(--warning)',
-      low: 'var(--info)',
-      success: 'var(--success)'
-    };
-    return colors[severity] || 'var(--muted)';
+  // Utility-class variants for static text/dots — keeps semantic colors out
+  // of inline styles (matches SystemPage's methodTextClass pattern).
+  function getScoreTextClass(score) {
+    if (score >= 90) return 'text-success';
+    if (score >= 75) return 'text-info';
+    if (score >= 60) return 'text-warning';
+    return 'text-error';
+  }
+
+  function getStatusDotClass(status) {
+    switch (status) {
+      case 'active':
+        return 'bg-success';
+      case 'recent':
+        return 'bg-info';
+      default:
+        return 'bg-warning';
+    }
   }
 
   async function loadHealthSummary() {
@@ -80,7 +92,7 @@
         total_events: p.total_events ?? 0,
         recent_events: p.recent_events ?? 0
       }));
-      healthData = { overall_score: overallScore, status: overallStatus };
+      loaded = true;
       lastUpdated = new Date();
     } catch (err) {
       logger.error('Failed to load health summary:', err);
@@ -97,6 +109,22 @@
   onMount(() => {
     loadHealthSummary();
     pollHandle = setInterval(loadHealthSummary, 30_000);
+  });
+
+  // Reload when the global project filter changes. Guarded so the initial
+  // run (which fires on mount alongside onMount's call) doesn't double-fetch:
+  // the first effect run records the current project without fetching.
+  let lastLoadedProject = $state(null);
+  $effect(() => {
+    const project = selectedProject;
+    if (lastLoadedProject === null) {
+      lastLoadedProject = project;
+      return;
+    }
+    if (project !== lastLoadedProject) {
+      lastLoadedProject = project;
+      loadHealthSummary();
+    }
   });
 
   onDestroy(() => {
@@ -127,7 +155,7 @@
     {/snippet}
   </PageHeader>
 
-  {#if loading && !healthData}
+  {#if loading && !loaded}
     <LoadingState message="Calculating health score..." />
   {:else if error}
     <EmptyState title={error}>
@@ -135,7 +163,7 @@
         <ToolbarButton onClick={loadHealthSummary}>Try Again</ToolbarButton>
       {/snippet}
     </EmptyState>
-  {:else if healthData}
+  {:else if loaded}
     <!-- Overall Health Score -->
     <div class="bg-surface border border-border rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between mb-3">
@@ -151,7 +179,7 @@
           </p>
         </div>
         <div class="flex items-center gap-3">
-          <div class="text-2xl font-bold font-mono" style="color: {scoreColor}">
+          <div class="text-2xl font-bold font-mono {getScoreTextClass(overallScore)}">
             {overallScore}
           </div>
           <div class="text-xs text-muted">/ 100</div>
@@ -237,8 +265,9 @@
                   ></div>
                 </div>
                 <span
-                  class="text-sm font-mono w-8 text-right"
-                  style="color: {getScoreColor(project.health_score || 0)}"
+                  class="text-sm font-mono w-8 text-right {getScoreTextClass(
+                    project.health_score || 0
+                  )}"
                 >
                   {project.health_score || 0}
                 </span>
@@ -249,16 +278,7 @@
               </div>
 
               <span class="flex items-center gap-1.5 text-xs font-mono whitespace-nowrap">
-                <span
-                  class="w-2 h-2 rounded-full"
-                  style="background: {getSeverityColor(
-                    project.status === 'active'
-                      ? 'success'
-                      : project.status === 'recent'
-                        ? 'low'
-                        : 'medium'
-                  )}"
-                ></span>
+                <span class="w-2 h-2 rounded-full {getStatusDotClass(project.status)}"></span>
                 <span class="text-body">{project.status}</span>
               </span>
             </div>

@@ -3,6 +3,7 @@
   import { formatTimeOnly, formatDateOnly } from '../timeFormat.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Activity Timeline Page
    * Visual chronological timeline of events
@@ -10,6 +11,8 @@
 
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
+  import { websocketService } from '../services/websocket.js';
+  import { debounce } from '../utils/debounce.js';
   const { api, abort: abortRequests } = createPageApi();
 
   // State
@@ -19,6 +22,17 @@
   let filter = $state('all');
   let timeRange = $state('all'); // all, today, week, month
   let groupBy = $state('day'); // day, hour
+  let lastUpdated = $state(null);
+
+  // Normalize raw fs change types (add/change/unlink) to the vocabulary the
+  // stats + filter dropdown use (created/modified/deleted). Keeps the filter
+  // honest against the data.
+  function normalizeChangeType(changeType) {
+    const type = (changeType || '').toLowerCase();
+    if (type === 'add' || type === 'create' || type === 'created') return 'created';
+    if (type === 'unlink' || type === 'delete' || type === 'deleted') return 'deleted';
+    return 'modified';
+  }
 
   // Derived - Group events by time period
   const groupedEvents = $derived.by(() => {
@@ -86,15 +100,9 @@
 
   const stats = $derived.by(() => {
     const total = events.length;
-    const creates = events.filter(
-      e => e.change_type === 'add' || e.change_type === 'create'
-    ).length;
-    const edits = events.filter(
-      e => e.change_type === 'change' || e.change_type === 'edit' || e.change_type === 'modified'
-    ).length;
-    const deletes = events.filter(
-      e => e.change_type === 'unlink' || e.change_type === 'delete'
-    ).length;
+    const creates = events.filter(e => e.change_type === 'created').length;
+    const edits = events.filter(e => e.change_type === 'modified').length;
+    const deletes = events.filter(e => e.change_type === 'deleted').length;
     return { total, creates, edits, deletes };
   });
 
@@ -107,10 +115,11 @@
       const data = await api.get('/file-events?limit=500');
       events = (Array.isArray(data) ? data : []).map(e => ({
         ...e,
-        change_type: e.change_type || 'change',
+        change_type: normalizeChangeType(e.change_type || e.event_type),
         filepath: e.filepath || e.file
       }));
 
+      lastUpdated = new Date();
       loading = false;
     } catch (err) {
       logger.error('Failed to load events:', err);
@@ -119,57 +128,30 @@
     }
   }
 
-  function _getEventIcon(changeType) {
-    switch (changeType) {
-      case 'add':
-      case 'create':
-        return '+';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return '~';
-      case 'unlink':
-      case 'delete':
-        return '-';
-      default:
-        return '';
-    }
-  }
-
   function getEventLabel(changeType) {
-    // Friendly labels — `unlink` is the raw fs term but readers expect
-    // "deleted"; same for `change` → `edited`. Stays in sync with the
-    // type-filter dropdown vocabulary.
+    // Friendly labels over the normalized vocabulary.
     switch (changeType) {
-      case 'add':
-      case 'create':
+      case 'created':
         return 'CREATED';
-      case 'change':
-      case 'edit':
       case 'modified':
         return 'EDITED';
-      case 'unlink':
-      case 'delete':
+      case 'deleted':
         return 'DELETED';
       default:
         return (changeType || 'EDIT').toUpperCase();
     }
   }
 
-  function getEventColor(changeType) {
+  // Utility-class color for the row marker + chip (SystemPage methodTextClass
+  // pattern) — keeps semantic colors out of inline styles.
+  function getEventChipClass(changeType) {
     switch (changeType) {
-      case 'add':
-      case 'create':
-        return 'var(--success)';
-      case 'change':
-      case 'edit':
-      case 'modified':
-        return 'var(--accent)';
-      case 'unlink':
-      case 'delete':
-        return 'var(--error)';
+      case 'created':
+        return 'text-success bg-success/15';
+      case 'deleted':
+        return 'text-error bg-error/15';
       default:
-        return 'var(--muted)';
+        return 'text-accent bg-accent/15';
     }
   }
 
@@ -195,17 +177,36 @@
     return formatDateOnly(date);
   }
 
+  // Coalesce WS bursts into a single reload so a flurry of edits doesn't
+  // hammer the API.
+  const debouncedReload = debounce(loadEvents, 400);
+  let unsubscribeFileChanged = null;
+
   onMount(() => {
     loadEvents();
+    websocketService.connect();
+    unsubscribeFileChanged = websocketService.subscribe('file-changed', () => {
+      debouncedReload();
+    });
   });
 
-  onDestroy(() => abortRequests());
+  onDestroy(() => {
+    abortRequests();
+    debouncedReload.cancel();
+    if (unsubscribeFileChanged) unsubscribeFileChanged();
+  });
 </script>
 
 <PageLayout>
-  <PageHeader title="Activity Timeline" description="Chronological view of file changes">
+  <PageHeader
+    title="Your timeline, day by day"
+    description="Everything your AI tools have touched, grouped by when it happened. Scroll back to see how a busy afternoon — or a quiet week — actually played out."
+  >
     {#snippet actions()}
-      <RefreshButton onClick={loadEvents} {loading} />
+      <div class="flex items-center gap-3">
+        <FreshnessBadge mode="live" since={lastUpdated} />
+        <RefreshButton onClick={loadEvents} {loading} />
+      </div>
     {/snippet}
   </PageHeader>
 
@@ -246,9 +247,9 @@
         class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent"
       >
         <option value="all">All Types</option>
-        <option value="add">Created</option>
-        <option value="change">Modified</option>
-        <option value="unlink">Deleted</option>
+        <option value="created">Created</option>
+        <option value="modified">Modified</option>
+        <option value="deleted">Deleted</option>
       </select>
     </div>
     <div class="flex items-center gap-2">
@@ -291,10 +292,10 @@
          half-screen we want the user scrolling within the feed, not the
          whole page. Sticky date headers still work inside the scroller. -->
     <div class="max-h-[720px] overflow-y-auto space-y-6 pr-1">
-      {#each groupedEvents as group, index (index)}
+      {#each groupedEvents as group (group.date)}
         <div class="relative">
           <!-- Date Header -->
-          <div class="sticky top-12 bg-canvas z-10 pb-3">
+          <div class="sticky top-12 bg-canvas z-10 pb-2">
             <div class="flex items-center gap-3">
               <div
                 class="bg-surface border border-border px-3 py-1.5 rounded text-sm font-mono text-body"
@@ -307,41 +308,37 @@
             </div>
           </div>
 
-          <!-- Timeline Events -->
-          <div class="space-y-3">
-            {#each group.events as event, eventIndex (eventIndex)}
-              <div
-                class="bg-surface border border-border rounded-lg p-4 hover:border-accent transition-colors"
-                style="border-left: 3px solid {getEventColor(event.change_type)}"
-              >
-                <div class="flex justify-between items-start mb-2">
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="text-xs px-2 py-0.5 rounded font-semibold font-mono"
-                      style="background: {getEventColor(
-                        event.change_type
-                      )}15; color: {getEventColor(event.change_type)}"
+          <!-- Timeline Events — flat dense rows -->
+          <div class="border-t border-b border-border font-mono text-sm overflow-x-auto">
+            <table class="w-full">
+              <tbody>
+                {#each group.events as event (event.id || event.timestamp + ':' + (event.filepath || ''))}
+                  <tr class="hover:bg-surface/40 align-top">
+                    <td class="px-3 py-0.5 w-20">
+                      <span
+                        class="text-[11px] px-1.5 py-0.5 rounded font-semibold {getEventChipClass(
+                          event.change_type
+                        )}"
+                      >
+                        {getEventLabel(event.change_type)}
+                      </span>
+                    </td>
+                    <td class="px-3 py-0.5 text-body">
+                      <span class="truncate">{event.filepath || '—'}</span>
+                    </td>
+                    <td class="px-3 py-0.5 text-muted hidden md:table-cell w-40 truncate">
+                      {event.project_name || ''}
+                    </td>
+                    <td
+                      class="px-3 py-0.5 text-muted text-right whitespace-nowrap w-44"
+                      title={getRelativeTime(event.timestamp)}
                     >
-                      {getEventLabel(event.change_type)}
-                    </span>
-                    {#if event.project_name}
-                      <span class="text-xs text-muted font-mono">{event.project_name}</span>
-                    {/if}
-                  </div>
-                  <div class="flex items-center gap-2 text-xs text-muted font-mono flex-shrink-0">
-                    <span>{formatTime(event.timestamp)}</span>
-                    <span class="text-border">·</span>
-                    <span>{getRelativeTime(event.timestamp)}</span>
-                  </div>
-                </div>
-
-                {#if event.filepath}
-                  <div class="text-sm font-mono text-body truncate">
-                    {event.filepath}
-                  </div>
-                {/if}
-              </div>
-            {/each}
+                      {formatTime(event.timestamp)}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
           </div>
         </div>
       {/each}

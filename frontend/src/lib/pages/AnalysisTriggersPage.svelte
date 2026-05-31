@@ -83,7 +83,7 @@
       }));
       stats = statsData;
     } catch (err) {
-      error = `Failed to load triggers data: ${err.message}`;
+      error = `Failed to load triggers data: ${err?.message || String(err)}`;
       logger.error(error);
     } finally {
       loading = false;
@@ -93,19 +93,23 @@
   async function reloadConfig() {
     try {
       const data = await api.post('/triggers-reload', {});
+      error = null;
       flashSuccess(data.message || 'Reloaded config');
       await loadAllData();
     } catch (err) {
-      error = `Failed to reload config: ${err.message}`;
+      error = `Failed to reload config: ${err?.message || String(err)}`;
     }
   }
 
   async function clearCooldowns() {
     try {
       const data = await api.post('/triggers-clear-cooldowns', {});
+      error = null;
       flashSuccess(data.message || 'Cleared cooldowns');
+      // Reload so the stats / fire summary reflect the cleared cooldown state.
+      await loadAllData();
     } catch (err) {
-      error = `Failed to clear cooldowns: ${err.message}`;
+      error = `Failed to clear cooldowns: ${err?.message || String(err)}`;
     }
   }
 

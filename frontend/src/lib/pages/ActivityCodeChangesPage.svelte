@@ -12,7 +12,8 @@
   import { websocketService } from '../services/websocket.js';
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
-  import { isSourceCodeFile, debounce } from '../utils/helpers.js';
+  import { isSourceCodeFile } from '../utils/helpers.js';
+  import { debounce } from '../utils/debounce.js';
   import DiffViewer from '../DiffViewer.svelte';
 
   // State
@@ -23,7 +24,6 @@
   let selectedType = $state('all');
   let eventsLimit = $state(50);
   let lastUpdated = $state(new Date());
-  let isPaused = $state(false);
 
   // DiffViewer state
   let showDiff = $state(false);
@@ -36,9 +36,6 @@
   // Per-event risk roll-ups for the events list (keyed by event_id).
   /** @type {Record<number, { critical_count:number, warning_count:number, info_count:number, highest_severity:string|null }>} */
   let riskByEventId = $state({});
-
-  // Debounced timeout reference
-  let debouncedTimeoutId;
 
   // Normalize change type (map various event types to standard ones)
   function normalizeChangeType(changeType) {
@@ -79,22 +76,17 @@
     return { total, created, modified, deleted };
   });
 
-  // Debounced reload function
-  const debouncedLoadEvents = debounce(async () => {
-    if (!isPaused) {
-      await loadEvents();
-    }
-  }, 300);
+  // Debounced reload function — utils/debounce so we can cancel it on
+  // unmount and avoid a reload firing after the page is gone.
+  const debouncedLoadEvents = debounce(loadEvents, 300);
 
   // WebSocket event handlers
   const handleFileChanged = data => {
-    if (isPaused) return;
     logger.debug(' File change detected:', data);
     debouncedLoadEvents();
   };
 
   const handleAgentEvent = () => {
-    if (isPaused) return;
     debouncedLoadEvents();
   };
 
@@ -163,9 +155,9 @@
       const data = await api.get(
         `/file-events?limit=1&diff=true&filepath=${encodeURIComponent(event.filepath)}`
       );
-      const events = Array.isArray(data) ? data : [];
-      if (events.length > 0 && events[0].diff) {
-        diffText = events[0].diff;
+      const diffEvents = Array.isArray(data) ? data : [];
+      if (diffEvents.length > 0 && diffEvents[0].diff) {
+        diffText = diffEvents[0].diff;
         diffOldContent = '';
         diffNewContent = '';
         diffAnnotations = [];
@@ -193,20 +185,18 @@
     eventsLimit += 50;
   }
 
-  function _togglePause() {
-    isPaused = !isPaused;
-  }
-
-  function getChangeTypeColor(changeType) {
+  // Utility-class color for the type cell (SystemPage methodTextClass
+  // pattern) — keeps semantic colors out of inline styles.
+  function getChangeTypeTextClass(changeType) {
     switch (changeType) {
       case 'created':
-        return 'var(--success)';
+        return 'text-success';
       case 'modified':
-        return 'var(--accent)';
+        return 'text-accent';
       case 'deleted':
-        return 'var(--error)';
+        return 'text-error';
       default:
-        return 'var(--text)';
+        return 'text-body';
     }
   }
 
@@ -228,10 +218,7 @@
       abortRequests();
       websocketService.off('file-changed', handleFileChanged);
       websocketService.off('agent-event', handleAgentEvent);
-
-      if (debouncedTimeoutId) {
-        clearTimeout(debouncedTimeoutId);
-      }
+      debouncedLoadEvents.cancel();
     };
   });
 </script>
@@ -259,19 +246,19 @@
   <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Total Changes</div>
-      <div class="text-sm font-mono text-body">{stats.total}</div>
+      <div class="text-lg font-mono text-body">{stats.total}</div>
     </div>
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Created</div>
-      <div class="text-sm font-mono text-body">{stats.created}</div>
+      <div class="text-lg font-mono text-body">{stats.created}</div>
     </div>
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Modified</div>
-      <div class="text-sm font-mono text-body">{stats.modified}</div>
+      <div class="text-lg font-mono text-body">{stats.modified}</div>
     </div>
     <div class="bg-surface border border-border rounded p-4">
       <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Deleted</div>
-      <div class="text-sm font-mono text-body">{stats.deleted}</div>
+      <div class="text-lg font-mono text-body">{stats.deleted}</div>
     </div>
   </div>
 
@@ -331,9 +318,7 @@
           {#each filteredEvents as event (event.id)}
             <tr class="hover:bg-surface/40 cursor-pointer" onclick={() => viewDiff(event)}>
               <td class="px-3 py-0.5">
-                <span
-                  class="font-bold uppercase"
-                  style="color: {getChangeTypeColor(event.change_type)}"
+                <span class="font-bold uppercase {getChangeTypeTextClass(event.change_type)}"
                   >{event.change_type?.toUpperCase() || 'UNKNOWN'}</span
                 >
               </td>

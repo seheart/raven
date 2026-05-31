@@ -6,7 +6,6 @@ const DEFAULT_SETTINGS = {
   notifications: {
     enabled: true,
     showToasts: true,
-    soundEnabled: false,
     desktopNotifications: false,
     types: {
       errors: true,

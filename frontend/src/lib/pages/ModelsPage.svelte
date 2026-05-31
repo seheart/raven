@@ -15,8 +15,8 @@
   let latencyByModel = $state([]);
   let loading = $state(true);
 
-  const totalEvents = $derived(models.reduce((sum, m) => sum + m.total_events, 0));
-  const totalInferences = $derived(models.reduce((sum, m) => sum + m.inferences, 0));
+  const totalEvents = $derived(models.reduce((sum, m) => sum + (m.total_events || 0), 0));
+  const totalInferences = $derived(models.reduce((sum, m) => sum + (m.inferences || 0), 0));
   const runningCount = $derived(models.filter(m => m.is_running).length);
 
   function formatNumber(n) {
@@ -177,7 +177,7 @@
                   <h3 class="text-lg font-bold text-body font-sans">{model.name}</h3>
                   <span
                     class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded {model.is_running
-                      ? 'bg-success text-white'
+                      ? 'bg-success text-canvas'
                       : 'bg-surface-2 text-muted'}"
                   >
                     {model.is_running ? 'Running' : 'Stopped'}
@@ -210,43 +210,43 @@
             <!-- Stats Grid -->
             <div class="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-7 gap-px bg-border">
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-accent">
+                <div class="text-sm font-mono text-accent">
                   {formatNumber(model.total_events)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">Events</div>
               </div>
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-body">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(model.inferences)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">Inferences</div>
               </div>
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-body">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(model.tool_calls)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">Tool Calls</div>
               </div>
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-body">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(model.responses)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">Responses</div>
               </div>
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-body">
+                <div class="text-sm font-mono text-body">
                   {formatDuration(model.avg_duration_ms)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">Avg Duration</div>
               </div>
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-body">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(model.files_touched)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">Files Touched</div>
               </div>
               <div class="bg-surface p-4 text-center">
-                <div class="text-lg font-bold font-mono text-body">
+                <div class="text-sm font-mono text-body">
                   {formatNumber(model.file_changes)}
                 </div>
                 <div class="text-[10px] text-muted uppercase tracking-wide mt-1">File Changes</div>

@@ -13,10 +13,6 @@
   let notificationPermission = $state('default');
   let networkInfo = $state(null);
 
-  function _save() {
-    settings.set(currentSettings);
-  }
-
   function updateNotificationPermission() {
     if (typeof Notification !== 'undefined') {
       notificationPermission = Notification.permission;
@@ -80,8 +76,13 @@
         networkInfo = data;
       })
       .catch(() => {});
+    // Adopt only EXTERNAL store changes (e.g. theme toggled from the footer,
+    // import/reset). Skipping writes whose serialized value already matches
+    // currentSettings breaks the $effect→set→subscribe feedback loop above.
     const unsubscribe = settings.subscribe(value => {
-      currentSettings = value;
+      if (JSON.stringify(value) !== JSON.stringify(currentSettings)) {
+        currentSettings = value;
+      }
     });
     return unsubscribe;
   });
@@ -194,14 +195,6 @@
               class="cursor-pointer"
             />
           </label>
-          <label class="flex justify-between items-center cursor-pointer">
-            <span class="text-sm text-muted">Sound</span>
-            <input
-              type="checkbox"
-              bind:checked={currentSettings.notifications.soundEnabled}
-              class="cursor-pointer"
-            />
-          </label>
           <div class="flex justify-between items-center">
             <label for="settings-desktop-notifications" class="text-sm text-muted"
               >Desktop Notifications</label
@@ -252,8 +245,9 @@
       <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">Editor</h3>
       <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <span class="text-sm text-muted">Default Editor</span>
+          <label for="settings-default-editor" class="text-sm text-muted">Default Editor</label>
           <select
+            id="settings-default-editor"
             bind:value={currentSettings.editor.defaultEditor}
             class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
           >
@@ -308,8 +302,9 @@
           />
         </label>
         <div class="flex justify-between items-center">
-          <span class="text-sm text-muted">Max Events Display</span>
+          <label for="settings-max-events" class="text-sm text-muted">Max Events Display</label>
           <input
+            id="settings-max-events"
             type="number"
             min="50"
             max="1000"
@@ -327,10 +322,11 @@
       <div class="space-y-3">
         <div class="flex justify-between items-center">
           <div>
-            <div class="text-sm text-body">Plan Type</div>
+            <label for="settings-billing-mode" class="text-sm text-body">Plan Type</label>
             <div class="text-xs text-muted">Controls how token usage is displayed</div>
           </div>
           <select
+            id="settings-billing-mode"
             bind:value={currentSettings.billing.mode}
             class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
           >
@@ -341,10 +337,11 @@
         {#if currentSettings.billing?.mode === 'subscription'}
           <div class="flex justify-between items-center">
             <div>
-              <div class="text-sm text-body">Plan Name</div>
+              <label for="settings-plan-name" class="text-sm text-body">Plan Name</label>
               <div class="text-xs text-muted">Shown as a badge on the Token Usage page</div>
             </div>
             <select
+              id="settings-plan-name"
               bind:value={currentSettings.billing.planName}
               class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
             >

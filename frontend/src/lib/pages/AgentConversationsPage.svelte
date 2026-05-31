@@ -162,10 +162,12 @@
       filteredConversations.length > 0
   );
 
-  // Load conversations from API
-  async function loadConversations() {
+  // Load conversations from API. `quiet` skips flipping the full-page
+  // `loading` flag — used by the live WS refresh so an incoming message
+  // doesn't flash the whole UI/charts on every event.
+  async function loadConversations({ quiet = false } = {}) {
     try {
-      loading = true;
+      if (!quiet) loading = true;
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: '0',
@@ -235,20 +237,9 @@
     }
   }
 
-  function getEventIcon(eventType) {
-    switch (eventType) {
-      case 'user_message':
-        return '';
-      case 'assistant_text':
-        return '';
-      case 'tool_call':
-        return '';
-      case 'tool_result':
-        return '';
-      default:
-        return '';
-    }
-  }
+  // getEventIcon was an emoji map gutted to "return ''" everywhere by the
+  // no-emoji rule; it only rendered an empty <div>. Removed along with its
+  // call site. getEventClass below still drives the colored left border.
 
   function getEventClass(eventType) {
     switch (eventType) {
@@ -326,7 +317,7 @@
     conversationHandler = event => {
       if (!autoRefresh) return;
       const t = event?.type || event?.event_type;
-      if (t && CONVERSATION_TYPES.has(t)) loadConversations();
+      if (t && CONVERSATION_TYPES.has(t)) loadConversations({ quiet: true });
     };
     websocketService.on('agent-event', conversationHandler);
 
@@ -358,7 +349,10 @@
     Object.values(charts).forEach(chart => chart && destroyChart(chart));
     charts = {};
 
-    if (!showCharts || filteredConversations.length === 0) return;
+    // Charts are driven entirely by server-side aggregates (stats.by_type /
+    // stats.by_project), not the client-filtered list — so they no longer
+    // rebuild on every search keystroke / sort toggle.
+    if (!showCharts || !stats.total) return;
 
     // Get theme-aware colors
     const colors = getChartColors();
@@ -478,10 +472,25 @@
     }
   }
 
+  // Debounced chart rebuild. The $effect below tracks only showCharts and the
+  // server aggregates (stats.by_type) — NOT the filtered list — so charts
+  // don't thrash on search keystrokes. The debounce additionally collapses
+  // bursts of live WS reloads into a single repaint.
+  let chartRebuildTimer = null;
+  function scheduleCharts() {
+    if (chartRebuildTimer) clearTimeout(chartRebuildTimer);
+    chartRebuildTimer = setTimeout(() => {
+      chartRebuildTimer = null;
+      createCharts();
+    }, 150);
+  }
+
   // Use $effect for lifecycle and reactivity
   $effect(() => {
-    if (showCharts && stats.by_type) {
-      setTimeout(createCharts, 100);
+    // Read only the dependencies that should trigger a rebuild.
+    const by = stats.by_type;
+    if (showCharts && by) {
+      scheduleCharts();
     }
   });
 
@@ -512,6 +521,8 @@
       if (themeObserver) {
         themeObserver.disconnect();
       }
+
+      if (chartRebuildTimer) clearTimeout(chartRebuildTimer);
 
       // Destroy charts
       Object.values(charts).forEach(chart => chart && destroyChart(chart));
@@ -653,37 +664,37 @@
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">Date Range:</span>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
           'all'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (dateRange = 'all')}
         >
           All Time
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
           'today'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (dateRange = 'today')}
         >
           Today
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
           '7d'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (dateRange = '7d')}
         >
           7 Days
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {dateRange ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {dateRange ===
           '30d'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (dateRange = '30d')}
         >
           30 Days
@@ -693,28 +704,28 @@
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">Sort By:</span>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {sortBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {sortBy ===
           'timestamp'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => toggleSort('timestamp')}
         >
           Time {sortBy === 'timestamp' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {sortBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {sortBy ===
           'type'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => toggleSort('type')}
         >
           Type {sortBy === 'type' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {sortBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {sortBy ===
           'project'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => toggleSort('project')}
         >
           Project {sortBy === 'project' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
@@ -724,19 +735,19 @@
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">View:</span>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {viewMode ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {viewMode ===
           'compact'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (viewMode = 'compact')}
         >
           Compact
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {viewMode ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {viewMode ===
           'detailed'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (viewMode = 'detailed')}
         >
           Detailed
@@ -746,37 +757,37 @@
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs text-muted font-semibold uppercase tracking-wide">Group:</span>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
           'none'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (groupBy = 'none')}
         >
           None
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
           'session'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (groupBy = 'session')}
         >
           Session
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
           'project'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (groupBy = 'project')}
         >
           Project
         </button>
         <button
-          class="px-3 py-1.5 bg-canvas border border-border rounded text-body font-mono text-sm cursor-pointer hover:border-accent transition-colors {groupBy ===
+          class="px-3 py-1.5 border rounded font-mono text-sm cursor-pointer transition-colors {groupBy ===
           'date'
-            ? '!bg-accent !text-white !border-accent font-semibold'
-            : ''}"
+            ? 'bg-accent text-canvas border-accent font-semibold'
+            : 'bg-canvas border-border text-body hover:border-accent'}"
           onclick={() => (groupBy = 'date')}
         >
           Date
@@ -810,7 +821,11 @@
   {:else}
     <div class="flex flex-col gap-3">
       <div class="text-xs text-muted py-2">
-        Showing {filteredConversations.length} of {stats.total} conversations
+        {#if filteredConversations.length === conversations.length}
+          Showing {conversations.length} loaded of {stats.total} total
+        {:else}
+          Showing {filteredConversations.length} of {conversations.length} loaded ({stats.total} total)
+        {/if}
       </div>
 
       <div class="flex flex-col gap-3 max-h-[500px] overflow-y-auto">
@@ -839,10 +854,9 @@
                       : ''}"
             >
               <button
-                class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left font-inherit text-inherit hover:bg-canvas focus:outline-2 focus:outline-[var(--accent)] focus:outline-offset-[-2px] transition-colors"
+                class="flex items-center gap-3 p-5 cursor-pointer w-full bg-transparent border-none text-left hover:bg-canvas focus:outline-2 focus:outline-accent focus:outline-offset-[-2px] transition-colors"
                 onclick={() => toggleExpanded(conv.id)}
               >
-                <div class="text-xs shrink-0">{getEventIcon(conv.event_type)}</div>
                 <div class="flex-1 min-w-0">
                   <div class="flex gap-2 mb-2 flex-wrap">
                     <span class="text-xs font-semibold uppercase tracking-wide text-accent"
@@ -874,9 +888,6 @@
                   >
                   <div class="text-xs text-muted font-mono">#{conv.id}</div>
                 </div>
-                <span class="text-xs text-muted shrink-0 p-1">
-                  {expandedConversations.includes(conv.id) ? '' : ''}
-                </span>
               </button>
 
               {#if expandedConversations.includes(conv.id)}

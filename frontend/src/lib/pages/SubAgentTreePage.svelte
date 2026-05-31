@@ -5,7 +5,12 @@
   import { formatUsd } from '../utils/formatUsd.js';
   import { getSubagentTypeColor } from '../utils/agentBrand.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState, FreshnessBadge } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    DataFetchError,
+    FreshnessBadge
+  } from '../components/ui/index.js';
   const { api, abort: abortRequests } = createPageApi();
   import { onMount } from 'svelte';
   import { websocketService } from '../services/websocket.js';
@@ -18,6 +23,7 @@
   let loading = $state(true);
   let treeLoading = $state(false);
   let lastUpdated = $state(null);
+  let error = $state(null);
 
   const timeAgo = $derived.by(() => {
     if (!lastUpdated) return 'Just now';
@@ -46,12 +52,19 @@
       }
     }
 
-    function buildTree(node, depth = 0) {
+    // `visited` guards against cyclic parent data (a node that is its own
+    // ancestor) which would otherwise recurse until the stack overflows.
+    function buildTree(node, depth = 0, visited = new Set()) {
+      if (visited.has(node.agent_id)) {
+        return { ...node, depth, children: [] };
+      }
+      const nextVisited = new Set(visited);
+      nextVisited.add(node.agent_id);
       const children = byParent.get(node.agent_id) || [];
       return {
         ...node,
         depth,
-        children: children.map(c => buildTree(c, depth + 1))
+        children: children.map(c => buildTree(c, depth + 1, nextVisited))
       };
     }
 
@@ -63,12 +76,16 @@
   async function loadData() {
     try {
       loading = true;
+      error = null;
+      // Previously each fetch had `.catch(() => default)`, which silently
+      // turned a backend outage into an empty tree / zeroed stats with no
+      // signal to the user. Let failures propagate to the DataFetchError UI.
       const [sessionsData, statsData] = await Promise.all([
-        api.get('/subagents/sessions').catch(() => []),
-        api.get('/subagents/stats').catch(() => ({ total: 0, by_type: [], by_model: [] }))
+        api.get('/subagents/sessions'),
+        api.get('/subagents/stats')
       ]);
       sessions = Array.isArray(sessionsData) ? sessionsData : [];
-      stats = statsData;
+      stats = statsData || { total: 0, by_type: [], by_model: [] };
       lastUpdated = new Date();
 
       // Auto-select first session
@@ -77,6 +94,7 @@
       }
     } catch (err) {
       logger.error('Failed to load subagent data:', err);
+      error = err?.message || 'Failed to load sub-agent data';
     } finally {
       loading = false;
     }
@@ -85,11 +103,13 @@
   async function selectSession(sessionId) {
     try {
       treeLoading = true;
+      error = null;
       selectedSession = sessionId;
-      const data = await api.get(`/subagents/tree/${sessionId}`).catch(() => []);
+      const data = await api.get(`/subagents/tree/${sessionId}`);
       treeData = Array.isArray(data) ? data : [];
     } catch (err) {
       logger.error('Failed to load agent tree:', err);
+      error = err?.message || 'Failed to load agent tree';
     } finally {
       treeLoading = false;
     }
@@ -128,7 +148,7 @@
 <PageLayout>
   <PageHeader
     title="Sub-Agent Tree"
-    description="Visualize parent-child agent relationships and resource usage"
+    description="When Claude Code hands work off to a helper agent, you can see who spawned whom here — the parent, its children, and what each one cost you in tokens and time."
   >
     {#snippet actions()}
       <div class="flex items-center gap-3">
@@ -137,6 +157,15 @@
       </div>
     {/snippet}
   </PageHeader>
+
+  {#if error}
+    <DataFetchError
+      endpoint="/api/subagents"
+      message="Couldn't load sub-agent data"
+      hint={error}
+      onRetry={loadData}
+    />
+  {/if}
 
   {#if loading && sessions.length === 0}
     <div class="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
@@ -151,18 +180,18 @@
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
           Total Sub-Agents
         </div>
-        <div class="text-2xl font-bold text-accent font-mono">{stats.total}</div>
+        <div class="text-sm font-mono text-body">{stats.total}</div>
       </div>
       <div class="bg-surface border border-border rounded p-4">
         <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Sessions</div>
-        <div class="text-2xl font-bold text-body font-mono">{sessions.length}</div>
+        <div class="text-sm font-mono text-body">{sessions.length}</div>
       </div>
       {#each stats.by_type?.slice(0, 2) || [] as typeInfo (typeInfo.agent_type)}
         <div class="bg-surface border border-border rounded p-4">
           <div class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             {typeInfo.agent_type}
           </div>
-          <div class="text-2xl font-bold text-body font-mono">{typeInfo.count}</div>
+          <div class="text-sm font-mono text-body">{typeInfo.count}</div>
         </div>
       {/each}
     </div>
@@ -185,7 +214,7 @@
               </div>
               <div
                 class="text-xs {selectedSession === session.session_id
-                  ? 'text-white/70'
+                  ? 'text-canvas/70'
                   : 'text-muted'}"
               >
                 {session.agent_count} agents · {formatTime(session.last_spawn)}
@@ -243,7 +272,7 @@
 
       <!-- Type badge -->
       <span
-        class="px-2 py-0.5 rounded text-[10px] font-semibold text-white whitespace-nowrap"
+        class="px-2 py-0.5 rounded text-[10px] font-semibold text-canvas whitespace-nowrap"
         style="background-color: {getTypeColor(node.agent_type)}"
       >
         {node.agent_type || 'agent'}

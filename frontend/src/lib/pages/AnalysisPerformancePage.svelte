@@ -6,7 +6,8 @@
     RefreshButton,
     ToolbarButton,
     EmptyState,
-    FreshnessBadge
+    FreshnessBadge,
+    TabButton
   } from '../components/ui/index.js';
   /**
    * Analysis Performance Page
@@ -18,6 +19,12 @@
   import { createPageApi } from '../apiClient.js';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
+  import {
+    createChart,
+    destroyChart,
+    createThemeObserver,
+    getChartColors
+  } from '../utils/chartUtils.js';
 
   // Svelte 5 reactive state
   let activeTab = $state('metrics'); // 'metrics', 'charts', 'correlations'
@@ -134,11 +141,14 @@
     return alerts;
   });
 
-  // Load all data
-  async function fetchAllData() {
+  // Load all data. `force` marks a user-initiated refresh (vs. an
+  // agent-select change or background reload); it currently only affects
+  // logging/intent but is accepted so callers can pass it without error.
+  async function fetchAllData(force = false) {
     try {
       loading = true;
       error = null;
+      if (force) logger.debug('Manual performance refresh');
 
       const systemData = await api.get('/system-metrics?limit=500');
       systemMetrics = Array.isArray(systemData) ? systemData : systemData.metrics || [];
@@ -150,6 +160,11 @@
         const names = Array.isArray(agentsList)
           ? agentsList.map(a => a.agent_name).filter(Boolean)
           : [];
+        // Only adopt a discovered list when it's non-empty. A transient empty
+        // response previously snapped availableAgents/selectedAgent back to
+        // names[0], clobbering the user's pick mid-session (the <select>'s
+        // onchange re-runs this). Keep the current selection if it's still
+        // valid; only fall back to names[0] when it genuinely vanished.
         if (names.length) {
           availableAgents = names;
           if (!names.includes(selectedAgent)) selectedAgent = names[0];
@@ -186,6 +201,147 @@
       loading = false;
     }
   }
+
+  // === Trend charts (real Chart.js line charts) ===
+  // Previously CPU/Memory were hand-rolled absolutely-positioned dots — up to
+  // ~2000 DOM nodes per system-metrics tick. These are now canvas line charts
+  // via chartUtils, which is far cheaper to render and matches sibling pages.
+  let cpuChart = null;
+  let memChart = null;
+  let perfThemeObserver = null;
+  let chartRebuildTimer = null;
+
+  // Tiny plugin: draw the warning/critical reference lines on the 0–100 y-axis.
+  function thresholdLinesPlugin(type) {
+    return {
+      id: `thresholds-${type}`,
+      afterDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea || !scales?.y) return;
+        const colors = getChartColors();
+        const draw = (value, color) => {
+          if (!Number.isFinite(value)) return;
+          const y = scales.y.getPixelForValue(value);
+          if (y < chartArea.top || y > chartArea.bottom) return;
+          ctx.save();
+          ctx.beginPath();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.moveTo(chartArea.left, y);
+          ctx.lineTo(chartArea.right, y);
+          ctx.stroke();
+          ctx.restore();
+        };
+        draw(thresholds[type].warning, colors.warning);
+        draw(thresholds[type].critical, colors.error);
+      }
+    };
+  }
+
+  function buildTrendCharts() {
+    if (activeTab !== 'charts') return;
+    const colors = getChartColors();
+    const points = chartMetrics.slice().reverse(); // oldest → newest, left → right
+    const labels = points.map(m => formatTimestamp(m.timestamp));
+
+    const baseOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          display: true,
+          ticks: { maxTicksLimit: 8, font: { size: 11 } },
+          grid: { display: false }
+        },
+        y: { display: true, min: 0, max: 100, ticks: { font: { size: 11 } } }
+      }
+    };
+
+    // Color each point by its threshold level so the spike colors carry over.
+    const pointColor = type => ctx => {
+      const v = ctx.parsed?.y ?? 0;
+      const level = getAlertLevel(v, type);
+      return level === 'critical'
+        ? colors.error
+        : level === 'warning'
+          ? colors.warning
+          : type === 'cpu'
+            ? colors.primary
+            : colors.info;
+    };
+
+    cpuChart = createChart('perf-cpu-chart', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'CPU %',
+            data: points.map(m => m.cpu_percent ?? 0),
+            borderColor: colors.primary,
+            backgroundColor: colors.primary + '20',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            pointBackgroundColor: pointColor('cpu')
+          }
+        ]
+      },
+      options: baseOptions,
+      plugins: [thresholdLinesPlugin('cpu')]
+    });
+
+    memChart = createChart('perf-mem-chart', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Memory %',
+            data: points.map(m => m.memory_percent ?? 0),
+            borderColor: colors.info,
+            backgroundColor: colors.info + '20',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 1.5,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            pointBackgroundColor: pointColor('memory')
+          }
+        ]
+      },
+      options: baseOptions,
+      plugins: [thresholdLinesPlugin('memory')]
+    });
+  }
+
+  // Debounce rebuilds so the WS metrics stream (and threshold edits) collapse
+  // into a single repaint instead of rebuilding on every tick.
+  function scheduleTrendCharts() {
+    if (chartRebuildTimer) clearTimeout(chartRebuildTimer);
+    chartRebuildTimer = setTimeout(() => {
+      chartRebuildTimer = null;
+      buildTrendCharts();
+    }, 150);
+  }
+
+  // Rebuild when the charts tab is active and its inputs change.
+  $effect(() => {
+    // Track the dependencies that should drive a rebuild.
+    void activeTab;
+    void chartMetrics;
+    void thresholds.cpu.warning;
+    void thresholds.cpu.critical;
+    void thresholds.memory.warning;
+    void thresholds.memory.critical;
+    if (activeTab === 'charts') scheduleTrendCharts();
+  });
 
   // WebSocket handlers
   function handleSystemMetrics(metrics) {
@@ -238,12 +394,28 @@
     URL.revokeObjectURL(url);
   }
 
+  // Clamp a threshold field to a valid 0–100 number. Clearing a number input
+  // sets its bound value to NaN/empty, which made getAlertLevel compare
+  // against NaN (every comparison false → silently "normal"). Snap back to a
+  // safe number on input instead.
+  function clampThreshold(type, field) {
+    const v = thresholds[type][field];
+    if (typeof v !== 'number' || Number.isNaN(v)) {
+      // Fall back to a sane default rather than leaving NaN in place.
+      thresholds[type][field] = field === 'critical' ? 90 : 70;
+      return;
+    }
+    thresholds[type][field] = Math.min(100, Math.max(0, v));
+  }
+
   // Helper functions
   function getAlertLevel(value, type) {
     const threshold = thresholds[type];
     if (!threshold) return 'normal';
-    if (value >= threshold.critical) return 'critical';
-    if (value >= threshold.warning) return 'warning';
+    const warn = Number.isFinite(threshold.warning) ? threshold.warning : Infinity;
+    const crit = Number.isFinite(threshold.critical) ? threshold.critical : Infinity;
+    if (value >= crit) return 'critical';
+    if (value >= warn) return 'warning';
     return 'normal';
   }
 
@@ -266,9 +438,17 @@
     websocketService.connect();
     websocketService.on('system-metrics', handleSystemMetrics);
 
+    perfThemeObserver = createThemeObserver(() => {
+      if (activeTab === 'charts') scheduleTrendCharts();
+    });
+
     return () => {
       abortRequests();
       websocketService.off('system-metrics', handleSystemMetrics);
+      if (chartRebuildTimer) clearTimeout(chartRebuildTimer);
+      destroyChart(cpuChart);
+      destroyChart(memChart);
+      if (perfThemeObserver) perfThemeObserver.disconnect();
     };
   });
 </script>
@@ -313,31 +493,16 @@
   {/if}
 
   <!-- Tab Navigation -->
-  <div class="flex gap-2 border-b border-border mb-6">
-    <button
-      class="px-6 py-3 text-sm font-sans border-b-2 transition-colors {activeTab === 'metrics'
-        ? 'border-accent text-accent'
-        : 'border-transparent text-muted hover:text-body'}"
-      onclick={() => (activeTab = 'metrics')}
-    >
+  <div class="flex bg-surface border border-border rounded overflow-hidden mb-6 w-fit">
+    <TabButton active={activeTab === 'metrics'} onClick={() => (activeTab = 'metrics')}>
       Metrics
-    </button>
-    <button
-      class="px-6 py-3 text-sm font-sans border-b-2 transition-colors {activeTab === 'charts'
-        ? 'border-accent text-accent'
-        : 'border-transparent text-muted hover:text-body'}"
-      onclick={() => (activeTab = 'charts')}
-    >
+    </TabButton>
+    <TabButton active={activeTab === 'charts'} onClick={() => (activeTab = 'charts')}>
       Trend Charts
-    </button>
-    <button
-      class="px-6 py-3 text-sm font-sans border-b-2 transition-colors {activeTab === 'correlations'
-        ? 'border-accent text-accent'
-        : 'border-transparent text-muted hover:text-body'}"
-      onclick={() => (activeTab = 'correlations')}
-    >
+    </TabButton>
+    <TabButton active={activeTab === 'correlations'} onClick={() => (activeTab = 'correlations')}>
       Correlations
-    </button>
+    </TabButton>
   </div>
 
   <!-- Loading State -->
@@ -560,52 +725,8 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             CPU Usage Over Time
           </h3>
-          <div class="flex gap-3 min-h-[200px] h-48">
-            <!-- Y-axis -->
-            <div class="flex flex-col justify-between text-xs text-muted font-mono w-10 text-right">
-              <span>100%</span>
-              <span>75%</span>
-              <span>50%</span>
-              <span>25%</span>
-              <span>0%</span>
-            </div>
-            <!-- Chart Canvas -->
-            <div class="flex-1 relative bg-canvas border border-border rounded">
-              <!-- Threshold lines -->
-              <div
-                class="absolute left-0 right-0 border-t-2 border-dashed border-error"
-                style="bottom: {thresholds.cpu.critical}%"
-              >
-                <span class="absolute right-1 -top-3 text-xs text-muted bg-canvas px-1"
-                  >{thresholds.cpu.critical}%</span
-                >
-              </div>
-              <div
-                class="absolute left-0 right-0 border-t-2 border-dashed border-warning"
-                style="bottom: {thresholds.cpu.warning}%"
-              >
-                <span class="absolute right-1 -top-3 text-xs text-muted bg-canvas px-1"
-                  >{thresholds.cpu.warning}%</span
-                >
-              </div>
-              <!-- Data points -->
-              {#each chartMetrics.slice().reverse() as metric, i (i)}
-                {@const isAboveCritical = metric.cpu_percent >= thresholds.cpu.critical}
-                {@const isAboveWarning =
-                  metric.cpu_percent >= thresholds.cpu.warning &&
-                  metric.cpu_percent < thresholds.cpu.critical}
-                <div
-                  class="absolute w-1.5 h-1.5 rounded-full {isAboveCritical
-                    ? 'bg-error'
-                    : isAboveWarning
-                      ? 'bg-warning'
-                      : 'bg-accent'} hover:w-2.5 hover:h-2.5 transition-all cursor-pointer"
-                  style="left: {(i / Math.max(chartMetrics.length - 1, 1)) *
-                    100}%; bottom: {metric.cpu_percent}%; transform: translate(-50%, 50%)"
-                  title="{formatTimestamp(metric.timestamp)}: {metric.cpu_percent.toFixed(1)}%"
-                ></div>
-              {/each}
-            </div>
+          <div class="min-h-[200px] h-48 bg-canvas border border-border rounded p-3">
+            <canvas id="perf-cpu-chart"></canvas>
           </div>
         </div>
 
@@ -614,52 +735,8 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide mb-4">
             Memory Usage Over Time
           </h3>
-          <div class="flex gap-3 min-h-[200px] h-48">
-            <!-- Y-axis -->
-            <div class="flex flex-col justify-between text-xs text-muted font-mono w-10 text-right">
-              <span>100%</span>
-              <span>75%</span>
-              <span>50%</span>
-              <span>25%</span>
-              <span>0%</span>
-            </div>
-            <!-- Chart Canvas -->
-            <div class="flex-1 relative bg-canvas border border-border rounded">
-              <!-- Threshold lines -->
-              <div
-                class="absolute left-0 right-0 border-t-2 border-dashed border-error"
-                style="bottom: {thresholds.memory.critical}%"
-              >
-                <span class="absolute right-1 -top-3 text-xs text-muted bg-canvas px-1"
-                  >{thresholds.memory.critical}%</span
-                >
-              </div>
-              <div
-                class="absolute left-0 right-0 border-t-2 border-dashed border-warning"
-                style="bottom: {thresholds.memory.warning}%"
-              >
-                <span class="absolute right-1 -top-3 text-xs text-muted bg-canvas px-1"
-                  >{thresholds.memory.warning}%</span
-                >
-              </div>
-              <!-- Data points -->
-              {#each chartMetrics.slice().reverse() as metric, i (i)}
-                {@const isAboveCritical = metric.memory_percent >= thresholds.memory.critical}
-                {@const isAboveWarning =
-                  metric.memory_percent >= thresholds.memory.warning &&
-                  metric.memory_percent < thresholds.memory.critical}
-                <div
-                  class="absolute w-1.5 h-1.5 rounded-full {isAboveCritical
-                    ? 'bg-error'
-                    : isAboveWarning
-                      ? 'bg-warning'
-                      : 'bg-info'} hover:w-2.5 hover:h-2.5 transition-all cursor-pointer"
-                  style="left: {(i / Math.max(chartMetrics.length - 1, 1)) *
-                    100}%; bottom: {metric.memory_percent}%; transform: translate(-50%, 50%)"
-                  title="{formatTimestamp(metric.timestamp)}: {metric.memory_percent.toFixed(1)}%"
-                ></div>
-              {/each}
-            </div>
+          <div class="min-h-[200px] h-48 bg-canvas border border-border rounded p-3">
+            <canvas id="perf-mem-chart"></canvas>
           </div>
         </div>
 
@@ -675,6 +752,7 @@
                 id="cpu-warning"
                 type="number"
                 bind:value={thresholds.cpu.warning}
+                onchange={() => clampThreshold('cpu', 'warning')}
                 min="0"
                 max="100"
                 class="w-full px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent transition-colors"
@@ -688,6 +766,7 @@
                 id="cpu-critical"
                 type="number"
                 bind:value={thresholds.cpu.critical}
+                onchange={() => clampThreshold('cpu', 'critical')}
                 min="0"
                 max="100"
                 class="w-full px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent transition-colors"
@@ -701,6 +780,7 @@
                 id="memory-warning"
                 type="number"
                 bind:value={thresholds.memory.warning}
+                onchange={() => clampThreshold('memory', 'warning')}
                 min="0"
                 max="100"
                 class="w-full px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent transition-colors"
@@ -714,6 +794,7 @@
                 id="memory-critical"
                 type="number"
                 bind:value={thresholds.memory.critical}
+                onchange={() => clampThreshold('memory', 'critical')}
                 min="0"
                 max="100"
                 class="w-full px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body focus:outline-none focus:border-accent transition-colors"

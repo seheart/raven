@@ -47,7 +47,10 @@
 
   {#snippet failed(error, reset)}
     <div class="p-6">
-      <div role="alert" class="bg-surface border border-border rounded-lg p-6 max-w-3xl mx-auto">
+      <div
+        role="alert"
+        class="bg-surface border border-border rounded-lg p-6 max-w-[48rem] mx-auto"
+      >
         <h2 class="text-lg font-bold text-error font-mono mb-2">Something broke in this view.</h2>
         <p class="text-sm text-muted font-sans mb-4">
           The rest of Raven is still running — header, navigation, and other tabs should work. You

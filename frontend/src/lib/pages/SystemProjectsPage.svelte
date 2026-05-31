@@ -4,7 +4,15 @@
   import { renderMarkdown } from '../utils/markdown.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
   import { ToolbarButton, EmptyState, DataFetchError } from '../components/ui/index.js';
+  import { toasts } from '../toastStore.js';
   const { api, abort: abortRequests } = createPageApi();
+
+  // Slugify a project name for safe use as a DOM id / getElementById key.
+  // Project names can contain spaces and special chars which break id
+  // selectors; this maps them to a stable, query-safe token.
+  function slugId(name) {
+    return 'project-summary-' + String(name).replace(/[^a-zA-Z0-9_-]+/g, '-');
+  }
 
   let config = $state({ autoDiscover: true, basePath: '', projects: [] });
   let loading = $state(true);
@@ -53,7 +61,7 @@
       config = data;
       error = null;
     } catch (err) {
-      error = err.message;
+      error = err?.message || String(err);
     } finally {
       loading = false;
     }
@@ -68,9 +76,10 @@
       });
       const count = data.discovered?.length || 0;
       if (count > 0) await loadConfig();
-      alert(count > 0 ? `Found and added ${count} project(s)` : 'No new projects found');
+      if (count > 0) toasts.success(`Found and added ${count} project(s)`);
+      else toasts.info('No new projects found');
     } catch (err) {
-      alert('Discovery failed: ' + err.message);
+      toasts.error('Discovery failed: ' + (err?.message || String(err)));
     } finally {
       discovering = false;
     }
@@ -109,18 +118,21 @@
       }
       editingProject = null;
       await loadConfig();
+      toasts.success('Project saved');
     } catch (err) {
-      alert('Failed to save: ' + err.message);
+      toasts.error('Failed to save: ' + (err?.message || String(err)));
     }
   }
 
   async function deleteProject(name) {
+    // Destructive — keep a native confirm.
     if (!confirm(`Remove project "${name}"?`)) return;
     try {
       await api.delete(`/projects/${name}`);
       await loadConfig();
+      toasts.success(`Removed "${name}"`);
     } catch (err) {
-      alert('Failed to remove: ' + err.message);
+      toasts.error('Failed to remove: ' + (err?.message || String(err)));
     }
   }
 
@@ -129,7 +141,7 @@
       await api.put(`/projects/${project.name}`, { enabled: !project.enabled });
       await loadConfig();
     } catch (err) {
-      alert('Failed to toggle: ' + err.message);
+      toasts.error('Failed to toggle: ' + (err?.message || String(err)));
     }
   }
 
@@ -171,6 +183,14 @@
   }
 
   async function getProjectHealth(projectName) {
+    // Guard against concurrent runs — a second click while one is in flight
+    // would orphan the earlier interval and hijack the single-valued banner.
+    if (activeProjectName) return;
+    // Defensive: clear any stale timer before starting a fresh one.
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
     healthNarratives = {
       ...healthNarratives,
       [projectName]: { loading: true, content: null, error: null }
@@ -208,13 +228,17 @@
         if (highlightProjectName === projectName) highlightProjectName = null;
       }, 3000);
       requestAnimationFrame(() => {
-        const el = document.getElementById(`project-summary-${projectName}`);
+        const el = document.getElementById(slugId(projectName));
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     } catch (err) {
       healthNarratives = {
         ...healthNarratives,
-        [projectName]: { loading: false, content: null, error: friendlyError(err.message) }
+        [projectName]: {
+          loading: false,
+          content: null,
+          error: friendlyError(err?.message || String(err))
+        }
       };
     } finally {
       if (elapsedTimer) {
@@ -396,7 +420,7 @@
       </EmptyState>
     {:else}
       <div class="bg-surface border border-border rounded-lg">
-        <div class="divide-y divide-[var(--border)]">
+        <div class="divide-y divide-border">
           {#each config.projects as project (project.name)}
             <!-- Wrap project row + its expanded summary in a single child of
                  divide-y, so the divider line only appears BETWEEN projects,
@@ -472,7 +496,7 @@
               </div>
               {#if projectProfiles[project.name]?.data || projectProfiles[project.name]?.loading || healthNarratives[project.name]?.content || healthNarratives[project.name]?.error}
                 {@const prof = projectProfiles[project.name]?.data}
-                <div id="project-summary-{project.name}" class="px-5 pb-4 -mt-2 space-y-3">
+                <div id={slugId(project.name)} class="px-5 pb-4 -mt-2 space-y-3">
                   <!-- Profile card: deterministic metadata (stack, dates,
                        top files) computed without the LLM. Lands fast so
                        the user sees something immediately while the AI
