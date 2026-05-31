@@ -25,7 +25,7 @@ const BACKOFFS_MS = [10, 50, 200] as const;
  * outcomes without this util importing from `services/` (which would violate
  * the utils-pure architecture rule).
  */
-export interface RetryObserver {
+interface RetryObserver {
   onWriteAttempt(success: boolean): void;
   onWriteRetry(): void;
 }

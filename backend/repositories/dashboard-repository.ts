@@ -42,6 +42,20 @@ interface PerformanceCorrelation {
   mem_percent: number;
 }
 
+interface ProjectStatsRow {
+  project_name: string;
+  total_events: number;
+  total_agent_events: number;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  last_agent_seen_at: string | null;
+}
+
+interface ProjectCountRow {
+  project_name: string | null;
+  count: number;
+}
+
 interface DashboardStats {
   total_events: number;
   /** Lifetime per-project event count summed across all watched projects.
@@ -104,6 +118,20 @@ export interface DashboardRepository {
   longestEdits(limit?: number): unknown[];
   /** Comprehensive dashboard stats for a session, optionally project-filtered. */
   dashboardStats(session_id: string, project?: string): DashboardStats;
+
+  // Multi-project health (/api/health/projects).
+  /** Real projects from project_stats, newest activity first. */
+  listProjectStats(): ProjectStatsRow[];
+  /** Per-project file-event counts since the given ISO cutoff. */
+  recentEventsByProject(sinceISO: string): ProjectCountRow[];
+  /** Per-project agent-event counts since the given ISO cutoff. */
+  recentAgentEventsByProject(sinceISO: string): ProjectCountRow[];
+  /** Per-project syntax-error counts since the given ISO cutoff (project
+   *  derived from the filepath leading-directory slug). */
+  recentErrorsByProject(sinceISO: string): ProjectCountRow[];
+  /** Lifetime per-project syntax-error counts (project derived from the
+   *  filepath leading-directory slug). */
+  totalErrorsByProject(): ProjectCountRow[];
 }
 
 export function createDashboardRepository(db: RavenDB): DashboardRepository {
@@ -218,6 +246,41 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
      ORDER BY timestamp ASC
      LIMIT 500`
   );
+
+  // Multi-project health statements (/api/health/projects).
+  const projectStatsStmt = db.db.prepare(`
+    SELECT project_name, total_events, total_agent_events,
+           first_seen_at, last_seen_at, last_agent_seen_at
+    FROM project_stats
+    ORDER BY COALESCE(last_agent_seen_at, last_seen_at) DESC
+  `);
+  const recentEventsByProjectStmt = db.db.prepare(`
+    SELECT project_name, COUNT(*) as count FROM events
+    WHERE project_name IS NOT NULL AND timestamp >= ?
+    GROUP BY project_name
+  `);
+  const recentAgentEventsByProjectStmt = db.db.prepare(`
+    SELECT project_name, COUNT(*) as count FROM agent_events
+    WHERE project_name IS NOT NULL AND timestamp >= ?
+    GROUP BY project_name
+  `);
+  // syntax_errors has no project column — derive it from filepath prefix.
+  // substr(filepath, 1, instr(filepath, '/') - 1) extracts the leading
+  // directory slug, matching the LIKE 'project/%' convention.
+  const recentErrorsByProjectStmt = db.db.prepare(`
+    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
+           COUNT(*) as count
+    FROM syntax_errors
+    WHERE instr(filepath, '/') > 0 AND timestamp >= ?
+    GROUP BY project_name
+  `);
+  const totalErrorsByProjectStmt = db.db.prepare(`
+    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
+           COUNT(*) as count
+    FROM syntax_errors
+    WHERE instr(filepath, '/') > 0
+    GROUP BY project_name
+  `);
 
   return {
     getLatestSystemMetrics() {
@@ -584,6 +647,26 @@ export function createDashboardRepository(db: RavenDB): DashboardRepository {
         first_agent_event_today_at: firstEventTodayRow?.first_at || null,
         app_errors: 0 // Filled in by the route from errors repo
       };
+    },
+
+    listProjectStats() {
+      return projectStatsStmt.all() as ProjectStatsRow[];
+    },
+
+    recentEventsByProject(sinceISO) {
+      return recentEventsByProjectStmt.all(sinceISO) as ProjectCountRow[];
+    },
+
+    recentAgentEventsByProject(sinceISO) {
+      return recentAgentEventsByProjectStmt.all(sinceISO) as ProjectCountRow[];
+    },
+
+    recentErrorsByProject(sinceISO) {
+      return recentErrorsByProjectStmt.all(sinceISO) as ProjectCountRow[];
+    },
+
+    totalErrorsByProject() {
+      return totalErrorsByProjectStmt.all() as ProjectCountRow[];
     }
   };
 }

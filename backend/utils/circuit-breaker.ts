@@ -13,14 +13,14 @@ export class CircuitOpenError extends Error {
   }
 }
 
-export type CircuitState = 'closed' | 'open' | 'half-open';
+type CircuitState = 'closed' | 'open' | 'half-open';
 
 interface CircuitBreakerOptions {
   failureThreshold?: number;
   cooldownMs?: number;
 }
 
-export class CircuitBreaker {
+class CircuitBreaker {
   readonly name: string;
   private consecutiveFailures = 0;
   private openUntil = 0;

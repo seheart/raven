@@ -89,6 +89,19 @@ describe('Diff Annotation Service (pure)', () => {
     expect(ids).toContain('eval-usage');
   });
 
+  test('does NOT flag .eval() method calls as eval-usage (PyTorch false positive)', () => {
+    const METHOD_EVAL_DIFF = `--- a/model.py
++++ b/model.py
+@@ -1,2 +1,4 @@
+ import torch
++text_encoder.eval()
++model.eval()
+ x = 1
+`;
+    const matches = annotationService.scan('model.py', METHOD_EVAL_DIFF);
+    expect(matches.map(m => m.rule_id)).not.toContain('eval-usage');
+  });
+
   test('flags an .env edit at the file level', () => {
     const matches = annotationService.scan('.env', SAFE_DIFF);
     const envHit = matches.find(m => m.rule_id === 'env-file');

@@ -10,7 +10,7 @@
  * we'll re-discover the condition on the first failed write.
  */
 
-export interface DiskState {
+interface DiskState {
   diskFull: boolean;
   detectedAt: string | null;
   message: string | null;

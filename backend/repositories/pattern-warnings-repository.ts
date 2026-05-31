@@ -5,7 +5,7 @@
 import type { RavenDB } from '../db.js';
 import { logger } from '../utils/logger.js';
 
-export interface PatternWarningRow {
+interface PatternWarningRow {
   id: number;
   timestamp: string;
   filepath: string;
@@ -20,7 +20,7 @@ export interface PatternWarningRow {
   session_id: string | null;
 }
 
-export interface PatternWarningIgnoreRow {
+interface PatternWarningIgnoreRow {
   id: number;
   filepath: string;
   pattern_id: string;

@@ -16,7 +16,7 @@ import { allBreakers } from '../utils/circuit-breaker.js';
 import { getDiskState } from '../utils/disk-state.js';
 
 /** Snapshot returned by /api/system/internal-metrics. */
-export interface InternalMetricsSnapshot {
+interface InternalMetricsSnapshot {
   uptime_seconds: number;
   ingest_events_total: number;
   ingest_events_per_second: number;

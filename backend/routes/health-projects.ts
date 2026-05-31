@@ -14,68 +14,14 @@
 import express, { Request, Response, Router } from 'express';
 import { logger } from '../utils/logger.js';
 import { cacheMiddleware } from '../services/cache-service.js';
-import type { RavenDB } from '../db.js';
+import type { DashboardRepository } from '../repositories/dashboard-repository.js';
 
 interface HealthProjectsDeps {
-  db: RavenDB;
+  dashboardRepo: DashboardRepository;
 }
 
-interface ProjectStatsRow {
-  project_name: string;
-  total_events: number;
-  total_agent_events: number;
-  first_seen_at: string | null;
-  last_seen_at: string | null;
-  last_agent_seen_at: string | null;
-}
-
-export function createHealthProjectsRouter({ db }: HealthProjectsDeps): Router {
+export function createHealthProjectsRouter({ dashboardRepo }: HealthProjectsDeps): Router {
   const router = express.Router();
-
-  const projectsStmt = db.db.prepare(`
-    SELECT project_name, total_events, total_agent_events,
-           first_seen_at, last_seen_at, last_agent_seen_at
-    FROM project_stats
-    ORDER BY COALESCE(last_agent_seen_at, last_seen_at) DESC
-  `);
-
-  // Recent window counters: events touched recently and errors filed recently.
-  // We don't have project_name on syntax_errors, so we attribute errors by
-  // filepath prefix — events.project_name is a directory-style slug
-  // ("raven/backend/foo.ts" → "raven"), and syntax_errors.filepath uses the
-  // same convention.
-  //
-  // Previous shape was N+1: a 4-query .get() loop per project (4×N round
-  // trips). Replaced with 4 grouped .all() queries that return all projects
-  // at once, then merged by project_name in JS. Behavior is preserved —
-  // same counts, same window, same project filtering.
-  const recentEventsByProjectStmt = db.db.prepare(`
-    SELECT project_name, COUNT(*) as count FROM events
-    WHERE project_name IS NOT NULL AND timestamp >= ?
-    GROUP BY project_name
-  `);
-  const recentAgentEventsByProjectStmt = db.db.prepare(`
-    SELECT project_name, COUNT(*) as count FROM agent_events
-    WHERE project_name IS NOT NULL AND timestamp >= ?
-    GROUP BY project_name
-  `);
-  // syntax_errors has no project column — derive it from filepath prefix.
-  // substr(filepath, 1, instr(filepath, '/') - 1) extracts the leading
-  // directory slug, matching the LIKE 'project/%' convention used before.
-  const recentErrorsByProjectStmt = db.db.prepare(`
-    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
-           COUNT(*) as count
-    FROM syntax_errors
-    WHERE instr(filepath, '/') > 0 AND timestamp >= ?
-    GROUP BY project_name
-  `);
-  const totalErrorsByProjectStmt = db.db.prepare(`
-    SELECT substr(filepath, 1, instr(filepath, '/') - 1) AS project_name,
-           COUNT(*) as count
-    FROM syntax_errors
-    WHERE instr(filepath, '/') > 0
-    GROUP BY project_name
-  `);
 
   router.get('/projects', cacheMiddleware(5000), (req: Request, res: Response) => {
     try {
@@ -84,7 +30,7 @@ export function createHealthProjectsRouter({ db }: HealthProjectsDeps): Router {
       const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? daysRaw : 7;
       const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
 
-      let rows = projectsStmt.all() as ProjectStatsRow[];
+      let rows = dashboardRepo.listProjectStats();
       if (projectFilter && projectFilter !== 'all') {
         rows = rows.filter(r => r.project_name === projectFilter);
       }
@@ -92,17 +38,19 @@ export function createHealthProjectsRouter({ db }: HealthProjectsDeps): Router {
       // Single-pass fetch for all four metrics, keyed by project_name.
       // Replaces a 4-query .get() loop per project (was 4×N round-trips,
       // now 4 round-trips regardless of project count).
-      const toMap = (results: unknown[]): Map<string, number> => {
+      const toMap = (
+        results: Array<{ project_name: string | null; count: number }>
+      ): Map<string, number> => {
         const m = new Map<string, number>();
-        for (const r of results as Array<{ project_name: string | null; count: number }>) {
+        for (const r of results) {
           if (r.project_name) m.set(r.project_name, r.count);
         }
         return m;
       };
-      const recentFilesByProject = toMap(recentEventsByProjectStmt.all(cutoff));
-      const recentAgentByProject = toMap(recentAgentEventsByProjectStmt.all(cutoff));
-      const recentErrorsByProject = toMap(recentErrorsByProjectStmt.all(cutoff));
-      const totalErrorsByProject = toMap(totalErrorsByProjectStmt.all());
+      const recentFilesByProject = toMap(dashboardRepo.recentEventsByProject(cutoff));
+      const recentAgentByProject = toMap(dashboardRepo.recentAgentEventsByProject(cutoff));
+      const recentErrorsByProject = toMap(dashboardRepo.recentErrorsByProject(cutoff));
+      const totalErrorsByProject = toMap(dashboardRepo.totalErrorsByProject());
 
       const projects = rows.map(row => {
         const recentFiles = recentFilesByProject.get(row.project_name) ?? 0;
