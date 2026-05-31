@@ -147,7 +147,7 @@ export function createAgentEventHandlerFactory({
           );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          logger.debug(`Failed to store agent event: ${msg}`);
+          logger.warn(`Failed to store agent event: ${msg}`);
         }
       }
 
@@ -172,7 +172,7 @@ export function createAgentEventHandlerFactory({
           );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          logger.debug(`Failed to store conversation: ${msg}`);
+          logger.warn(`Failed to store conversation: ${msg}`);
         }
       }
 
@@ -227,7 +227,7 @@ export function createAgentEventHandlerFactory({
                 );
             } catch (err) {
               const msg = err instanceof Error ? err.message : String(err);
-              logger.debug(`Failed to update subagent token counts for ${event.agentId}: ${msg}`);
+              logger.warn(`Failed to update subagent token counts for ${event.agentId}: ${msg}`);
             }
           }
 
@@ -244,7 +244,7 @@ export function createAgentEventHandlerFactory({
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          logger.debug(`Failed to store token usage: ${msg}`);
+          logger.warn(`Failed to store token usage: ${msg}`);
         }
       }
 
@@ -284,7 +284,7 @@ export function createAgentEventHandlerFactory({
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          logger.debug(`Failed to store subagent spawn: ${msg}`);
+          logger.warn(`Failed to store subagent spawn: ${msg}`);
         }
       }
 
@@ -308,7 +308,7 @@ export function createAgentEventHandlerFactory({
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          logger.debug(`Failed to store API latency: ${msg}`);
+          logger.warn(`Failed to store API latency: ${msg}`);
         }
       }
 

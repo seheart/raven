@@ -61,15 +61,6 @@
   let themeObserver = $state(null);
 
   // Derived values
-  const timeAgo = $derived.by(() => {
-    if (!lastUpdated) return 'Just now';
-    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 10) return 'Just now';
-    else if (seconds < 60) return `${seconds}s ago`;
-    else if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    else return `${Math.floor(seconds / 3600)}h ago`;
-  });
-
   const enhancedStats = $derived({
     totalActivities: activities.length,
     uniqueSessions: sessions.length,

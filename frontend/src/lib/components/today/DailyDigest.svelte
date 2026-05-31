@@ -13,6 +13,7 @@
 
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../../apiClient.js';
+  import { toneClass } from '../../utils/tone.js';
 
   const { api, abort } = createPageApi();
 
@@ -23,21 +24,6 @@
 
   function fmtDate(iso) {
     return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  }
-
-  function toneClass(tone) {
-    switch (tone) {
-      case 'accent':
-        return 'text-accent';
-      case 'success':
-        return 'text-success';
-      case 'info':
-        return 'text-info';
-      case 'warning':
-        return 'text-warning';
-      default:
-        return 'text-muted';
-    }
   }
 
   async function load() {

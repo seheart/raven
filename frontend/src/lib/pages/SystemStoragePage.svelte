@@ -73,15 +73,6 @@
     return n?.toLocaleString() || '0';
   }
 
-  function timeAgo(d) {
-    if (!d) return '';
-    const diff = Date.now() - new Date(d).getTime();
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return `${Math.floor(diff / 86400000)}d ago`;
-  }
-
   function sizePercent(size) {
     if (!totalDbSize) return 0;
     return ((size / totalDbSize) * 100).toFixed(1);

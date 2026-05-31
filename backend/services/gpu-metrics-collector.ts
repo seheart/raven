@@ -111,7 +111,9 @@ export class GpuMetricsCollector {
     this.persist(samples);
     logger.info(`🎛️  GPU metrics collector running (${this.intervalMs / 1000}s interval)`);
     this.interval = setInterval(() => {
-      querySmi().then(s => this.persist(s));
+      querySmi()
+        .then(s => this.persist(s))
+        .catch(err => logger.debug(`GPU metrics sample failed: ${err}`));
     }, this.intervalMs);
     this.interval.unref();
   }

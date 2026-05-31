@@ -34,11 +34,6 @@
   let tpsHistory = $state([]);
   const TPS_HISTORY_LEN = 24;
 
-  function fmtGB(bytes) {
-    if (!bytes) return '—';
-    return `${(bytes / 1e9).toFixed(1)} GB`;
-  }
-
   function vramColor(pct) {
     if (pct >= 95) return 'var(--error)';
     if (pct >= 85) return 'var(--warning)';

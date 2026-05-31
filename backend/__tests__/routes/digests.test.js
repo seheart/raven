@@ -129,7 +129,9 @@ describe('Digest Service', () => {
     const d = svc.getOrCompute(NOW);
     const text = d.beats.map(b => b.text).join(' | ');
     expect(text).toMatch(/\$4\.00/);
-    expect(text).toMatch(/claude-opus-4-7/);
+    // Model is prettified for display ("claude-opus-4-7" → "Claude Opus 4.7"),
+    // while stats.top_model keeps the raw id (asserted above).
+    expect(text).toMatch(/Claude Opus 4\.7/);
     expect(text).toMatch(/3 of 7 days/);
   });
 

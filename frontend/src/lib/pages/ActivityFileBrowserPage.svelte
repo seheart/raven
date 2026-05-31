@@ -280,12 +280,6 @@
     const textColor = c.text;
     const mutedColor = c.muted;
     const gridColor = 'rgba(128, 128, 128, 0.15)';
-    const themeColors = {
-      accent: c.primary,
-      success: c.success,
-      error: c.error,
-      warning: c.warning
-    };
 
     // 1. Pie Chart: File types distribution
     const pieCanvas = document.getElementById('chart-file-types');

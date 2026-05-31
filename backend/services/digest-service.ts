@@ -17,6 +17,7 @@
 
 import type { RavenDB } from '../db.js';
 import { randomUUID } from 'node:crypto';
+import { plural, fmtUsd, formatDuration, prettyModel } from '../utils/format.js';
 
 // ── Types ─────────────────────────────────────────────────────────
 interface WeeklyDigestBeat {
@@ -148,26 +149,6 @@ function isoWeekKey(d: Date): string {
   return `${t.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
-function plural(n: number, s: string, p: string): string {
-  return n === 1 ? s : p;
-}
-
-function fmtUsd(n: number): string {
-  if (n < 0.01) return '<$0.01';
-  if (n < 100) return `$${n.toFixed(2)}`;
-  return `$${Math.round(n).toLocaleString()}`;
-}
-
-function fmtDuration(seconds: number): string | null {
-  if (!seconds || seconds < 60) return null;
-  const m = Math.floor(seconds / 60);
-  if (m < 60) return `${m} ${plural(m, 'minute', 'minutes')}`;
-  const h = Math.floor(m / 60);
-  const remM = m % 60;
-  if (remM === 0) return `${h} ${plural(h, 'hour', 'hours')}`;
-  return `${h}h ${remM}m`;
-}
-
 // ── Service ───────────────────────────────────────────────────────
 export function createDigestService(db: RavenDB): DigestService {
   function compute(at: Date): WeeklyDigest {
@@ -233,7 +214,7 @@ export function createDigestService(db: RavenDB): DigestService {
       .prepare(
         `SELECT model, COUNT(*) AS requests
          FROM token_usage
-         WHERE timestamp >= ? AND timestamp <= ? AND model IS NOT NULL AND model != ''
+         WHERE timestamp >= ? AND timestamp <= ? AND model IS NOT NULL AND model != '' AND model NOT LIKE '<%'
          GROUP BY model
          ORDER BY requests DESC
          LIMIT 1`
@@ -398,15 +379,14 @@ export function createDigestService(db: RavenDB): DigestService {
       beats.push({
         glyph: '◇',
         tone: 'muted',
-        text: `${topModelRow.model} was your most-used model (${topModelRow.requests.toLocaleString()} ${plural(topModelRow.requests, 'call', 'calls')}).`
+        text: `${prettyModel(topModelRow.model)} was your most-used model (${topModelRow.requests.toLocaleString()} ${plural(topModelRow.requests, 'call', 'calls')}).`
       });
     }
-    const dur = fmtDuration(longestSessionSeconds);
-    if (dur && longestSessionSeconds >= 30 * 60) {
+    if (longestSessionSeconds >= 30 * 60) {
       beats.push({
         glyph: '◐',
         tone: 'info',
-        text: `Longest session: ${dur}.`
+        text: `Longest session: ${formatDuration(longestSessionSeconds)}.`
       });
     }
 
@@ -701,15 +681,18 @@ export function createDigestService(db: RavenDB): DigestService {
         text: `${top.project} took ${pct}%${projects.length >= 3 ? `, ahead of ${projects.length - 1} other projects` : ` over ${projects[1].project}`}.`
       });
     }
-    const dur = fmtDuration(longestSessionSeconds);
-    if (dur && longestSessionSeconds >= 25 * 60) {
-      beats.push({ glyph: '◐', tone: 'info', text: `Longest session: ${dur}.` });
+    if (longestSessionSeconds >= 25 * 60) {
+      beats.push({
+        glyph: '◐',
+        tone: 'info',
+        text: `Longest session: ${formatDuration(longestSessionSeconds)}.`
+      });
     }
     if (topModelRow && lead.kind !== 'late-night') {
       beats.push({
         glyph: '◇',
         tone: 'muted',
-        text: `Mostly ${topModelRow.model} (${topModelRow.requests.toLocaleString()} ${plural(topModelRow.requests, 'call', 'calls')}).`
+        text: `Mostly ${prettyModel(topModelRow.model)} (${topModelRow.requests.toLocaleString()} ${plural(topModelRow.requests, 'call', 'calls')}).`
       });
     }
 

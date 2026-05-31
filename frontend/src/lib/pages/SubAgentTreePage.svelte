@@ -25,14 +25,6 @@
   let lastUpdated = $state(null);
   let error = $state(null);
 
-  const timeAgo = $derived.by(() => {
-    if (!lastUpdated) return 'Just now';
-    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 10) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    return `${Math.floor(seconds / 60)}m ago`;
-  });
-
   // Build tree from flat list
   const tree = $derived.by(() => {
     if (treeData.length === 0) return [];

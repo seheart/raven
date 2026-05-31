@@ -26,6 +26,7 @@
 
 import type { RavenDB } from '../db.js';
 import { randomUUID } from 'node:crypto';
+import { plural, fmtUsd, formatDuration as fmtDuration, prettyModel } from '../utils/format.js';
 
 const WINDOW_DAYS = 30;
 /** How long a computed persona is served before it's re-derived. */
@@ -74,7 +75,7 @@ export interface UserPersona {
     top_project: string | null;
     top_project_share: number;
   };
-  languages: Array<{ ext: string; language: string; share: number; files: number }>;
+  languages: Array<{ language: string; share: number; files: number }>;
   top_model: string | null;
   rhythm: {
     busiest_weekday: string | null;
@@ -102,26 +103,6 @@ export interface PersonaService {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
-function plural(n: number, s: string, p: string): string {
-  return n === 1 ? s : p;
-}
-
-function fmtUsd(n: number): string {
-  if (n < 0.01) return '<$0.01';
-  if (n < 100) return `$${n.toFixed(2)}`;
-  return `$${Math.round(n).toLocaleString()}`;
-}
-
-function fmtDuration(seconds: number): string {
-  if (!seconds || seconds < 60) return `${Math.max(0, Math.round(seconds))}s`;
-  const m = Math.floor(seconds / 60);
-  if (m < 60) return `${m} ${plural(m, 'minute', 'minutes')}`;
-  const h = Math.floor(m / 60);
-  const remM = m % 60;
-  if (remM === 0) return `${h} ${plural(h, 'hour', 'hours')}`;
-  return `${h}h ${remM}m`;
-}
-
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 // Markup / data / docs formats — counted, but not treated as the craft a
@@ -175,18 +156,6 @@ const EXT_LANGUAGE: Record<string, string> = {
   hs: 'Haskell',
   zig: 'Zig'
 };
-
-/** Pretty-print a raw model id like "claude-opus-4-6" → "Claude Opus 4.6". */
-function prettyModel(model: string): string {
-  if (!model) return model;
-  const m = model.match(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)/i);
-  if (m) {
-    const tier = m[1].charAt(0).toUpperCase() + m[1].slice(1);
-    return `Claude ${tier} ${m[2]}.${m[3]}`;
-  }
-  // Fall back to a tidied version of the raw id.
-  return model.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
 
 function extOf(filepath: string): string | null {
   const base = filepath.split('/').pop() || '';
@@ -693,7 +662,6 @@ export function createPersonaService(db: RavenDB): PersonaService {
         top_project_share: topProjectShare
       },
       languages: topLanguages.map(l => ({
-        ext: '',
         language: l.language,
         share: l.share,
         files: l.files

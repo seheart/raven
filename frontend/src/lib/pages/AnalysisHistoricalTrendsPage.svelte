@@ -66,15 +66,6 @@
   // the UI as "Peak Files/Bucket" so it isn't mistaken for a window total.
   const peakUniqueFiles = $derived(Math.max(...trends.map(t => t.unique_files || 0), 0));
 
-  const timeSinceUpdate = $derived.by(() => {
-    const seconds = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  });
-
   // Accessibility labels for charts
   const trendsOverTimeAriaLabel = $derived.by(() => {
     if (trends.length === 0) return 'Trends over time chart: No data available';

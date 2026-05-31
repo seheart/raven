@@ -18,6 +18,7 @@
 
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../../apiClient.js';
+  import { toneClass } from '../../utils/tone.js';
 
   const { api, abort } = createPageApi();
 
@@ -44,20 +45,7 @@
     return m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
   });
 
-  function toneClass(tone) {
-    switch (tone) {
-      case 'accent':
-        return 'text-accent';
-      case 'success':
-        return 'text-success';
-      case 'info':
-        return 'text-info';
-      case 'warning':
-        return 'text-warning';
-      default:
-        return 'text-muted';
-    }
-  }
+  let refetching = false;
 
   async function load() {
     try {
@@ -69,6 +57,18 @@
       loading = false;
     }
   }
+
+  // When the read comes due, quietly refetch instead of stranding the user on
+  // a "reload" nag — the server recomputes on the 6h cache miss, so a fresh
+  // persona (with a new next_refresh_at) lands and the countdown resets.
+  $effect(() => {
+    if (nextRead === 'ready' && !refetching && !loading) {
+      refetching = true;
+      load().finally(() => {
+        refetching = false;
+      });
+    }
+  });
 
   onMount(() => {
     load();

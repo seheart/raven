@@ -31,7 +31,6 @@
   let summaryLoading = $state(false);
   /** @type {string|null} */
   let summaryError = $state(null);
-  let summaryDisabled = $state(false);
 
   /** @type {Array<{bucket:string, cost_usd:number, requests:number}>} */
   let costTimeline = $state([]);
@@ -352,7 +351,6 @@
         .catch(() => null);
       if (latest && latest.content && isFresh(latest.timestamp)) {
         summary = extractLeadSentence(latest.content);
-        summaryDisabled = false;
         return;
       }
 
@@ -366,7 +364,6 @@
       );
       if (data?.content) {
         summary = extractLeadSentence(data.content);
-        summaryDisabled = false;
         return;
       }
 
@@ -383,7 +380,6 @@
           .catch(() => null);
         if (poll?.content && poll.timestamp !== baseline) {
           summary = extractLeadSentence(poll.content);
-          summaryDisabled = false;
           return;
         }
       }
@@ -395,9 +391,10 @@
         // Don't surface — page is unmounting.
       } else {
         const msg = e?.message || String(err);
-        if (msg.includes('disabled') || msg.includes('503')) {
-          summaryDisabled = true;
-        } else {
+        // A disabled local model (503) is expected during dev — stay quiet and
+        // let the deterministic persona/digests carry the page. Only surface a
+        // genuine, unexpected narration error.
+        if (!(msg.includes('disabled') || msg.includes('503'))) {
           summaryError = msg;
         }
       }
