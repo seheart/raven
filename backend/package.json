@@ -44,7 +44,7 @@
     "simple-git": "^3.28.0",
     "socket.io": "^4.8.1",
     "systeminformation": "^5.27.11",
-    "toml": "^3.0.0",
+    "toml": "^4.1.1",
     "winston": "^3.18.3",
     "zod": "^4.3.6"
   },
