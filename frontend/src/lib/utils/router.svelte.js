@@ -21,12 +21,17 @@ class Router {
    * @param {string} path - The path to navigate to
    */
   navigate(path) {
-    if (path !== this.path) {
-      window.history.pushState({}, '', path);
-      this.path = path;
-      // Scroll to top when navigating to a new page
-      window.scrollTo(0, 0);
-    }
+    const current = window.location.pathname + window.location.search + window.location.hash;
+    if (path === current) return;
+    window.history.pushState({}, '', path);
+    // Store the PATHNAME only — route matching splits this on "/", so a query
+    // string (e.g. /agents/convos?project=seth) must not be part of it or the
+    // subtab becomes "convos?project=seth" and falls through to "coming soon".
+    // The query stays in the URL bar (pushState above) for pages that read
+    // window.location.search.
+    this.path = path.split(/[?#]/)[0];
+    // Scroll to top when navigating to a new page
+    window.scrollTo(0, 0);
   }
 
   /**
