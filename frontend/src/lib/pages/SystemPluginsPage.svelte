@@ -6,8 +6,8 @@
    */
 
   import { onMount, onDestroy } from 'svelte';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import { RefreshButton, EmptyState, DataFetchError } from '../components/ui/index.js';
   import { createPageApi } from '../apiClient.js';
 
   const { api, abort } = createPageApi();
@@ -177,6 +177,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Plugins" />
   <PageHeader
     title="Plugins"
     description="User-authored JavaScript rules over Raven's event stream. Drop a .js file into .raven/plugins/, hit reload, and the sandbox loads it."
@@ -187,9 +188,12 @@
   </PageHeader>
 
   {#if loadError}
-    <div class="bg-error-subtle border border-error text-error rounded p-3 text-sm mb-4">
-      {loadError}
-    </div>
+    <DataFetchError
+      endpoint="/api/plugins"
+      message="Failed to load plugins"
+      hint={loadError}
+      onRetry={load}
+    />
   {/if}
 
   <!-- Stats strip — matches /storage and /system patterns. Shows the
@@ -235,14 +239,12 @@
   {:else if plugins.length === 0}
     <!-- Empty state with onboarding. The example plugin is normally seeded
          on first start; if it's missing the user should hit reload. -->
-    <div class="bg-surface border border-border rounded-lg p-8 text-center mb-6">
-      <div class="text-sm font-mono text-body mb-2">No plugins installed</div>
-      <div class="text-xs text-muted font-sans mb-4 max-w-[28rem] mx-auto leading-relaxed">
-        The runtime seeds <code class="font-mono text-accent">.raven/plugins/example.js</code> on
-        first start. If it's missing, click Reload above. To add your own, drop a
-        <code class="font-mono">.js</code>
-        file into <code class="font-mono text-accent">.raven/plugins/</code> and reload.
-      </div>
+    <div class="mb-6">
+      <EmptyState
+        size="compact"
+        title="No plugins installed"
+        description="The runtime seeds .raven/plugins/example.js on first start. If it's missing, click Reload above. To add your own, drop a .js file into .raven/plugins/ and reload."
+      />
     </div>
   {:else}
     <!-- Plugin list — one card per plugin with name, scraped description,
@@ -311,7 +313,7 @@
                     : 'bg-surface-2 border border-border'}"
                 >
                   <span
-                    class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all {p.enabled
+                    class="absolute top-0.5 w-5 h-5 rounded-full bg-canvas shadow transition-all {p.enabled
                       ? 'left-[26px]'
                       : 'left-0.5'}"
                   ></span>

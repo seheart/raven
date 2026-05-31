@@ -6,7 +6,7 @@
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { FreshnessBadge } from '../components/ui/index.js';
+  import { FreshnessBadge, FilterToggle, RefreshButton } from '../components/ui/index.js';
   import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
@@ -43,10 +43,13 @@
     return latencyData.filter(d => new Date(d.timestamp).getTime() >= cutoff);
   });
 
-  function activityColor(state) {
-    if (state === 'thinking') return 'var(--warning)';
-    if (state === 'executing') return 'var(--success)';
-    return 'var(--muted)';
+  // Static state colors → semantic utility classes (rule E). The activity
+  // dot color is keyed off the fixed activity_state enum, so a class map is
+  // the canonical form rather than an inline var(--…) style.
+  function activityDotClass(state) {
+    if (state === 'thinking') return 'bg-warning';
+    if (state === 'executing') return 'bg-success';
+    return 'bg-muted';
   }
 
   // Semantic text+subtle-bg classes for the activity badge. Replaces the
@@ -56,6 +59,14 @@
     if (state === 'thinking') return 'text-warning bg-warning-subtle';
     if (state === 'executing') return 'text-success bg-success-subtle';
     return 'text-muted bg-surface-2';
+  }
+
+  // Latency threshold → semantic text class (rule E): >30s error, >10s
+  // warning, else normal body text.
+  function latencyTextClass(ms) {
+    if (ms > 30000) return 'text-error';
+    if (ms > 10000) return 'text-warning';
+    return 'text-body';
   }
 
   function activityLabel(state) {
@@ -224,12 +235,7 @@
       {#snippet actions()}
         <div class="flex items-center gap-3">
           <FreshnessBadge mode="live" since={lastUpdated} />
-          <button
-            onclick={() => loadData()}
-            class="px-2 py-1 text-[11px] bg-surface border border-border rounded text-muted hover:text-body transition-colors"
-          >
-            Refresh
-          </button>
+          <RefreshButton onClick={() => loadData()} {loading} />
         </div>
       {/snippet}
     </PageHeader>
@@ -247,9 +253,8 @@
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
               <span
-                class="w-2 h-2 rounded-full inline-block"
+                class="w-2 h-2 rounded-full inline-block {activityDotClass(agent.activity_state)}"
                 class:activity-pulse={agent.activity_state === 'thinking'}
-                style="background: {activityColor(agent.activity_state)}"
               ></span>
               <span class="text-[11px] font-semibold text-body">{agent.agent_name}</span>
             </div>
@@ -275,8 +280,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-muted">API Calls</span>
-              <span
-                style="color: {(agent.api_connections || 0) > 0 ? 'var(--warning)' : 'var(--text)'}"
+              <span class={(agent.api_connections || 0) > 0 ? 'text-warning' : 'text-body'}
                 >{agent.api_connections || 0}</span
               >
             </div>
@@ -311,19 +315,15 @@
         <h3 class="text-[11px] font-semibold text-body">API Latency</h3>
         <div class="flex gap-1">
           {#each ['15m', '1h', '6h', '24h'] as range (range)}
-            <button
-              onclick={() => {
+            <FilterToggle
+              active={chartTimeRange === range}
+              onClick={() => {
                 chartTimeRange = range;
                 loadData();
               }}
-              class="px-2 py-1 text-[11px] rounded transition-colors min-w-[30px]"
-              class:bg-accent={chartTimeRange === range}
-              class:text-canvas={chartTimeRange === range}
-              class:bg-canvas={chartTimeRange !== range}
-              class:text-muted={chartTimeRange !== range}
             >
               {range}
-            </button>
+            </FilterToggle>
           {/each}
         </div>
       </div>
@@ -393,14 +393,7 @@
                 >
                 <td class="py-1 pr-4 text-body">{entry.model || 'unknown'}</td>
                 <td class="py-1 pr-4 text-muted">{entry.project_name || '-'}</td>
-                <td
-                  class="py-1 text-right font-semibold"
-                  style="color: {entry.latency_ms > 30000
-                    ? 'var(--error)'
-                    : entry.latency_ms > 10000
-                      ? 'var(--warning)'
-                      : 'var(--text)'}"
-                >
+                <td class="py-1 text-right font-semibold {latencyTextClass(entry.latency_ms)}">
                   {(entry.latency_ms / 1000).toFixed(2)}s
                 </td>
               </tr>

@@ -131,13 +131,18 @@ export const PRIMITIVES = [
   },
   {
     name: 'PageSection',
-    variants: ['(props: title, meta)'],
-    use: 'Numbered uppercase muted label + slotted body.'
+    variants: ['(props: title, meta, actions)'],
+    use: 'Numbered uppercase muted label + slotted body. Pass an actions snippet for a right-aligned control on the heading row (a Show/Hide toggle, a count badge, a RefreshButton).'
   },
   {
     name: 'ProseBlock',
     variants: ['default (42rem)', 'wide (48rem)'],
     use: 'Reading-width container. Wrap prose-heavy units (heros, manifestos, principle bodies) inside otherwise full-bleed pages. Data UI — tables, grids, charts — stays full width.'
+  },
+  {
+    name: 'StatusBar',
+    variants: ['(props: label, prompt, actions)'],
+    use: 'The RAVEN.SYSTEM :: PAGE LABEL strip + live websocket dot at the top of every content page (zone 01). Self-wires the connection state — one implementation, never hand-rolled per page.'
   },
   {
     name: 'RefreshButton',
@@ -192,7 +197,7 @@ export const PAGE_ZONES = [
     tag: '01',
     name: 'Status bar',
     purpose: 'Brand prompt + page label + live status',
-    body: 'Top of every content page. RAVEN.SYSTEM :: PAGE LABEL on the left, websocket-connected dot on the right. Pulses when alive, dim when disconnected.'
+    body: 'Top of every content page — render `<StatusBar label="PAGE LABEL" />`. It draws RAVEN.SYSTEM :: PAGE LABEL on the left and a websocket-connected dot on the right (pulses success when alive, dim warning when disconnected), and self-wires the connection state. Pass an `actions` snippet for a right-side extra like a `[ View source ]` link. One component — do not hand-roll the strip per page.'
   },
   {
     tag: '02',
@@ -210,7 +215,7 @@ export const PAGE_ZONES = [
     tag: '04',
     name: 'Sub-blocks',
     purpose: 'h3 for divisions inside a section',
-    body: "Inside a PageSection, use h3 with `text-sm font-semibold text-heading mb-3` for sub-divisions. Don't hand-roll a second numbered scheme; sub-blocks are flat."
+    body: "Inside a PageSection, use h3 with `text-sm font-semibold text-heading mb-3` for sub-divisions. Don't hand-roll a second numbered scheme; sub-blocks are flat. A self-contained card that IS the section (a chart panel, a control card) may carry its own internal header row — an uppercase-muted label plus adjacent controls — instead of a PageSection; reach for PageSection (with its `actions` slot) when the heading sits above un-carded content."
   },
   {
     tag: '04½',
@@ -229,18 +234,8 @@ export const PAGE_ZONES = [
 export const PAGE_SKELETON = `<PageLayout>
   <div class="space-y-8">
 
-    <!-- 01 Status bar — full-width metadata strip -->
-    <div class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2">
-      <div class="flex items-center gap-2">
-        <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
-        <span aria-hidden="true">::</span>
-        <span class="uppercase tracking-wide">Page label</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-        <span class="uppercase tracking-wide text-success">Operational</span>
-      </div>
-    </div>
+    <!-- 01 Status bar — one component, self-wires the live dot -->
+    <StatusBar label="Page label" />
 
     <!-- 02 Hero — single column, capped to a readable width -->
     <section class="max-w-[48rem]">
@@ -292,8 +287,8 @@ export const STATES = [
   },
   {
     tag: 'ACTION',
-    primitive: 'border-l-4 callout',
-    desc: 'After a successful POST, surface a confirmation callout at the top of the destination page. Replaces toast notifications — no global toast layer.',
+    primitive: 'toast (transient) · border-l-4 callout (persistent)',
+    desc: 'Transient success/failure of an action goes through the global toast layer (toastStore + ToastContainer in the app shell). For a result that should persist on the page — a config change, a completed run — surface a border-l-4 callout at the top of the destination instead. Destructive actions (delete, purge, resolve-all) may still gate on a native confirm() as deliberate friction.',
     demo: { kind: 'action' }
   },
   {
@@ -510,7 +505,7 @@ export const PRINCIPLES = [
   'Use semantic utilities (<code>bg-surface</code>, <code>text-heading</code>, <code>text-accent</code>, <code>text-success</code>) instead of hex or arbitrary <code>text-[var(--…)]</code> tokens. They flip with theme.',
   'Every page wraps in <code>&lt;PageLayout&gt;</code> from <code>lib/components/layout</code>. Content pages use the default variant; dashboards (Overview, Live, Activity) use <code>variant="dashboard"</code>.',
   "The page <code>h1</code> + description belongs in <code>&lt;PageHeader title=… description=…&gt;</code>. The small uppercase section label belongs in <code>&lt;PageSection title=… meta=…&gt;</code>. Don't hand-roll these.",
-  'Section cards inside a PageSection use <code>bg-surface border border-border rounded-lg p-5</code> with an uppercase mono label heading.',
+  'Two card sizes: content/section cards use <code>bg-surface border border-border rounded-lg p-5</code>; compact stat tiles in a strip use <code>rounded p-4</code>. Both carry a border, never shadow-for-elevation.',
   "Status dots are 6px circles (<code>w-1.5 h-1.5</code>) with semantic backgrounds. Don't reinvent shapes — the matching size across status bars is what makes the live indicator legible at a glance.",
   'Mono font is reserved for technical content: session IDs, paths, durations, code, model names.',
   'The System page is the gold standard for content-style screens — match its header, status grid, and detail-card patterns when adding new ones.',

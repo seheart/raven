@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     EmptyState,
@@ -114,6 +114,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Errors" />
   <PageHeader
     title="Errors"
     description={total === 0
@@ -257,29 +258,27 @@
     <!-- Pagination -->
     {#if total > pageSize}
       <div class="flex justify-center items-center gap-4 mt-4">
-        <button
-          onclick={() => {
+        <ToolbarButton
+          onClick={() => {
             currentPage--;
             loadErrors();
           }}
           disabled={currentPage === 0}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm hover:border-accent transition-colors disabled:opacity-30"
         >
           Previous
-        </button>
+        </ToolbarButton>
         <span class="text-xs text-muted font-mono">
           Page {currentPage + 1} of {Math.ceil(total / pageSize)}
         </span>
-        <button
-          onclick={() => {
+        <ToolbarButton
+          onClick={() => {
             currentPage++;
             loadErrors();
           }}
           disabled={(currentPage + 1) * pageSize >= total}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm hover:border-accent transition-colors disabled:opacity-30"
         >
           Next
-        </button>
+        </ToolbarButton>
       </div>
     {/if}
   {/if}

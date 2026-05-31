@@ -2,9 +2,14 @@
   import { onMount } from 'svelte';
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
+  import {
+    PageLayout,
+    PageHeader,
+    PageSection,
+    ProseBlock,
+    StatusBar
+  } from '../components/layout/index.js';
   import { LinkButton } from '../components/ui/index.js';
-  import { websocketService } from '../services/websocket.js';
   import MermaidDiagram from '../components/MermaidDiagram.svelte';
   import {
     HERO,
@@ -26,7 +31,6 @@
 
   /** @type {{platform_label?:string, agent_count?:number, table_count?:number, endpoint_count?:number, uptime_seconds?:number}|null} */
   let intro = $state(null);
-  let websocketConnected = $state(false);
 
   // Decisions audit-trail comes from /api/decisions (parses DECISIONS.md
   // at repo root). Falls back to the static arrays if the endpoint is
@@ -155,47 +159,18 @@
 
   onMount(() => {
     loadAll();
-    websocketConnected = websocketService.isConnected();
-    const updateStatus = () => {
-      websocketConnected = websocketService.isConnected();
-    };
-    websocketService.on('connect', updateStatus);
-    websocketService.on('disconnect', updateStatus);
     return () => {
       abortRequests();
-      websocketService.off('connect', updateStatus);
-      websocketService.off('disconnect', updateStatus);
     };
   });
 </script>
 
 <PageLayout>
   <div class="space-y-12">
-    <!-- Status bar -->
-    <div
-      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
-        <span aria-hidden="true">::</span>
-        <span class="uppercase tracking-wide"
-          >v{MANIFEST.find(m => m.k === 'Version')?.v} · {MANIFEST.find(m => m.k === 'License')?.v} ·
-          local-first</span
-        >
-      </div>
-      <div class="flex items-center gap-2">
-        <span
-          class="w-1.5 h-1.5 rounded-full {websocketConnected
-            ? 'bg-success animate-pulse'
-            : 'bg-warning'}"
-        ></span>
-        <span
-          class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}"
-        >
-          {websocketConnected ? 'Operational' : 'Disconnected'}
-        </span>
-      </div>
-    </div>
+    <StatusBar
+      label="v{MANIFEST.find(m => m.k === 'Version')?.v} · {MANIFEST.find(m => m.k === 'License')
+        ?.v} · Local-First"
+    />
 
     <!-- Hero — full-width prose; quick actions inline below. -->
     <section class="max-w-[48rem]">

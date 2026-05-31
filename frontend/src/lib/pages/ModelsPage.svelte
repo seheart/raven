@@ -3,7 +3,7 @@
   import { dataService } from '../dataService.js';
   import { logger } from '../logger.js';
   import { formatDateOnly } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, PageSection, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     EmptyState,
@@ -68,6 +68,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Models" />
+
   <PageHeader title="Models" description="AI models and tools tracked by Raven">
     {#snippet actions()}
       <div class="flex items-center gap-3">
@@ -127,33 +129,29 @@
            latency from api_latency with Ollama duration_ms from agent_events
            so every observed model shows up in one panel. -->
     {#if latencyByModel.length > 0}
-      <div class="bg-surface border border-border rounded-lg p-4 mb-6">
-        <div class="flex items-baseline justify-between mb-2">
-          <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
-            Latency · last 60min
-          </h3>
-          <span class="text-[10px] text-muted font-mono">p50 / p95 / max (ms)</span>
+      <PageSection title="01 // Latency" meta="last 60min · p50 / p95 / max (ms)">
+        <div class="bg-surface border border-border rounded-lg p-4 mb-6">
+          <p class="text-[11px] text-muted font-sans mb-3 leading-snug">
+            How long each model took to respond. <strong class="text-body">p50</strong> is the
+            median (typical), <strong class="text-body">p95</strong> is the slow tail (1 in 20 calls
+            were this slow or worse), and <strong class="text-body">max</strong> is the worst single
+            call. Lower is better.
+          </p>
+          <div class="space-y-1 max-h-[400px] overflow-y-auto">
+            {#each latencyByModel as l (l.model)}
+              <div
+                class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 text-[11px] font-mono py-1 border-b border-border last:border-b-0"
+              >
+                <span class="text-body truncate" title={l.model}>{l.model}</span>
+                <span class="text-muted text-right">{l.count}×</span>
+                <span class="text-body text-right tabular-nums">{l.p50_ms}</span>
+                <span class="text-warning text-right tabular-nums">{l.p95_ms}</span>
+                <span class="text-error text-right tabular-nums">{l.max_ms}</span>
+              </div>
+            {/each}
+          </div>
         </div>
-        <p class="text-[11px] text-muted font-sans mb-3 leading-snug">
-          How long each model took to respond. <strong class="text-body">p50</strong> is the median
-          (typical), <strong class="text-body">p95</strong> is the slow tail (1 in 20 calls were
-          this slow or worse), and <strong class="text-body">max</strong> is the worst single call. Lower
-          is better.
-        </p>
-        <div class="space-y-1 max-h-[400px] overflow-y-auto">
-          {#each latencyByModel as l (l.model)}
-            <div
-              class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 text-[11px] font-mono py-1 border-b border-border last:border-b-0"
-            >
-              <span class="text-body truncate" title={l.model}>{l.model}</span>
-              <span class="text-muted text-right">{l.count}×</span>
-              <span class="text-body text-right tabular-nums">{l.p50_ms}</span>
-              <span class="text-warning text-right tabular-nums">{l.p95_ms}</span>
-              <span class="text-error text-right tabular-nums">{l.max_ms}</span>
-            </div>
-          {/each}
-        </div>
-      </div>
+      </PageSection>
     {/if}
 
     <!-- Model Cards -->

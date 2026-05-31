@@ -2,8 +2,14 @@
   import { logger } from '../logger.js';
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, EmptyState } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    FilterToggle,
+    EmptyState,
+    LoadingState
+  } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { websocketService } from '../services/websocket.js';
@@ -635,6 +641,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Activity" />
   <PageHeader
     title="What just happened"
     description="Every file change and every AI tool call, newest first. File events come from the filesystem; agent events are tool calls and messages from your AI coder."
@@ -663,17 +670,15 @@
       </div>
 
       <div class="flex flex-wrap gap-3 items-center">
-        <button
-          onclick={() => {
+        <FilterToggle
+          active={groupBySession}
+          onClick={() => {
             groupBySession = !groupBySession;
             groupActivitiesBySession();
           }}
-          class="px-4 py-2 text-sm font-semibold rounded transition-all border {groupBySession
-            ? 'bg-accent text-canvas border-accent'
-            : 'bg-canvas text-body border-border hover:border-accent'}"
         >
           Session View
-        </button>
+        </FilterToggle>
 
         <select
           bind:value={sortBy}
@@ -689,42 +694,18 @@
     </div>
 
     <div class="flex flex-wrap gap-3">
-      <button
-        onclick={() => setFilter('all')}
-        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-        'all'
-          ? 'bg-accent text-canvas border-accent'
-          : 'bg-canvas text-body border-border hover:border-accent'}"
-      >
+      <FilterToggle active={selectedType === 'all'} onClick={() => setFilter('all')}>
         All ({total})
-      </button>
-      <button
-        onclick={() => setFilter('file')}
-        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-        'file'
-          ? 'bg-accent text-canvas border-accent'
-          : 'bg-canvas text-body border-border hover:border-accent'}"
-      >
+      </FilterToggle>
+      <FilterToggle active={selectedType === 'file'} onClick={() => setFilter('file')}>
         Files ({stats.file})
-      </button>
-      <button
-        onclick={() => setFilter('agent')}
-        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-        'agent'
-          ? 'bg-accent text-canvas border-accent'
-          : 'bg-canvas text-body border-border hover:border-accent'}"
-      >
+      </FilterToggle>
+      <FilterToggle active={selectedType === 'agent'} onClick={() => setFilter('agent')}>
         Agents ({stats.agent})
-      </button>
-      <button
-        onclick={() => setFilter('system')}
-        class="px-3 py-1.5 text-sm font-sans rounded transition-colors border {selectedType ===
-        'system'
-          ? 'bg-accent text-canvas border-accent'
-          : 'bg-canvas text-body border-border hover:border-accent'}"
-      >
+      </FilterToggle>
+      <FilterToggle active={selectedType === 'system'} onClick={() => setFilter('system')}>
         System ({stats.system})
-      </button>
+      </FilterToggle>
     </div>
   </div>
 
@@ -772,12 +753,7 @@
           <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">
             Analytics Visualizations
           </h3>
-          <button
-            onclick={() => (showCharts = false)}
-            class="px-3 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
-          >
-            Hide Charts
-          </button>
+          <ToolbarButton onClick={() => (showCharts = false)}>Hide Charts</ToolbarButton>
         </div>
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div
@@ -808,15 +784,12 @@
       </div>
     {:else}
       <div class="bg-surface border border-border rounded-lg p-4 mb-6 text-center">
-        <button
-          onclick={() => {
+        <ToolbarButton
+          onClick={() => {
             showCharts = true;
             setTimeout(createCharts, 100);
-          }}
-          class="px-4 py-2 text-sm bg-canvas border border-border rounded hover:border-accent"
+          }}>Show Charts</ToolbarButton
         >
-          Show Charts
-        </button>
       </div>
     {/if}
   {/if}
@@ -824,9 +797,7 @@
   <!-- Activity Timeline -->
   <div class="space-y-4">
     {#if loading && activities.length === 0}
-      <div class="bg-surface border border-border rounded-lg p-6 text-center">
-        <div class="text-muted">Loading activities...</div>
-      </div>
+      <LoadingState message="Loading activities..." />
     {:else if activities.length === 0}
       <EmptyState
         title="No Activities Found"
@@ -910,13 +881,9 @@
       </div>
       {#if hasMore}
         <div class="text-center pt-6">
-          <button
-            onclick={loadMore}
-            disabled={loading}
-            class="px-6 py-3 bg-surface border border-border rounded text-sm font-semibold text-body hover:border-accent disabled:opacity-50"
-          >
+          <ToolbarButton onClick={loadMore} disabled={loading}>
             {loading ? 'Loading...' : `Load More (${total - activities.length} remaining)`}
-          </button>
+          </ToolbarButton>
         </div>
       {/if}
     {/if}

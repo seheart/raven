@@ -1,8 +1,14 @@
 <script>
   import { logger } from '../logger.js';
   import { formatDateTime } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState, ToolbarButton } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    ToolbarButton,
+    LoadingState,
+    DataFetchError
+  } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Activity Code Changes Page - Detailed file change log with real-time updates
@@ -224,6 +230,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Changes" />
   <PageHeader
     title="What changed in your code"
     description="A live feed of file edits with their diffs — see exactly what your AI tools wrote. Click any row to view the diff."
@@ -237,9 +244,12 @@
   </PageHeader>
 
   {#if error}
-    <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
-      <span class="text-sm text-error font-sans"> {error}</span>
-    </div>
+    <DataFetchError
+      endpoint="/api/file-events"
+      message="Failed to load code changes."
+      hint={error}
+      onRetry={loadEvents}
+    />
   {/if}
 
   <!-- Stats -->
@@ -288,9 +298,7 @@
 
   <!-- Events List -->
   {#if loading}
-    <div class="text-center py-12">
-      <div class="text-sm text-muted font-sans">Loading changes...</div>
-    </div>
+    <LoadingState message="Loading changes..." />
   {:else if filteredEvents.length === 0}
     <EmptyState
       title="No code changes captured yet"

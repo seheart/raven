@@ -13,8 +13,13 @@
   import { onMount, onDestroy } from 'svelte';
   import { formatShortDateTime } from '../timeFormat.js';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    ToolbarButton,
+    DataFetchError
+  } from '../components/ui/index.js';
   import { websocketService } from '../services/websocket.js';
   import ProjectBadge from '../ProjectBadge.svelte';
 
@@ -188,26 +193,22 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Triggers" />
   <PageHeader
     title="Triggers"
     description="Alert rules over the live event stream. Defined in .raven/config.toml or fired by plugins via raven.trigger(). This page is read-only — edit the TOML to change rules."
   >
     {#snippet actions()}
       <div class="flex items-center gap-2">
-        <button
-          onclick={reloadConfig}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-body hover:border-accent hover:text-accent transition-colors"
-          title="Re-read .raven/config.toml"
-        >
+        <ToolbarButton onClick={reloadConfig} title="Re-read .raven/config.toml">
           Reload config
-        </button>
-        <button
-          onclick={clearCooldowns}
-          class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-body hover:border-accent hover:text-accent transition-colors"
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={clearCooldowns}
           title="Reset per-rule cooldown timers so suppressed rules can fire immediately"
         >
           Clear cooldowns
-        </button>
+        </ToolbarButton>
         <RefreshButton onClick={loadAllData} {loading} />
       </div>
     {/snippet}
@@ -219,9 +220,7 @@
     </div>
   {/if}
   {#if error}
-    <div class="bg-error-subtle border border-error rounded p-3 mb-4 text-sm text-error">
-      {error}
-    </div>
+    <DataFetchError message={error} onRetry={loadAllData} />
   {/if}
 
   <!-- Stats strip -->
@@ -273,7 +272,7 @@
         description="Add a [triggers.<name>] table to .raven/config.toml and click Reload config above."
       />
     {:else}
-      <div class="divide-y divide-[var(--border)] max-h-[500px] overflow-y-auto">
+      <div class="divide-y divide-border max-h-[500px] overflow-y-auto">
         {#each triggers as trigger (trigger.name)}
           {@const fire = fireSummary[trigger.name] || { count: 0, last: null }}
           <div class="px-5 py-4">
@@ -356,7 +355,7 @@
         description="Triggered events stream in here in real time as conditions in your rules are met."
       />
     {:else}
-      <ul class="divide-y divide-[var(--border)] max-h-[400px] overflow-y-auto">
+      <ul class="divide-y divide-border max-h-[400px] overflow-y-auto">
         {#each triggeredEvents.slice(0, 50) as event (event.id)}
           <li class="px-5 py-2.5 flex items-baseline gap-3 text-xs font-mono">
             <span class="text-muted/70 w-20 flex-shrink-0">{formatTimestamp(event.timestamp)}</span>

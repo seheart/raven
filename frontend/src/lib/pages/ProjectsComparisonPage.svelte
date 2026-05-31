@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { logger } from '../logger.js';
   import { formatDateTime as formatDateTimeUtil } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import {
     RefreshButton,
     ToolbarButton,
@@ -227,6 +227,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Projects" />
   <PageHeader
     title="Projects, side by side"
     description="Every project Raven has seen — most-recently-active first. See where your AI tools have been spending time."
@@ -248,7 +249,7 @@
       type="text"
       placeholder="Search projects..."
       bind:value={searchQuery}
-      class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder-[var(--muted)] focus:outline-none focus:border-accent"
+      class="flex-1 min-w-[200px] px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent"
     />
     <select
       bind:value={filterStatus}

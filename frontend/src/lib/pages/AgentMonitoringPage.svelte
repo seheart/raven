@@ -2,8 +2,14 @@
   import { logger } from '../logger.js';
   import { createPageApi } from '../apiClient.js';
   import { formatDateOnly } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, FreshnessBadge } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    FilterToggle,
+    DataFetchError,
+    FreshnessBadge
+  } from '../components/ui/index.js';
   /**
    * Agent Monitoring Page
    * Real-time agent monitoring with live status and activity timeline
@@ -119,11 +125,21 @@
     return formatDateOnly(date);
   }
 
-  function getConfidenceColor(confidence) {
-    if (confidence >= 0.9) return 'var(--success)';
-    if (confidence >= 0.7) return 'var(--info)';
-    if (confidence >= 0.5) return 'var(--warning)';
-    return 'var(--muted)';
+  // Static threshold → semantic utility classes (rule E). Confidence buckets
+  // are a fixed scale, so class maps replace the old inline var(--…) styles.
+  // `*Text` for the label/percentage color, `*Bg` for the meter fill.
+  function getConfidenceTextClass(confidence) {
+    if (confidence >= 0.9) return 'text-success';
+    if (confidence >= 0.7) return 'text-info';
+    if (confidence >= 0.5) return 'text-warning';
+    return 'text-muted';
+  }
+
+  function getConfidenceBgClass(confidence) {
+    if (confidence >= 0.9) return 'bg-success';
+    if (confidence >= 0.7) return 'bg-info';
+    if (confidence >= 0.5) return 'bg-warning';
+    return 'bg-muted';
   }
 
   function getConfidenceLabel(confidence) {
@@ -421,6 +437,8 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Agents" />
+
   <PageHeader
     title="Live Agents"
     description="What your AI tools are doing right now. An &quot;agent&quot; is any AI tool that runs on your machine and takes actions — Claude Code, Cursor, Codex, local Ollama models. Each row below is one of those tools, currently or recently active."
@@ -452,12 +470,12 @@
   </PageHeader>
 
   {#if error}
-    <div
-      class="bg-error-subtle border border-error rounded-lg p-4 flex justify-between items-center"
-    >
-      <span class="text-sm text-error font-sans">Failed to load monitoring data: {error}</span>
-      <ToolbarButton variant="danger" onClick={loadMonitoringData}>Retry</ToolbarButton>
-    </div>
+    <DataFetchError
+      endpoint="/api/agents-status"
+      message="Failed to load monitoring data"
+      hint={error}
+      onRetry={loadMonitoringData}
+    />
   {/if}
 
   <!-- Status Overview -->
@@ -572,10 +590,7 @@
               {#if agent.confidence != null}
                 <div class="flex justify-between text-sm">
                   <span class="text-muted">Confidence:</span>
-                  <span
-                    class="font-semibold font-mono"
-                    style="color: {getConfidenceColor(agent.confidence)}"
-                  >
+                  <span class="font-semibold font-mono {getConfidenceTextClass(agent.confidence)}">
                     {(agent.confidence * 100).toFixed(0)}% ({getConfidenceLabel(agent.confidence)})
                   </span>
                 </div>
@@ -639,15 +654,13 @@
                     <div class="flex items-center gap-3">
                       <div class="flex-1 h-2 bg-canvas rounded overflow-hidden">
                         <div
-                          class="h-full transition-all duration-300"
-                          style="width: {agent.confidence * 100}%; background: {getConfidenceColor(
+                          class="h-full transition-all duration-300 {getConfidenceBgClass(
                             agent.confidence
                           )}"
+                          style="width: {agent.confidence * 100}%"
                         ></div>
                       </div>
-                      <span
-                        class="font-semibold"
-                        style="color: {getConfidenceColor(agent.confidence)}"
+                      <span class="font-semibold {getConfidenceTextClass(agent.confidence)}"
                         >{(agent.confidence * 100).toFixed(0)}%</span
                       >
                     </div>
@@ -677,18 +690,12 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-sm text-muted font-sans font-semibold">Event Type:</span>
           {#each availableEventTypes as type (type)}
-            <button
-              class="px-3 py-1.5 rounded text-xs font-mono transition-colors border"
-              class:bg-accent={selectedEventTypes.includes(type)}
-              class:text-canvas={selectedEventTypes.includes(type)}
-              class:border-accent={selectedEventTypes.includes(type)}
-              class:bg-canvas={!selectedEventTypes.includes(type)}
-              class:border-border={!selectedEventTypes.includes(type)}
-              class:text-body={!selectedEventTypes.includes(type)}
-              onclick={() => toggleEventType(type)}
+            <FilterToggle
+              active={selectedEventTypes.includes(type)}
+              onClick={() => toggleEventType(type)}
             >
               {type}
-            </button>
+            </FilterToggle>
           {/each}
         </div>
 
@@ -696,16 +703,7 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-sm text-muted font-sans font-semibold">Date Range:</span>
           {#each ['all', 'today', '7d', '30d'] as range (range)}
-            <button
-              class="px-3 py-1.5 rounded text-xs font-mono transition-colors border"
-              class:bg-accent={dateRange === range}
-              class:text-canvas={dateRange === range}
-              class:border-accent={dateRange === range}
-              class:bg-canvas={dateRange !== range}
-              class:border-border={dateRange !== range}
-              class:text-body={dateRange !== range}
-              onclick={() => (dateRange = range)}
-            >
+            <FilterToggle active={dateRange === range} onClick={() => (dateRange = range)}>
               {range === 'all'
                 ? 'All Time'
                 : range === 'today'
@@ -713,7 +711,7 @@
                   : range === '7d'
                     ? 'Last 7 Days'
                     : 'Last 30 Days'}
-            </button>
+            </FilterToggle>
           {/each}
         </div>
 

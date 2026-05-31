@@ -1,9 +1,14 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import DataFetchError from '../components/ui/DataFetchError.svelte';
-  import { RefreshButton, EmptyState, FilterToggle } from '../components/ui/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    FilterToggle,
+    ToolbarButton
+  } from '../components/ui/index.js';
   import { toasts } from '../toastStore.js';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -158,6 +163,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Safety" />
   <PageHeader
     title="Safety"
     description="Pattern detection: credentials, debug statements, code quality"
@@ -165,21 +171,12 @@
     {#snippet actions()}
       <div class="flex gap-2">
         {#if warnings.length > 0}
-          <button
-            onclick={copyAll}
-            disabled={filteredWarnings.length === 0}
-            class="px-3 py-1.5 bg-surface border border-border rounded text-sm font-sans text-body hover:border-accent hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+          <ToolbarButton onClick={copyAll} disabled={filteredWarnings.length === 0}>
             {copied
               ? 'Copied'
               : `Copy${severityFilter !== 'all' || searchQuery.trim() ? ' Filtered' : ' All'}`}
-          </button>
-          <button
-            onclick={resolveAll}
-            class="px-3 py-1.5 bg-surface border border-success rounded text-sm font-sans text-success hover:bg-success-subtle transition-colors"
-          >
-            Resolve All
-          </button>
+          </ToolbarButton>
+          <ToolbarButton onClick={resolveAll}>Resolve All</ToolbarButton>
         {/if}
         <RefreshButton onClick={loadWarnings} {loading} />
       </div>

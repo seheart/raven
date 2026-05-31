@@ -3,8 +3,13 @@
   import { createPageApi } from '../apiClient.js';
   import { dataService } from '../dataService.js';
   import { formatShortDateTime } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, ToolbarButton, LinkButton } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    ToolbarButton,
+    LinkButton,
+    LoadingState
+  } from '../components/ui/index.js';
   import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
   import { logger } from '../logger.js';
@@ -176,6 +181,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Storage" />
   <PageHeader title="Storage" description="Database sizes, project usage, and retention">
     {#snippet actions()}
       <RefreshButton onClick={loadData} {loading} />
@@ -201,7 +207,7 @@
       onRetry={loadData}
     />
   {:else if loading && !storage}
-    <div class="text-sm text-muted text-center py-12">Loading storage data...</div>
+    <LoadingState message="Loading storage data..." />
   {:else if storage}
     <!-- Top Stats -->
     <div class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
@@ -380,7 +386,7 @@
                 <span class="text-sm font-mono text-body truncate">{db.name}</span>
                 {#if db.isActive}
                   <span
-                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-success text-white rounded"
+                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-success text-canvas rounded"
                     >active</span
                   >
                 {/if}
@@ -404,22 +410,21 @@
             </div>
 
             <div class="flex gap-2">
-              <button
-                onclick={() => vacuumDb(db.name)}
+              <ToolbarButton
+                onClick={() => vacuumDb(db.name)}
                 disabled={actionLoading === `vacuum-${db.name}`}
-                class="px-2 py-1 text-xs font-sans bg-surface border border-border rounded hover:border-accent transition-colors disabled:opacity-50"
                 title="Compact database"
               >
                 {actionLoading === `vacuum-${db.name}` ? '...' : 'Compact'}
-              </button>
-              <button
-                onclick={() => cleanDb(db.name)}
+              </ToolbarButton>
+              <ToolbarButton
+                variant="danger"
+                onClick={() => cleanDb(db.name)}
                 disabled={actionLoading === `clean-${db.name}`}
-                class="px-2 py-1 text-xs font-sans bg-surface border border-error border-opacity-30 rounded hover:border-error text-error transition-colors disabled:opacity-50"
                 title="Delete records older than {cleanupDays} days"
               >
                 {actionLoading === `clean-${db.name}` ? '...' : 'Purge'}
-              </button>
+              </ToolbarButton>
             </div>
           </div>
         {/each}

@@ -1,8 +1,13 @@
 <script>
   import { onMount } from 'svelte';
-  import { PageLayout, PageHeader, PageSection, ProseBlock } from '../components/layout/index.js';
+  import {
+    PageLayout,
+    PageHeader,
+    PageSection,
+    ProseBlock,
+    StatusBar
+  } from '../components/layout/index.js';
   import { createPageApi } from '../apiClient.js';
-  import { websocketService } from '../services/websocket.js';
   import {
     HERO,
     ARCHITECTURE,
@@ -32,7 +37,6 @@
   let modelsError = $state(null);
   /** @type {string|null} */
   let loadError = $state(null);
-  let websocketConnected = $state(false);
 
   // Tool catalog tier filter
   let toolTier = $state('all');
@@ -68,24 +72,8 @@
     }
   }
 
-  // Listener registration is SYNCHRONOUS so the returned teardown actually
-  // runs on unmount. An `async` onMount returns a Promise, which Svelte
-  // ignores for cleanup — that previously leaked the connect/disconnect
-  // listeners on every mount.
   onMount(() => {
-    websocketConnected = websocketService.isConnected();
-    const updateStatus = () => {
-      websocketConnected = websocketService.isConnected();
-    };
-    websocketService.on('connect', updateStatus);
-    websocketService.on('disconnect', updateStatus);
-
     loadSystemData();
-
-    return () => {
-      websocketService.off('connect', updateStatus);
-      websocketService.off('disconnect', updateStatus);
-    };
   });
 
   /** @param {number|null|undefined} n */
@@ -169,28 +157,7 @@
 
 <PageLayout>
   <div class="space-y-12">
-    <!-- Status bar -->
-    <div
-      class="flex items-center justify-between text-xs font-mono text-muted border-b border-border pb-2"
-    >
-      <div class="flex items-center gap-2">
-        <span class="text-accent font-semibold">RAVEN.SYSTEM</span>
-        <span aria-hidden="true">::</span>
-        <span class="uppercase tracking-wide">Architecture · Stack · State</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span
-          class="w-1.5 h-1.5 rounded-full {websocketConnected
-            ? 'bg-success animate-pulse'
-            : 'bg-warning'}"
-        ></span>
-        <span
-          class="uppercase tracking-wide {websocketConnected ? 'text-success' : 'text-warning'}"
-        >
-          {websocketConnected ? 'Operational' : 'Disconnected'}
-        </span>
-      </div>
-    </div>
+    <StatusBar label="Architecture · Stack · State" />
 
     <!-- Hero — full-width prose; vital stats moved inline below as a strip. -->
     <section class="space-y-6">

@@ -1,8 +1,13 @@
 <script>
   import { logger } from '../logger.js';
   import { formatTimeOnly, formatDateOnly } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, EmptyState } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    EmptyState,
+    LoadingState,
+    DataFetchError
+  } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   /**
    * Activity Timeline Page
@@ -198,6 +203,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Timeline" />
   <PageHeader
     title="Your timeline, day by day"
     description="Everything your AI tools have touched, grouped by when it happened. Scroll back to see how a busy afternoon — or a quiet week — actually played out."
@@ -211,9 +217,12 @@
   </PageHeader>
 
   {#if error}
-    <div class="bg-error-subtle border border-error rounded-lg p-4 mb-6">
-      <span class="text-sm text-error font-sans"> {error}</span>
-    </div>
+    <DataFetchError
+      endpoint="/api/file-events"
+      message="Failed to load timeline."
+      hint={error}
+      onRetry={loadEvents}
+    />
   {/if}
 
   <!-- Stats -->
@@ -278,9 +287,7 @@
 
   <!-- Timeline -->
   {#if loading}
-    <div class="text-center py-12">
-      <div class="text-sm text-muted font-sans">Loading timeline...</div>
-    </div>
+    <LoadingState message="Loading timeline..." />
   {:else if groupedEvents.length === 0}
     <EmptyState
       title="Nothing in this window"

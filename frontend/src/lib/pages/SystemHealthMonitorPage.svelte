@@ -2,8 +2,13 @@
   import { onMount, onDestroy } from 'svelte';
   import { createPageApi } from '../apiClient.js';
   import { formatShortDateTime as formatTimestamp } from '../timeFormat.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
-  import { RefreshButton, FilterToggle, ToolbarButton } from '../components/ui/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
+  import {
+    RefreshButton,
+    FilterToggle,
+    LoadingState,
+    DataFetchError
+  } from '../components/ui/index.js';
   import FreshnessBadge from '../components/ui/FreshnessBadge.svelte';
   const { api, abort: abortRequests } = createPageApi();
 
@@ -121,6 +126,7 @@
 </script>
 
 <PageLayout>
+  <StatusBar label="Health Monitor" />
   <PageHeader title="Health Monitor" description="Real-time system health and data integrity">
     {#snippet actions()}
       <div class="flex items-center gap-2">
@@ -133,15 +139,13 @@
   </PageHeader>
 
   {#if loading && !healthReport}
-    <div class="flex flex-col items-center justify-center py-16 text-muted">
-      <div class="w-6 h-6 border-2 border-border border-t-accent rounded-full spinning mb-3"></div>
-      <p class="text-sm">Running health checks...</p>
-    </div>
+    <LoadingState message="Running health checks..." />
   {:else if error}
-    <div class="bg-error-subtle border border-error rounded-lg p-4 text-center">
-      <p class="text-sm text-error mb-2">Health check failed: {error}</p>
-      <ToolbarButton variant="danger" onClick={fetchHealthReport}>Retry</ToolbarButton>
-    </div>
+    <DataFetchError
+      endpoint="/health/status"
+      message="Health check failed: {error}"
+      onRetry={fetchHealthReport}
+    />
   {:else if healthReport}
     <!-- Internal metrics — Raven monitoring Raven. Polled every 5s. -->
     <div class="bg-surface border border-border rounded-lg mb-6">
