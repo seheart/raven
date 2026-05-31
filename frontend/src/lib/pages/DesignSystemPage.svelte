@@ -17,7 +17,6 @@
   import { websocketService } from '../services/websocket.js';
   import {
     HERO,
-    TOC,
     INTENT,
     PATTERN_SUBGROUPS,
     PRIMITIVES,
@@ -42,7 +41,6 @@
   } from '../content/design.js';
 
   let websocketConnected = $state(false);
-  let activeSlug = $state(TOC[0]?.slug ?? 'intent');
 
   onMount(() => {
     websocketConnected = websocketService.isConnected();
@@ -52,34 +50,9 @@
     websocketService.on('connect', updateStatus);
     websocketService.on('disconnect', updateStatus);
 
-    // Track which section is in view — drives the sticky jump-nav highlight.
-    // rootMargin shrinks the observer's "viewport" to a thin band near the
-    // top of the screen so the active link advances as you cross each
-    // section heading rather than when a section's bottom comes into view.
-    const observer = new IntersectionObserver(
-      entries => {
-        const visible = entries
-          .filter(e => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          activeSlug = visible[0].target.id.replace('sect-', '');
-        }
-      },
-      {
-        rootMargin: '-80px 0px -70% 0px',
-        threshold: 0
-      }
-    );
-
-    for (const t of TOC) {
-      const el = document.getElementById(`sect-${t.slug}`);
-      if (el) observer.observe(el);
-    }
-
     return () => {
       websocketService.off('connect', updateStatus);
       websocketService.off('disconnect', updateStatus);
-      observer.disconnect();
     };
   });
 
@@ -131,9 +104,9 @@
       </div>
     </div>
 
-    <!-- Two-column doc layout: scrolling main + sticky on-this-page aside -->
-    <div class="flex flex-col lg:flex-row gap-8">
-      <main class="flex-1 min-w-0 max-w-[64rem] space-y-12">
+    <!-- Single-column doc layout (on-this-page jump-nav removed). -->
+    <div>
+      <main class="max-w-[64rem] space-y-12">
         <!-- Hero -->
         <section>
           <PageHeader title={HERO.title} />
@@ -155,8 +128,8 @@
               ! You are here
             </div>
             <div class="text-sm text-body font-sans">
-              This page is itself built from the patterns it documents. The jump-nav on the right
-              follows you as you scroll.
+              This page is itself built from the patterns it documents — every section below uses
+              the tokens and components it describes.
             </div>
           </div>
 
@@ -1160,30 +1133,6 @@
           </ProseBlock>
         </PageSection>
       </main>
-
-      <!-- Persistent jump-nav: sticky throughout page scroll -->
-      <aside class="lg:w-72 lg:flex-shrink-0 w-full">
-        <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-16">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">On this page</div>
-          <nav class="flex flex-col gap-0.5" aria-label="Jump to section">
-            {#each TOC as t (t.slug)}
-              {@const active = activeSlug === t.slug}
-              <a
-                href="#sect-{t.slug}"
-                class={`text-xs font-mono px-2 py-1.5 rounded transition-colors flex items-baseline gap-2 ${
-                  active
-                    ? 'text-accent bg-canvas font-semibold'
-                    : 'text-body hover:text-accent hover:bg-canvas'
-                }`}
-                aria-current={active ? 'location' : undefined}
-              >
-                <span class={active ? 'text-accent' : 'text-muted'}>→</span>
-                <span>{t.label}</span>
-              </a>
-            {/each}
-          </nav>
-        </div>
-      </aside>
     </div>
   </div>
 </PageLayout>

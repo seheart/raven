@@ -197,10 +197,9 @@
       </div>
     </div>
 
-    <!-- Hero — two-column: prose-heavy main + actions aside -->
-    <section class="flex flex-col lg:flex-row gap-8">
-      <!-- Main column -->
-      <div class="flex-1 min-w-0 max-w-[48rem]">
+    <!-- Hero — full-width prose; quick actions inline below. -->
+    <section class="max-w-[48rem]">
+      <div>
         <PageHeader title="Raven" description={HERO.title} />
 
         <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
@@ -237,29 +236,19 @@
             {/each}
           {/each}
         </div>
-      </div>
 
-      <!-- Aside: quick actions -->
-      <aside class="lg:w-72 lg:flex-shrink-0">
-        <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-20">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Get started</div>
-          <div class="flex flex-col gap-1.5">
-            <LinkButton href="/today" variant="primary">Open Today →</LinkButton>
-            <LinkButton href="#sect-quickstart">Quick start</LinkButton>
-            <LinkButton href="/system">System diagnostics</LinkButton>
-            <LinkButton href="https://github.com/seheart/raven" external>★ GitHub</LinkButton>
-            <LinkButton href="https://github.com/seheart/raven/issues/new" external>
-              Send feedback
-            </LinkButton>
-          </div>
-          <div
-            class="mt-4 pt-4 border-t border-border text-xs font-mono text-muted leading-relaxed"
-          >
-            MIT · single repo<br />
-            no agreement to sign
-          </div>
+        <!-- Get started — actions (was a right-rail aside) -->
+        <div class="mt-6 flex flex-wrap items-center gap-2">
+          <LinkButton href="/today" variant="primary">Open Today →</LinkButton>
+          <LinkButton href="#sect-quickstart">Quick start</LinkButton>
+          <LinkButton href="/system">System diagnostics</LinkButton>
+          <LinkButton href="https://github.com/seheart/raven" external>★ GitHub</LinkButton>
+          <LinkButton href="https://github.com/seheart/raven/issues/new" external>
+            Send feedback
+          </LinkButton>
+          <span class="ml-auto text-xs font-mono text-muted">MIT · no agreement to sign</span>
         </div>
-      </aside>
+      </div>
     </section>
 
     <!-- 01 // Who this is for -->

@@ -11,7 +11,7 @@ export const HERO = {
   title: 'Design System',
   lede: 'The reference for everything Raven looks like and how to build new screens that fit. Read Intent first, then Composed Patterns to see the vocabulary in use. Every section below is itself built from the patterns it documents.',
   meta: [
-    { k: 'Sections', v: '10 · use TOC chips below' },
+    { k: 'Sections', v: '10 · scroll to browse' },
     { k: 'Aesthetic', v: 'Quiet · dense · technical · live' },
     { k: 'Brand', v: 'Ink black on cream by day · phosphor green on raven black by night' },
     { k: 'Theme', v: 'Light · Dark · toggle in footer' }

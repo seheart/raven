@@ -10,13 +10,11 @@
   import { PageLayout, PageSection } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import TokenStream from '../components/today/TokenStream.svelte';
-  import ContextVessel from '../components/today/ContextVessel.svelte';
   import AnomalyBanner from '../components/today/AnomalyBanner.svelte';
   import MilestonesPanel from '../components/today/MilestonesPanel.svelte';
   import WeekRecap from '../components/today/WeekRecap.svelte';
   import { createPageApi } from '../apiClient.js';
   import { websocketService } from '../services/websocket.js';
-  import { navigate } from '../utils/router.svelte.js';
 
   const { api, abort } = createPageApi();
 
@@ -624,10 +622,10 @@
     <!-- Hero — narrated summary. The trust pill, h1, and subtitle sit
          on a single tight stack so the eye lands on "Today" within the
          first viewport-height even on shorter laptop screens.
-         Aside splits off only at xl (1280px+) — at half-screen (~960px)
-         the narrative + context vessel stack so neither feels cramped. -->
-    <section class="flex flex-col xl:flex-row gap-8">
-      <div class="flex-1 min-w-0 max-w-[48rem]">
+         The narrative is a single readable column (capped width) rather
+         than a dashboard grid. -->
+    <section>
+      <div class="max-w-[48rem]">
         <!-- Presence pill + live-connection indicator. The pulsing dot
              doubles as WS-status (success when connected, warning when
              not), absorbing what used to be a separate status strip.
@@ -728,53 +726,6 @@
           </div>
         {/if}
       </div>
-
-      <!-- Aside: context vessel + jump links -->
-      <aside class="xl:w-72 xl:flex-shrink-0 space-y-4">
-        <ContextVessel />
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">
-            Want more detail?
-          </div>
-          <ul class="space-y-2 text-sm">
-            <li>
-              <button
-                type="button"
-                onclick={() => navigate('/today')}
-                class="text-accent hover:underline">→ Full dashboard</button
-              >
-            </li>
-            <li>
-              <button
-                type="button"
-                onclick={() => navigate('/insights/costs')}
-                class="text-accent hover:underline">→ Token usage breakdown</button
-              >
-            </li>
-            <li>
-              <button
-                type="button"
-                onclick={() => navigate('/activity/live')}
-                class="text-accent hover:underline">→ Live code changes</button
-              >
-            </li>
-            <li>
-              <button
-                type="button"
-                onclick={() => navigate('/insights')}
-                class="text-accent hover:underline">→ All insights</button
-              >
-            </li>
-            <li>
-              <button
-                type="button"
-                onclick={() => navigate('/insights/wrapped')}
-                class="text-accent hover:underline">→ Your Wrapped</button
-              >
-            </li>
-          </ul>
-        </div>
-      </aside>
     </section>
 
     <!-- Anomaly banner — only renders when an agent is drifting. Sits
