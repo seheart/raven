@@ -192,10 +192,9 @@
       </div>
     </div>
 
-    <!-- Hero — two-column: prose-heavy main + vital stats aside -->
-    <section class="flex flex-col lg:flex-row gap-8">
-      <!-- Main column -->
-      <div class="flex-1 min-w-0 max-w-[48rem]">
+    <!-- Hero — full-width prose; vital stats moved inline below as a strip. -->
+    <section class="space-y-6">
+      <div class="max-w-[48rem]">
         <PageHeader title={HERO.title} />
 
         <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
@@ -220,20 +219,17 @@
         {/if}
       </div>
 
-      <!-- Aside: vital stats -->
-      <aside class="lg:w-72 lg:flex-shrink-0">
-        <div class="bg-surface border border-border rounded-lg p-4 lg:sticky lg:top-20">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Vital stats</div>
-          <dl class="space-y-1.5 text-sm font-mono">
-            {#each [{ k: 'Runtime', v: intro?.platform_label }, { k: 'Agents', v: intro?.agent_count }, { k: 'Tables', v: intro?.table_count }, { k: 'Endpoints', v: intro?.endpoint_count }, { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) }, { k: 'PID', v: intro?.pid }, { k: 'Scope', v: 'Local · Host-Only' }] as row (row.k)}
-              <div class="flex items-baseline justify-between gap-3">
-                <dt class="text-muted">{row.k}</dt>
-                <dd class="text-body text-right truncate">{row.v ?? '—'}</dd>
-              </div>
-            {/each}
-          </dl>
-        </div>
-      </aside>
+      <!-- Vital stats — horizontal strip (was a right-rail aside). -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {#each [{ k: 'Runtime', v: intro?.platform_label }, { k: 'Agents', v: intro?.agent_count }, { k: 'Tables', v: intro?.table_count }, { k: 'Endpoints', v: intro?.endpoint_count }, { k: 'Uptime', v: fmtUptime(intro?.uptime_seconds) }, { k: 'PID', v: intro?.pid }, { k: 'Scope', v: 'Local · Host-Only' }] as row (row.k)}
+          <div class="bg-surface border border-border rounded-lg p-3">
+            <div class="text-[11px] font-mono uppercase tracking-wide text-muted mb-1">{row.k}</div>
+            <div class="text-sm font-mono text-body truncate" title={String(row.v ?? '—')}>
+              {row.v ?? '—'}
+            </div>
+          </div>
+        {/each}
+      </div>
     </section>
 
     <!-- 01 // Architecture -->

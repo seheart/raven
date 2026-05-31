@@ -367,36 +367,27 @@
       </div>
     </div>
 
-    <!-- Hero — two-column: prose main + size legend aside -->
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="flex-1 min-w-0 max-w-[48rem]">
-        <PageHeader
-          title="Roadmap"
-          description="Phased toward a public launch focused on new Claude Code users. Each section is a phase of work; sections only render while they have items left. Sizing is t-shirts (XS–XL); priority within a phase is top-down."
-        />
-      </div>
+    <!-- Hero — full-width; size legend + counts inline below. -->
+    <div class="space-y-4 max-w-[48rem]">
+      <PageHeader
+        title="Roadmap"
+        description="Phased toward a public launch focused on new Claude Code users. Each section is a phase of work; sections only render while they have items left. Sizing is t-shirts (XS–XL); priority within a phase is top-down."
+      />
 
-      <aside class="lg:w-72 lg:flex-shrink-0">
-        <div class="bg-surface border border-border rounded-lg p-4">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">Size legend</div>
-          <dl class="space-y-1.5 text-sm font-mono">
-            {#each [{ k: 'XS', v: 'typo · copy tweak' }, { k: 'S', v: '~1 day refactor' }, { k: 'M', v: '2–3 day feature' }, { k: 'L', v: 'week-long initiative' }, { k: 'XL', v: '2+ weeks · multi-phase' }] as row (row.k)}
-              <div class="flex items-baseline gap-3">
-                <dt class="text-accent w-7 flex-shrink-0">{row.k}</dt>
-                <dd class="text-muted">{row.v}</dd>
-              </div>
-            {/each}
-          </dl>
-          <div
-            class="mt-3 pt-3 border-t border-border text-[11px] font-mono text-muted leading-relaxed"
-          >
-            <span class="text-body">{totalQueued}</span>
-            {totalQueued === 1 ? 'item' : 'items'} queued ·
-            <span class="text-body">{publicLaunch.length}</span>
-            {publicLaunch.length === 1 ? 'blocks' : 'block'} public launch
-          </div>
-        </div>
-      </aside>
+      <!-- Size legend + counts (was a right-rail aside) -->
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-muted">
+        <span class="uppercase tracking-wide text-muted/70">Sizes:</span>
+        {#each [{ k: 'XS', v: 'typo · copy tweak' }, { k: 'S', v: '~1 day refactor' }, { k: 'M', v: '2–3 day feature' }, { k: 'L', v: 'week-long initiative' }, { k: 'XL', v: '2+ weeks · multi-phase' }] as row, i (row.k)}
+          <span><span class="text-accent font-semibold">{row.k}</span> {row.v}</span>
+          {#if i < 4}<span class="text-muted/40">·</span>{/if}
+        {/each}
+      </div>
+      <div class="text-[11px] font-mono text-muted">
+        <span class="text-body">{totalQueued}</span>
+        {totalQueued === 1 ? 'item' : 'items'} queued ·
+        <span class="text-body">{publicLaunch.length}</span>
+        {publicLaunch.length === 1 ? 'blocks' : 'block'} public launch
+      </div>
     </div>
 
     <!-- Phases 00 → 03 -->
