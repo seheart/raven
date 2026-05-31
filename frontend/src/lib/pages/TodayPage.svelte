@@ -10,7 +10,6 @@
   import { PageLayout, PageSection } from '../components/layout/index.js';
   import { formatUsd } from '../utils/formatUsd.js';
   import TokenStream from '../components/today/TokenStream.svelte';
-  import ContextVessel from '../components/today/ContextVessel.svelte';
   import AnomalyBanner from '../components/today/AnomalyBanner.svelte';
   import MilestonesPanel from '../components/today/MilestonesPanel.svelte';
   import WeekRecap from '../components/today/WeekRecap.svelte';
@@ -729,9 +728,8 @@
         {/if}
       </div>
 
-      <!-- Aside: context vessel + jump links -->
+      <!-- Aside: jump links -->
       <aside class="xl:w-72 xl:flex-shrink-0 space-y-4">
-        <ContextVessel />
         <div class="bg-surface border border-border rounded-lg p-4">
           <div class="text-xs font-mono uppercase tracking-wide text-muted mb-3">
             Want more detail?
