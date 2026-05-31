@@ -28,6 +28,8 @@ import type { RavenDB } from '../db.js';
 import { randomUUID } from 'node:crypto';
 
 const WINDOW_DAYS = 30;
+/** How long a computed persona is served before it's re-derived. */
+const PERSONA_TTL_MS = 6 * 60 * 60 * 1000;
 
 // ── Types ─────────────────────────────────────────────────────────
 export interface PersonaTrait {
@@ -41,6 +43,8 @@ export interface PersonaTrait {
 
 export interface UserPersona {
   generated_at: string;
+  /** When this persona becomes stale and is re-derived (generated_at + TTL). */
+  next_refresh_at: string;
   window_days: number;
   /** Days since Raven first saw any activity. */
   tenure_days: number;
@@ -662,6 +666,7 @@ export function createPersonaService(db: RavenDB): PersonaService {
 
     return {
       generated_at: generatedAt,
+      next_refresh_at: new Date(at.getTime() + PERSONA_TTL_MS).toISOString(),
       window_days: WINDOW_DAYS,
       tenure_days: tenureDays,
       has_data: hasData,
@@ -749,7 +754,7 @@ export function createPersonaService(db: RavenDB): PersonaService {
 
   return {
     get(at = new Date()) {
-      const cached = getCached(6 * 60 * 60 * 1000); // 6h TTL
+      const cached = getCached(PERSONA_TTL_MS); // 6h TTL
       if (cached) return cached;
       const fresh = compute(at);
       persist(fresh);

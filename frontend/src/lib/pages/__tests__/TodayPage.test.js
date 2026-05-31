@@ -75,6 +75,7 @@ function setupApi({
     has_data: true,
     window_days: 30,
     tenure_days: 44,
+    next_refresh_at: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
     title: 'The Evening Juggler',
     tagline: 'You build in the evenings at a steady rhythm, mostly in Python.',
     current_streak: 2,
@@ -153,6 +154,13 @@ describe('TodayPage', () => {
     setupApi();
     render(TodayPage);
     expect(await screen.findByText(/Evenings are when you come alive/)).toBeTruthy();
+  });
+
+  it("shows when Raven's next read is due", async () => {
+    setupApi();
+    render(TodayPage);
+    // next_refresh_at is ~5h out, so the card shows a calm countdown.
+    expect(await screen.findByText(/Next read in 5h/)).toBeTruthy();
   });
 
   it('renders the daily digest lead from /digests/daily', async () => {

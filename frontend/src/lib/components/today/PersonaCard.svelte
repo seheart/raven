@@ -10,7 +10,7 @@
    * @typedef {{glyph:string, tone:string, label:string, text:string}} Trait
    * @typedef {{
    *   has_data:boolean, tenure_days:number, title:string, tagline:string,
-   *   current_streak:number, window_days:number,
+   *   current_streak:number, window_days:number, next_refresh_at:string,
    *   languages:Array<{language:string, share:number}>,
    *   rhythm:{active_days:number}, traits:Trait[]
    * }} Persona
@@ -24,6 +24,25 @@
   /** @type {Persona|null} */
   let persona = $state(null);
   let loading = $state(true);
+  // Ticks once a minute so the "next read" countdown stays honest while the
+  // page sits open — the persona itself only re-derives every 6h server-side.
+  let nowTs = $state(Date.now());
+  /** @type {ReturnType<typeof setInterval>|null} */
+  let ticker = null;
+
+  // Calm, coarse countdown to Raven's next read — a reason to come back, not
+  // a ticking timer. Returns 'ready' once the recompute is due (the next page
+  // load picks up the fresh persona).
+  const nextRead = $derived.by(() => {
+    if (!persona?.next_refresh_at) return null;
+    const ms = new Date(persona.next_refresh_at).getTime() - nowTs;
+    if (ms <= 0) return 'ready';
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `in ${mins}m`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
+  });
 
   function toneClass(tone) {
     switch (tone) {
@@ -51,8 +70,16 @@
     }
   }
 
-  onMount(load);
-  onDestroy(() => abort());
+  onMount(() => {
+    load();
+    ticker = setInterval(() => {
+      nowTs = Date.now();
+    }, 60_000);
+  });
+  onDestroy(() => {
+    if (ticker) clearInterval(ticker);
+    abort();
+  });
 </script>
 
 <section
@@ -119,32 +146,50 @@
         </ul>
       {/if}
 
-      <!-- Footer stat chips — quick "vitals" of the relationship. -->
+      <!-- Footer — relationship "vitals" on the left, Raven's next read on
+           the right. The countdown is a quiet "come back later" cue, not a
+           streak-badge: it tells you when the read refreshes, nothing more. -->
       {#if persona.has_data}
-        <div class="mt-5 pt-4 border-t border-border flex flex-wrap gap-2">
-          {#if persona.current_streak > 0}
-            <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-mono text-body"
+        <div
+          class="mt-5 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3"
+        >
+          <div class="flex flex-wrap gap-2">
+            {#if persona.current_streak > 0}
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-mono text-body"
+              >
+                <span class="text-success" aria-hidden="true">▲</span>
+                {persona.current_streak}-day streak
+              </span>
+            {/if}
+            {#if persona.rhythm?.active_days > 0}
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-mono text-muted"
+              >
+                {persona.rhythm.active_days}/{persona.window_days} active days
+              </span>
+            {/if}
+            {#each (persona.languages || []).slice(0, 3) as lang (lang.language)}
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-mono text-muted"
+              >
+                {lang.language}
+                <span class="text-muted/60">{Math.round(lang.share * 100)}%</span>
+              </span>
+            {/each}
+          </div>
+
+          {#if nextRead}
+            <div
+              class="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted/80 whitespace-nowrap"
+              title={nextRead === 'ready'
+                ? 'A fresh read is ready — reload to see it'
+                : 'Raven re-reads your patterns every 6 hours'}
             >
-              <span class="text-success" aria-hidden="true">▲</span>
-              {persona.current_streak}-day streak
-            </span>
+              <span class="text-accent" aria-hidden="true">↻</span>
+              {nextRead === 'ready' ? 'New read ready — reload' : `Next read ${nextRead}`}
+            </div>
           {/if}
-          {#if persona.rhythm?.active_days > 0}
-            <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-mono text-muted"
-            >
-              {persona.rhythm.active_days}/{persona.window_days} active days
-            </span>
-          {/if}
-          {#each (persona.languages || []).slice(0, 3) as lang (lang.language)}
-            <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-[11px] font-mono text-muted"
-            >
-              {lang.language}
-              <span class="text-muted/60">{Math.round(lang.share * 100)}%</span>
-            </span>
-          {/each}
         </div>
       {/if}
     {/if}
