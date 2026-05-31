@@ -166,23 +166,23 @@
       {/snippet}
       {#if activeTab === 'today'}
         <ErrorBoundary name="Dashboard">
-          {#if activeSubTab === 'narrative'}
-            {#await import('./lib/pages/TodayPage.svelte')}
-              <PlaceholderPage title="Narrative" description="Loading..." />
-            {:then { default: Component }}
-              <Component />
-            {:catch}
-              <PlaceholderPage title="Narrative" description="Failed to load" />
-            {/await}
-          {:else}
-            {#await import('./lib/pages/OverviewPage.svelte')}
-              <PlaceholderPage title="Dashboard" description="Loading..." />
-            {:then { default: Component }}
-              <Component />
-            {:catch}
-              <PlaceholderPage title="Dashboard" description="Failed to load" />
-            {/await}
-          {/if}
+          {#await import('./lib/pages/OverviewPage.svelte')}
+            <PlaceholderPage title="Dashboard" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Dashboard" description="Failed to load" />
+          {/await}
+        </ErrorBoundary>
+      {:else if activeTab === 'narrative'}
+        <ErrorBoundary name="Narrative">
+          {#await import('./lib/pages/TodayPage.svelte')}
+            <PlaceholderPage title="Narrative" description="Loading..." />
+          {:then { default: Component }}
+            <Component />
+          {:catch}
+            <PlaceholderPage title="Narrative" description="Failed to load" />
+          {/await}
         </ErrorBoundary>
       {:else if activeTab === 'activity'}
         <ErrorBoundary name="Activity">

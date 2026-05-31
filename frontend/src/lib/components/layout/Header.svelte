@@ -90,14 +90,16 @@
     settings.updateUI({ theme: isDark ? 'light' : 'dark' });
   }
 
-  // Five top-level tabs after the May 2026 IA refactor.
-  // Dashboard = the home view (vitals + activity at a glance) plus Narrative
-  // as a sub-tab; Activity = "what happened" (live + history of file/code
-  // events); Agents = "what are my agents doing"; Insights = the narrated
-  // reflection layer (costs, trends, Wrapped); System = ops + config.
+  // Six top-level tabs after the May 2026 IA refactor.
+  // Dashboard = the home view (vitals + activity at a glance), no sub-tabs;
+  // Narrative = the narrated "you" view, promoted to its own top-level tab;
+  // Activity = "what happened" (live + history of file/code events);
+  // Agents = "what are my agents doing"; Insights = the narrated reflection
+  // layer (costs, trends, Wrapped); System = ops + config.
   // The route id stays 'today' so existing /today links and tests still work.
   const tabs = [
     { id: 'today', label: 'Dashboard', path: '/today' },
+    { id: 'narrative', label: 'Narrative', path: '/narrative' },
     { id: 'activity', label: 'Activity', path: '/activity' },
     { id: 'agents', label: 'Agents', path: '/agents' },
     { id: 'insights', label: 'Insights', path: '/insights' },
@@ -105,10 +107,6 @@
   ];
 
   const subTabs = {
-    today: [
-      { id: 'narrative', label: 'Narrative' },
-      { id: '', label: 'Overview' }
-    ],
     activity: [
       { id: '', label: 'Overview' },
       { id: 'live', label: 'Live' },
