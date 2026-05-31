@@ -129,7 +129,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Sessions" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Sessions" />
 
   <PageHeader title="Session Activity" description="Conversation timeline between you and Claude">
     {#snippet actions()}

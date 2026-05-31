@@ -399,7 +399,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Agents · Stats" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Agents · Stats" />
 
   <PageHeader
     title="Agent Performance"

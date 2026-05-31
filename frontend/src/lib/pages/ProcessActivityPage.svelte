@@ -5,7 +5,7 @@
    */
   import { onMount } from 'svelte';
   import { createPageApi } from '../apiClient.js';
-  import { PageLayout, PageHeader } from '../components/layout/index.js';
+  import { PageLayout, PageHeader, StatusBar } from '../components/layout/index.js';
   import { FreshnessBadge, FilterToggle, RefreshButton } from '../components/ui/index.js';
   import DataFetchError from '../components/ui/DataFetchError.svelte';
   const { api, abort: abortRequests } = createPageApi();
@@ -227,6 +227,9 @@
 
 <PageLayout variant="dashboard">
   <div class="p-4 max-w-[1400px] mx-auto font-mono">
+    <!-- Match the rest of the Agents tab: every sibling page wears the
+         RAVEN.AGENTS :: <label> status strip. -->
+    <StatusBar prompt="RAVEN.AGENTS" label="Network" />
     <PageHeader
       size="compact"
       title="Network Activity"

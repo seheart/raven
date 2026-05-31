@@ -437,7 +437,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Agents" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Agents" />
 
   <PageHeader
     title="Live Agents"

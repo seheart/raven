@@ -146,7 +146,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Sub-Agents" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Sub-Agents" />
 
   <PageHeader
     title="Sub-Agent Tree"

@@ -455,7 +455,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Performance" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Performance" />
 
   <PageHeader
     title="Performance Profiling"

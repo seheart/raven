@@ -523,7 +523,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Conversations" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Conversations" />
 
   <PageHeader
     title="Agent Conversations"

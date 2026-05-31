@@ -68,7 +68,7 @@
 </script>
 
 <PageLayout>
-  <StatusBar label="Models" />
+  <StatusBar prompt="RAVEN.AGENTS" label="Models" />
 
   <PageHeader title="Models" description="AI models and tools tracked by Raven">
     {#snippet actions()}
