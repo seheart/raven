@@ -204,15 +204,13 @@
 
         <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
 
-        <div class="mt-6 space-y-1.5 text-sm font-mono">
-          <div class="flex items-baseline gap-2">
+        <div class="mt-6 space-y-2 text-sm font-mono">
+          <div class="flex items-baseline gap-3">
             <span class="text-muted w-32 flex-shrink-0">What it is</span>
-            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
             <span class="text-body flex-1 min-w-0">{HERO.whatItIs}</span>
           </div>
-          <div class="flex items-baseline gap-2">
+          <div class="flex items-baseline gap-3">
             <span class="text-muted w-32 flex-shrink-0">What it does</span>
-            <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
             <span class="text-body flex-1 min-w-0">{HERO.whatItDoes}</span>
           </div>
         </div>
@@ -593,9 +591,8 @@
       <ProseBlock>
         <div class="space-y-1.5 text-sm font-mono">
           {#each MANIFEST as row (row.k)}
-            <div class="flex items-baseline gap-2">
+            <div class="flex items-baseline justify-between gap-3">
               <span class="text-muted w-24 flex-shrink-0">{row.k}</span>
-              <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
               {#if row.link}
                 <a
                   href={row.link}

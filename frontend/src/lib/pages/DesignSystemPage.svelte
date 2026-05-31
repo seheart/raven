@@ -113,12 +113,11 @@
 
           <p class="mt-4 text-base text-body font-sans leading-relaxed">{HERO.lede}</p>
 
-          <div class="mt-4 space-y-1.5 text-sm font-mono">
+          <div class="mt-4 space-y-2 text-sm font-mono">
             {#each HERO.meta as row (row.k)}
-              <div class="flex items-baseline gap-2">
+              <div class="flex items-baseline gap-3">
                 <span class="text-muted w-32 flex-shrink-0">{row.k}</span>
-                <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
-                <span class="text-body">{row.v}</span>
+                <span class="text-body flex-1 min-w-0">{row.v}</span>
               </div>
             {/each}
           </div>
@@ -326,19 +325,16 @@
           </h4>
           <div class="mb-4 bg-surface border border-border rounded-lg p-4 max-w-[30rem]">
             <div class="space-y-1.5 text-sm font-mono">
-              <div class="flex items-baseline gap-2">
+              <div class="flex items-baseline justify-between gap-3">
                 <span class="text-muted w-24 flex-shrink-0">Status</span>
-                <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
                 <span class="text-body">Operational</span>
               </div>
-              <div class="flex items-baseline gap-2">
+              <div class="flex items-baseline justify-between gap-3">
                 <span class="text-muted w-24 flex-shrink-0">Open</span>
-                <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
                 <span class="text-body">4</span>
               </div>
-              <div class="flex items-baseline gap-2">
+              <div class="flex items-baseline justify-between gap-3">
                 <span class="text-muted w-24 flex-shrink-0">Severity</span>
-                <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
                 <span class="text-body flex items-center gap-1">
                   <span
                     class="inline-block px-1.5 py-0.5 text-xs font-mono bg-error/15 text-error rounded"
