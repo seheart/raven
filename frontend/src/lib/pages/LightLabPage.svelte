@@ -158,9 +158,8 @@
 
                 <div class="space-y-1 text-sm font-mono mb-6 max-w-[28rem]">
                   {#each DEMO.meta as m (m.k)}
-                    <div class="flex items-baseline gap-2">
+                    <div class="flex items-baseline justify-between gap-3">
                       <span class="text-muted w-32 flex-shrink-0">{m.k}</span>
-                      <span class="flex-1 border-b border-dotted border-border mb-0.5"></span>
                       <span class="text-body">{m.v}</span>
                     </div>
                   {/each}
