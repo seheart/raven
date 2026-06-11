@@ -370,8 +370,11 @@ export function createProjectsRouter({
           project.enabled = true;
           config.projects.push(project);
         }
-        await Promise.all(discovered.map(p => projectManager.startWatcher(p)));
+        // Persist before starting watchers: if a watcher fails to start, the
+        // saved config still brings it up on next boot; the reverse order
+        // could leave running watchers for projects that were never saved.
         await projectsConfigService.save(config);
+        await Promise.all(discovered.map(p => projectManager.startWatcher(p)));
         logger.info(`Auto-registered ${discovered.length} discovered projects`);
       }
 

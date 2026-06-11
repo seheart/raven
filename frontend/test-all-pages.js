@@ -6,50 +6,58 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 
-// All Raven routes based on navigation structure
+// All Raven routes based on navigation structure.
+// Mirrors the six top-level tabs (+ sub-tabs) defined in
+// src/lib/components/layout/Header.svelte after the May 2026 IA refactor,
+// plus the footer utility pages.
 const routes = [
-  // Overview
-  { path: '/overview', name: 'Overview Dashboard' },
-  { path: '/overview/projects', name: 'Projects Comparison' },
-  { path: '/overview/health', name: 'Project Health' },
-
-  // Safety
-  { path: '/safety', name: 'Safety Overview' },
-  { path: '/safety/syntax', name: 'Syntax Errors' },
-  { path: '/safety/rollback', name: 'Session Rollback' },
-
-  // Agents
-  { path: '/agents', name: 'Agents Overview' },
-  { path: '/agents/stats', name: 'Agent Stats' },
-  { path: '/agents/monitoring', name: 'Agent Monitoring' },
-  { path: '/agents/conversations', name: 'Agent Conversations' },
+  // Dashboard + Narrative
+  { path: '/today', name: 'Dashboard' },
+  { path: '/narrative', name: 'Narrative' },
 
   // Activity
   { path: '/activity', name: 'Activity Overview' },
-  { path: '/activity/activity-log', name: 'Activity Log' },
-  { path: '/activity/code', name: 'Code Changes' },
-  { path: '/activity/live', name: 'Live Feed' },
-  { path: '/activity/files', name: 'File Browser' },
-  { path: '/activity/timeline', name: 'Timeline' },
-  { path: '/activity/search', name: 'Global Search' },
+  { path: '/activity/live', name: 'Activity Live' },
+  { path: '/activity/changes', name: 'Activity Changes' },
+  { path: '/activity/timeline', name: 'Activity Timeline' },
+  { path: '/activity/files', name: 'Activity Files' },
+  { path: '/activity/projects', name: 'Activity Projects' },
+  { path: '/activity/health', name: 'Activity Health' },
+  { path: '/activity/search', name: 'Activity Search' },
 
-  // Analysis
-  { path: '/analysis', name: 'Analysis Overview' },
-  { path: '/analysis/performance', name: 'Performance' },
-  { path: '/analysis/trends', name: 'Historical Trends' },
-  { path: '/analysis/triggers', name: 'Triggers' },
-  { path: '/analysis/developer-insights', name: 'Developer Insights' },
+  // Agents
+  { path: '/agents', name: 'Agents Monitor' },
+  { path: '/agents/stats', name: 'Agent Stats' },
+  { path: '/agents/convos', name: 'Agent Conversations' },
+  { path: '/agents/sub-agents', name: 'Sub-Agents' },
+  { path: '/agents/sessions', name: 'Agent Sessions' },
+  { path: '/agents/network', name: 'Agent Network' },
+  { path: '/agents/models', name: 'Models' },
+  { path: '/agents/performance', name: 'Agent Performance' },
+
+  // Insights
+  { path: '/insights', name: 'Insights Overview' },
+  { path: '/insights/costs', name: 'Costs' },
+  { path: '/insights/trends', name: 'Trends' },
+  { path: '/insights/wrapped', name: 'Looking Back' },
 
   // System
   { path: '/system', name: 'System Overview' },
-  { path: '/system/status', name: 'System Status' },
+  { path: '/system/code-health', name: 'Code Health' },
+  { path: '/system/health-monitor', name: 'Health Monitor' },
+  { path: '/system/safety', name: 'Safety' },
+  { path: '/system/errors', name: 'System Errors' },
+  { path: '/system/projects', name: 'System Projects' },
   { path: '/system/storage', name: 'Storage' },
-  { path: '/system/projects', name: 'Projects' },
-  { path: '/system/notifications', name: 'Notifications' },
-  { path: '/system/errors', name: 'Errors' },
+  { path: '/system/plugins', name: 'Plugins' },
+  { path: '/system/triggers', name: 'Triggers' },
 
-  // Settings
-  { path: '/settings', name: 'Settings' }
+  // Utility pages
+  { path: '/settings', name: 'Settings' },
+  { path: '/about', name: 'About' },
+  { path: '/roadmap', name: 'Roadmap' },
+  { path: '/design-system', name: 'Design System' },
+  { path: '/diagnostic', name: 'Diagnostic' }
 ];
 
 // Test configuration
@@ -74,7 +82,10 @@ const results = {
 /**
  * Test a single page for errors
  */
-async function testPage(page, route) {
+async function testPage(context, route) {
+  // Fresh page per route: listeners registered below would otherwise pile up
+  // on a shared page and attribute later routes' errors to earlier results.
+  const page = await context.newPage();
   const pageResult = {
     path: route.path,
     name: route.name,
@@ -181,6 +192,8 @@ async function testPage(page, route) {
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
+  } finally {
+    await page.close();
   }
 
   return pageResult;
@@ -511,14 +524,13 @@ async function runTests() {
   const context = await browser.newContext({
     viewport: { width: 1920, height: 1080 }
   });
-  const page = await context.newPage();
 
   // Test each page
   for (let i = 0; i < routes.length; i++) {
     const route = routes[i];
     process.stdout.write(`[${i + 1}/${routes.length}] Testing ${route.name}... `);
 
-    const pageResult = await testPage(page, route);
+    const pageResult = await testPage(context, route);
     results.pages.push(pageResult);
 
     // Update counters

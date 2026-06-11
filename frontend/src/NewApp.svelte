@@ -91,6 +91,7 @@
     }
 
     return () => {
+      websocketService.off('model-loaded', onModelLoaded);
       dataService.stopBackgroundRefresh();
     };
   });

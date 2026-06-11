@@ -154,11 +154,14 @@ export function createSystemRouter(deps: SystemDeps): Router {
         .all() as Array<{ name: string }>;
 
       const result = tables.map(({ name }) => {
-        const cols = deps.db.db.prepare(`PRAGMA table_info("${name}")`).all() as Array<{
+        // Identifiers can't be bound as parameters; names come from
+        // sqlite_master, so doubling embedded quotes is sufficient escaping.
+        const quoted = `"${name.replace(/"/g, '""')}"`;
+        const cols = deps.db.db.prepare(`PRAGMA table_info(${quoted})`).all() as Array<{
           name: string;
           type: string;
         }>;
-        const countRow = deps.db.db.prepare(`SELECT COUNT(*) AS c FROM "${name}"`).get() as {
+        const countRow = deps.db.db.prepare(`SELECT COUNT(*) AS c FROM ${quoted}`).get() as {
           c: number;
         };
         return {

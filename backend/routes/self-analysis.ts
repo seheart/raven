@@ -5,6 +5,7 @@
 
 import express, { Request, Response } from 'express';
 import { SelfAnalysisService } from '../services/self-analysis.js';
+import { logger } from '../utils/logger.js';
 
 export function createSelfAnalysisRouter(analysisService: SelfAnalysisService) {
   const router = express.Router();
@@ -54,8 +55,10 @@ export function createSelfAnalysisRouter(analysisService: SelfAnalysisService) {
       });
 
       // Run in background (don't await — response already sent)
-      analysisService.runAnalysis().catch(() => {
-        // Logged inside the service
+      analysisService.runAnalysis().catch((err: Error) => {
+        // Per-check failures are logged inside the service, but a top-level
+        // failure (DB write, run setup) only re-throws — surface it here.
+        logger.error(`On-demand self-analysis run failed: ${err.message}`);
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to start analysis', message: error.message });

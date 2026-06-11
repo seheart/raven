@@ -33,7 +33,7 @@ const WINDOW_DAYS = 30;
 const PERSONA_TTL_MS = 6 * 60 * 60 * 1000;
 
 // ── Types ─────────────────────────────────────────────────────────
-export interface PersonaTrait {
+interface PersonaTrait {
   glyph: string;
   tone: 'accent' | 'success' | 'info' | 'warning' | 'muted';
   /** Short tag, e.g. "Night owl". */
@@ -42,7 +42,7 @@ export interface PersonaTrait {
   text: string;
 }
 
-export interface UserPersona {
+interface UserPersona {
   generated_at: string;
   /** When this persona becomes stale and is re-derived (generated_at + TTL). */
   next_refresh_at: string;

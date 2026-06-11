@@ -74,5 +74,8 @@
     "knip": "^6.9.0",
     "lint-staged": "^16.2.6",
     "playwright": "^1.56.1"
+  },
+  "overrides": {
+    "shell-quote": "^1.8.4"
   }
 }
