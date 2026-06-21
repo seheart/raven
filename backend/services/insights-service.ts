@@ -40,6 +40,30 @@ export class InsightsService {
   }
   private model: string;
   private generating: Set<string> = new Set();
+
+  /**
+   * Run `fn` under a single-flight lock keyed by `key`. If a generation for
+   * that key is already in flight, returns null immediately without running.
+   * The lock is always released in a finally, so no return path (including a
+   * future early return or a throw) can leak it. Returns fn's result, or null
+   * when fn throws.
+   */
+  private async withGenerationLock(
+    key: string,
+    fn: () => Promise<InsightSummary | null>
+  ): Promise<InsightSummary | null> {
+    if (this.generating.has(key)) return null;
+    this.generating.add(key);
+    try {
+      return await fn();
+    } catch (err) {
+      logger.error(`Failed to generate ${key}:`, err as Error);
+      return null;
+    } finally {
+      this.generating.delete(key);
+    }
+  }
+
   private lastAnomalyCallTime = 0;
   private lastAnomalyStatus = '';
   private static readonly ANOMALY_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
@@ -80,7 +104,8 @@ export class InsightsService {
   // Kill switch: when RAVEN_INSIGHTS_DISABLED=1, every Ollama-bound method
   // short-circuits. Lets users opt out of Raven's local-LLM usage without
   // taking down Ollama itself (which other apps may be sharing).
-  private readonly disabled: boolean = process.env.RAVEN_INSIGHTS_DISABLED === '1';
+  private readonly disabled: boolean =
+    process.env.RAVEN_INSIGHTS_DISABLED === '1' || process.env.RAVEN_INSIGHTS_DISABLED === 'true';
 
   // Real-time analysis switch. When auto-mode is OFF (the default), the
   // ambient background triggers — diff-risk scoring on file edits, anomaly
@@ -188,15 +213,8 @@ export class InsightsService {
   // ==================== Session Summary ====================
 
   async generateSummary(windowMinutes = 60): Promise<InsightSummary | null> {
-    if (this.generating.has('session_summary')) {
-      logger.warn('Session summary generation already in progress');
-      return null;
-    }
-
-    this.generating.add('session_summary');
-    const start = Date.now();
-
-    try {
+    return this.withGenerationLock('session_summary', async () => {
+      const start = Date.now();
       const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
 
       const agentEvents = this.db.db
@@ -212,7 +230,6 @@ export class InsightsService {
         .all(cutoff) as any[];
 
       if (agentEvents.length === 0 && fileEvents.length === 0) {
-        this.generating.delete('session_summary');
         return null;
       }
 
@@ -232,7 +249,6 @@ Keep it under 150 words. Be specific about file names and actions. No fluff.`;
 
       const content = await this.callOllama(prompt);
       if (!content) {
-        this.generating.delete('session_summary');
         return null;
       }
 
@@ -252,23 +268,15 @@ Keep it under 150 words. Be specific about file names and actions. No fluff.`;
       logger.info(
         `✨ Generated session summary in ${duration}ms using ${this.model} (${totalEvents} events)`
       );
-      this.generating.delete('session_summary');
       return insight;
-    } catch (err: any) {
-      logger.error('Failed to generate summary:', err);
-      this.generating.delete('session_summary');
-      return null;
-    }
+    });
   }
 
   // ==================== Code Review ====================
 
   async generateCodeReview(): Promise<InsightSummary | null> {
-    if (this.generating.has('code_review')) return null;
-    this.generating.add('code_review');
-    const start = Date.now();
-
-    try {
+    return this.withGenerationLock('code_review', async () => {
+      const start = Date.now();
       const recentDiffs = this.db.db
         .prepare(
           `SELECT filepath, change_type, diff, agent_source, timestamp FROM events WHERE diff IS NOT NULL AND diff != '' AND timestamp > datetime('now', '-30 minutes') ORDER BY timestamp DESC LIMIT 10`
@@ -276,7 +284,6 @@ Keep it under 150 words. Be specific about file names and actions. No fluff.`;
         .all() as any[];
 
       if (recentDiffs.length === 0) {
-        this.generating.delete('code_review');
         return null;
       }
 
@@ -298,7 +305,6 @@ Be concise — 2-3 sentences per file max. Skip files that look fine.`;
 
       const content = await this.callOllama(prompt);
       if (!content) {
-        this.generating.delete('code_review');
         return null;
       }
 
@@ -313,13 +319,8 @@ Be concise — 2-3 sentences per file max. Skip files that look fine.`;
       );
 
       logger.info(`✨ Generated code review in ${duration}ms`);
-      this.generating.delete('code_review');
       return insight;
-    } catch (err: any) {
-      logger.error('Failed to generate code review:', err);
-      this.generating.delete('code_review');
-      return null;
-    }
+    });
   }
 
   // ==================== Anomaly Explanation ====================
@@ -386,11 +387,8 @@ In one sentence, explain what is happening and whether the developer should take
   // ==================== Daily Digest ====================
 
   async generateDailyDigest(): Promise<InsightSummary | null> {
-    if (this.generating.has('daily_digest')) return null;
-    this.generating.add('daily_digest');
-    const start = Date.now();
-
-    try {
+    return this.withGenerationLock('daily_digest', async () => {
+      const start = Date.now();
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
       // File event stats
@@ -459,7 +457,6 @@ In one sentence, explain what is happening and whether the developer should take
       }
 
       if ((fileStats?.total || 0) === 0 && totalAgentEvents === 0) {
-        this.generating.delete('daily_digest');
         return null;
       }
 
@@ -493,7 +490,6 @@ Keep it under 200 words. Be specific about file names and projects.`;
 
       const content = await this.callOllamaLong(prompt);
       if (!content) {
-        this.generating.delete('daily_digest');
         return null;
       }
 
@@ -508,13 +504,8 @@ Keep it under 200 words. Be specific about file names and projects.`;
       );
 
       logger.info(`✨ Generated daily digest in ${duration}ms`);
-      this.generating.delete('daily_digest');
       return insight;
-    } catch (err: any) {
-      logger.error('Failed to generate daily digest:', err);
-      this.generating.delete('daily_digest');
-      return null;
-    }
+    });
   }
 
   // ==================== Diff Risk Scoring ====================
@@ -752,11 +743,8 @@ Respond ONLY with JSON: {"score": <number 1-10>, "reason": "<one sentence>"}`;
   // ==================== Agent Comparison ====================
 
   async generateAgentComparison(): Promise<InsightSummary | null> {
-    if (this.generating.has('agent_comparison')) return null;
-    this.generating.add('agent_comparison');
-    const start = Date.now();
-
-    try {
+    return this.withGenerationLock('agent_comparison', async () => {
+      const start = Date.now();
       const agentStats = this.db.db
         .prepare(
           `
@@ -767,7 +755,6 @@ Respond ONLY with JSON: {"score": <number 1-10>, "reason": "<one sentence>"}`;
         .all() as any[];
 
       if (agentStats.length === 0) {
-        this.generating.delete('agent_comparison');
         return null;
       }
 
@@ -802,7 +789,6 @@ Keep it under 200 words.`;
 
       const content = await this.callOllamaLong(prompt);
       if (!content) {
-        this.generating.delete('agent_comparison');
         return null;
       }
 
@@ -818,23 +804,15 @@ Keep it under 200 words.`;
       );
 
       logger.info(`✨ Generated agent comparison in ${duration}ms`);
-      this.generating.delete('agent_comparison');
       return insight;
-    } catch (err: any) {
-      logger.error('Failed to generate agent comparison:', err);
-      this.generating.delete('agent_comparison');
-      return null;
-    }
+    });
   }
 
   // ==================== Project Health Narrative ====================
 
   async generateProjectHealth(projectName: string): Promise<InsightSummary | null> {
-    if (this.generating.has('project_health')) return null;
-    this.generating.add('project_health');
-    const start = Date.now();
-
-    try {
+    return this.withGenerationLock('project_health', async () => {
+      const start = Date.now();
       // Events for this project
       const eventStats = this.db.db
         .prepare(
@@ -896,7 +874,6 @@ Keep it under 200 words.`;
         .all(projectName) as any[];
 
       if ((eventStats?.total || 0) === 0 && agentActivity.length === 0) {
-        this.generating.delete('project_health');
         return null;
       }
 
@@ -927,7 +904,6 @@ Keep it under 150 words.`;
 
       const content = await this.callOllama(prompt);
       if (!content) {
-        this.generating.delete('project_health');
         return null;
       }
 
@@ -942,13 +918,8 @@ Keep it under 150 words.`;
       );
 
       logger.info(`✨ Generated project health for ${projectName} in ${duration}ms`);
-      this.generating.delete('project_health');
       return insight;
-    } catch (err: any) {
-      logger.error('Failed to generate project health:', err);
-      this.generating.delete('project_health');
-      return null;
-    }
+    });
   }
 
   // ==================== Query Methods ====================

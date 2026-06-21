@@ -373,8 +373,13 @@ scheduleDaily(18, () => {
 // summary over the window. generateSummary() returns null when there's been no
 // activity, so idle hours cost nothing. Set RAVEN_INSIGHTS_INTERVAL_MIN=0 to
 // disable the periodic pass (on-demand generation still works either way).
-const insightsIntervalMin = parseInt(process.env.RAVEN_INSIGHTS_INTERVAL_MIN ?? '60', 10);
-if (!insightsService.isDisabled() && insightsIntervalMin > 0) {
+// A malformed value (e.g. "60m", "abc") parses to NaN — fall back to the
+// documented 60-minute default rather than silently disabling the pass.
+const rawInterval = parseInt(process.env.RAVEN_INSIGHTS_INTERVAL_MIN ?? '60', 10);
+const insightsIntervalMin = Number.isNaN(rawInterval) ? 60 : rawInterval;
+if (insightsService.isDisabled()) {
+  // Whole service is off; nothing to schedule.
+} else if (insightsIntervalMin > 0) {
   const hourlyAnalysis = setInterval(
     () => {
       insightsService
@@ -384,12 +389,6 @@ if (!insightsService.isDisabled() && insightsIntervalMin > 0) {
             logger.info(
               `[hourly-analysis] session summary generated (${insight.id}, ${insight.duration_ms}ms)`
             );
-            io.emit('insight-generated', {
-              id: insight.id,
-              type: insight.type,
-              title: insight.title,
-              timestamp: insight.timestamp
-            });
           }
         })
         .catch(err => {
@@ -401,6 +400,9 @@ if (!insightsService.isDisabled() && insightsIntervalMin > 0) {
   // Don't let the interval keep the process alive on its own.
   hourlyAnalysis.unref();
   logger.info(`[hourly-analysis] scheduled every ${insightsIntervalMin}m`);
+} else {
+  // Explicitly disabled (<=0) — log it so it's distinguishable from a default run.
+  logger.info('[hourly-analysis] periodic pass disabled (RAVEN_INSIGHTS_INTERVAL_MIN <= 0)');
 }
 
 const agentRegistry = new Map<string, AgentInfo>();
