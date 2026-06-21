@@ -366,6 +366,43 @@ scheduleDaily(18, () => {
     });
 });
 
+// Hourly analysis — while Raven is up, batch-analyze recent activity on a
+// fixed interval (default 60 min) rather than reacting to every file edit.
+// This is independent of RAVEN_INSIGHTS_AUTO (the real-time per-edit triggers):
+// data is always collected, and once an hour the local LLM produces a session
+// summary over the window. generateSummary() returns null when there's been no
+// activity, so idle hours cost nothing. Set RAVEN_INSIGHTS_INTERVAL_MIN=0 to
+// disable the periodic pass (on-demand generation still works either way).
+const insightsIntervalMin = parseInt(process.env.RAVEN_INSIGHTS_INTERVAL_MIN ?? '60', 10);
+if (!insightsService.isDisabled() && insightsIntervalMin > 0) {
+  const hourlyAnalysis = setInterval(
+    () => {
+      insightsService
+        .generateSummary(insightsIntervalMin)
+        .then(insight => {
+          if (insight) {
+            logger.info(
+              `[hourly-analysis] session summary generated (${insight.id}, ${insight.duration_ms}ms)`
+            );
+            io.emit('insight-generated', {
+              id: insight.id,
+              type: insight.type,
+              title: insight.title,
+              timestamp: insight.timestamp
+            });
+          }
+        })
+        .catch(err => {
+          logger.error('[hourly-analysis] generation failed:', err as Error);
+        });
+    },
+    insightsIntervalMin * 60 * 1000
+  );
+  // Don't let the interval keep the process alive on its own.
+  hourlyAnalysis.unref();
+  logger.info(`[hourly-analysis] scheduled every ${insightsIntervalMin}m`);
+}
+
 const agentRegistry = new Map<string, AgentInfo>();
 
 const apiLatencyRepository = createApiLatencyRepository(db);
