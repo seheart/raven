@@ -340,8 +340,11 @@ healthMonitor.onAlert(report => {
   }
 });
 
-// Daily digest — generate at 6 PM if today's hasn't been made yet
+// Daily digest — generate at 6 PM if today's hasn't been made yet.
+// Skipped entirely when real-time analysis is off (RAVEN_INSIGHTS_AUTO!=1);
+// the digest is still available on demand via /api/insights/daily-digest.
 scheduleDaily(18, () => {
+  if (!insightsService.isAutoEnabled()) return;
   const today = new Date().toISOString().split('T')[0];
   const existing = insightsService.getInsights('daily_digest', 1);
   if (existing.length > 0 && existing[0].timestamp.startsWith(today)) {

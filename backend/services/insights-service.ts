@@ -82,6 +82,21 @@ export class InsightsService {
   // taking down Ollama itself (which other apps may be sharing).
   private readonly disabled: boolean = process.env.RAVEN_INSIGHTS_DISABLED === '1';
 
+  // Real-time analysis switch. When auto-mode is OFF (the default), the
+  // ambient background triggers — diff-risk scoring on file edits, anomaly
+  // explanations on health alerts, and the scheduled daily digest — are
+  // suppressed so the local LLM never fires on its own. Raw data collection
+  // (file events, metrics, git, triggers) is unaffected; only on-the-fly LLM
+  // analysis is deferred. Insights still generate fully on explicit API/UI
+  // request. Opt back into ambient generation with RAVEN_INSIGHTS_AUTO=1.
+  private readonly autoEnabled: boolean =
+    process.env.RAVEN_INSIGHTS_AUTO === '1' || process.env.RAVEN_INSIGHTS_AUTO === 'true';
+
+  /** Whether ambient/real-time LLM analysis triggers are active. */
+  isAutoEnabled(): boolean {
+    return this.autoEnabled;
+  }
+
   constructor(db: RavenDB, ollamaUrl?: string, model?: string) {
     this.db = db;
     // Only treat explicitly-passed url as override; otherwise read env lazily.
@@ -91,6 +106,12 @@ export class InsightsService {
 
     if (this.disabled) {
       logger.info('InsightsService disabled via RAVEN_INSIGHTS_DISABLED=1');
+    } else if (this.autoEnabled) {
+      logger.info('InsightsService: real-time analysis ON (RAVEN_INSIGHTS_AUTO=1)');
+    } else {
+      logger.info(
+        'InsightsService: on-demand only — ambient diff-risk/anomaly/digest off (set RAVEN_INSIGHTS_AUTO=1 to enable)'
+      );
     }
 
     // Create insights table if not exists
@@ -308,6 +329,10 @@ Be concise — 2-3 sentences per file max. Skip files that look fine.`;
     criticalIssues: Array<{ category?: string; name?: string; message?: string }>;
     summary: { critical: number; warnings: number };
   }): Promise<InsightSummary | null> {
+    // Anomaly explanation is an ambient health-alert reaction — a real-time
+    // LLM trigger. Suppressed unless RAVEN_INSIGHTS_AUTO=1; the alert itself
+    // still fires over WebSocket, only the LLM narrative is skipped.
+    if (!this.autoEnabled) return null;
     // Throttle: skip if same status was explained within the last hour
     const now = Date.now();
     if (
@@ -598,6 +623,10 @@ Keep it under 200 words. Be specific about file names and projects.`;
    */
   queueDiffRisk(eventId: number, filepath: string, diff: string, changeType: string): void {
     if (this.disabled) return;
+    // Ambient diff-risk scoring is a real-time LLM trigger — off unless
+    // RAVEN_INSIGHTS_AUTO=1. The underlying file event is still collected
+    // upstream; only the on-the-fly risk analysis is skipped.
+    if (!this.autoEnabled) return;
     if (this.isBinaryOrSkipped(filepath)) {
       logger.debug(`Skipping diff risk for ${filepath} (binary/skipped extension)`);
       return;
