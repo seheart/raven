@@ -11,6 +11,10 @@ import { createAgentEventsRepository } from '../../dist/repositories/agent-event
 import { createFileEventsRepository } from '../../dist/repositories/file-events-repository.js';
 import { createMetricsRepository } from '../../dist/repositories/metrics-repository.js';
 import { createDashboardRepository } from '../../dist/repositories/dashboard-repository.js';
+import {
+  createErrorsRepository,
+  ERROR_BADGE_WINDOW_DAYS
+} from '../../dist/repositories/errors-repository.js';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -22,6 +26,7 @@ let agentEventsRepo;
 let fileEventsRepo;
 let metricsRepo;
 let dashboardRepo;
+let errorsRepo;
 let tmpDir;
 
 beforeAll(() => {
@@ -33,6 +38,7 @@ beforeAll(() => {
   fileEventsRepo = createFileEventsRepository(db);
   metricsRepo = createMetricsRepository(db);
   dashboardRepo = createDashboardRepository(db);
+  errorsRepo = createErrorsRepository(db);
 });
 
 afterAll(() => {
@@ -573,5 +579,41 @@ describe('PatternWarningsRepository', () => {
   test('countUnresolved returns count', () => {
     const count = patternWarningsRepo.countUnresolved();
     expect(count).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('ErrorsRepository', () => {
+  // Rows are written straight to the table so the timestamp can be backdated —
+  // insert() always stamps `now`, which can't exercise the badge window.
+  const seed = (timestamp, message) =>
+    db.db
+      .prepare(
+        `INSERT INTO app_errors (timestamp, error_type, message, component, severity)
+         VALUES (?, 'Error', ?, 'test', 'error')`
+      )
+      .run(timestamp, message);
+
+  const daysAgo = n => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+
+  test('countUnresolved excludes errors older than the badge window', () => {
+    seed(daysAgo(1), 'fresh');
+    seed(daysAgo(ERROR_BADGE_WINDOW_DAYS + 3), 'stale');
+
+    // Only the fresh one counts — the stale row is still in the table.
+    expect(errorsRepo.countUnresolved()).toBe(1);
+    expect(errorsRepo.list({ limit: 10, offset: 0 }).total).toBe(2);
+  });
+
+  test('resolveAll dismisses every unresolved row without deleting it', () => {
+    const resolved = errorsRepo.resolveAll();
+    expect(resolved).toBe(2);
+
+    expect(errorsRepo.countUnresolved()).toBe(0);
+    expect(errorsRepo.getStats().total).toBe(0);
+    // Dismissed, not destroyed.
+    expect(errorsRepo.list({ limit: 10, offset: 0 }).total).toBe(2);
+
+    // Nothing left to flip on a second call.
+    expect(errorsRepo.resolveAll()).toBe(0);
   });
 });

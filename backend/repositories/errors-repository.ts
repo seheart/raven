@@ -4,6 +4,17 @@
 
 import type { RavenDB } from '../db.js';
 
+/**
+ * Rolling window for the header error badge, in days.
+ *
+ * The badge answers "is something wrong right now?", so it must age out.
+ * Without a window, a single bad dev session leaves a permanent red count in
+ * the header — errors from HMR reloads weeks ago read exactly like a live
+ * fault. Full history stays available on /system/errors, which is where you
+ * go to actually review it.
+ */
+export const ERROR_BADGE_WINDOW_DAYS = 7;
+
 interface AppErrorRow {
   id: number;
   timestamp: string;
@@ -46,7 +57,10 @@ export interface ErrorsRepository {
     recent: AppErrorRow[];
   };
   clear(): void;
+  /** Unresolved errors inside the badge window. Powers the header count. */
   countUnresolved(): number;
+  /** Marks every unresolved error resolved. Returns how many were flipped. */
+  resolveAll(): number;
 }
 
 export function createErrorsRepository(db: RavenDB): ErrorsRepository {
@@ -90,9 +104,12 @@ export function createErrorsRepository(db: RavenDB): ErrorsRepository {
     'SELECT * FROM app_errors WHERE resolved = 0 ORDER BY timestamp DESC LIMIT 5'
   );
   const clearStmt = db.db.prepare('DELETE FROM app_errors');
+  // Caller supplies the ISO cutoff so the timestamp index stays usable — same
+  // rewrite as dashboard-repository's 24h statements.
   const countUnresolvedStmt = db.db.prepare(
-    'SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0'
+    'SELECT COUNT(*) as count FROM app_errors WHERE resolved = 0 AND timestamp >= ?'
   );
+  const resolveAllStmt = db.db.prepare('UPDATE app_errors SET resolved = 1 WHERE resolved = 0');
 
   return {
     list({ limit, offset, search, severity }) {
@@ -146,8 +163,16 @@ export function createErrorsRepository(db: RavenDB): ErrorsRepository {
     },
 
     countUnresolved() {
-      const row = countUnresolvedStmt.get() as { count: number } | undefined;
+      const cutoff = new Date(
+        Date.now() - ERROR_BADGE_WINDOW_DAYS * 24 * 60 * 60 * 1000
+      ).toISOString();
+      const row = countUnresolvedStmt.get(cutoff) as { count: number } | undefined;
       return row?.count ?? 0;
+    },
+
+    resolveAll() {
+      const info = resolveAllStmt.run() as { changes: number };
+      return info.changes;
     }
   };
 }

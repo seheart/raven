@@ -66,6 +66,15 @@ export function createErrorsRouter(repo: ErrorsRepository, io: SocketIOServer): 
     return res.json(repo.getStats());
   });
 
+  // POST /api/errors/resolve-all — dismiss the backlog without losing it.
+  // Unlike /clear this keeps the rows for later inspection; it only drops
+  // them out of the header badge count.
+  router.post('/resolve-all', (_req: Request, res: Response) => {
+    const resolved = repo.resolveAll();
+    io.emit('errors-cleared');
+    return res.json({ success: true, resolved });
+  });
+
   // DELETE /api/errors/clear — wipe all
   router.delete('/clear', (_req: Request, res: Response) => {
     repo.clear();

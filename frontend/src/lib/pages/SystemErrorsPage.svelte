@@ -72,6 +72,21 @@
     }
   }
 
+  async function resolveAll() {
+    try {
+      const res = await api.post('/errors/resolve-all', {});
+      const n = res?.resolved ?? 0;
+      toasts.success(
+        n === 0
+          ? 'Nothing left to dismiss'
+          : `Dismissed ${n} ${n === 1 ? 'error' : 'errors'} — rows kept, badge cleared`
+      );
+      loadErrors();
+    } catch (err) {
+      toasts.error('Failed to dismiss errors: ' + (err?.message || String(err)));
+    }
+  }
+
   function toggleError(err) {
     selectedError = selectedError?.id === err.id ? null : err;
   }
@@ -124,6 +139,7 @@
     {#snippet actions()}
       <div class="flex items-center gap-2">
         {#if total > 0}
+          <ToolbarButton onClick={resolveAll}>Dismiss All</ToolbarButton>
           <ToolbarButton variant="danger" onClick={clearAll}>Clear All</ToolbarButton>
         {/if}
         <RefreshButton

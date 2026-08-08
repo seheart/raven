@@ -1032,7 +1032,7 @@
           <button
             onclick={() => navigate('/system/errors')}
             class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0"
-            title="Unresolved app errors caught by the global error handler. Click to view & clear."
+            title="Unresolved app errors from the last 7 days, caught by the global error handler. Older ones age out of this count but stay on the Errors page. Click to view, dismiss, or clear."
           >
             <span class="text-error font-semibold">{appErrors} errors</span>
           </button>
