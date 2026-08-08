@@ -622,7 +622,7 @@ npx playwright install --with-deps
 
 **7. Flaky / Environment-Dependent Failures**
 
-- Check your Node version (Raven targets Node 18+)
+- Check your Node version (Raven targets Node 20.19+)
 - Check environment variables
 - Clear node_modules and reinstall
 

@@ -60,14 +60,6 @@ function runCommand(
           ...process.env,
           NODE_ENV: 'test',
           FORCE_COLOR: '0',
-          // Defense in depth: even though the auth middleware also checks
-          // NODE_ENV (set to 'test' above), explicitly clear the dev-only
-          // bypass so subprocess auth tests exercise rejection paths rather
-          // than passing through. RAVEN_DEV_DISABLE_AUTH replaced the older
-          // generic DISABLE_AUTH name; we clear both for safety during
-          // any transitional period.
-          RAVEN_DEV_DISABLE_AUTH: '',
-          DISABLE_AUTH: '',
           // Same reason: if the dev backend was started with insights
           // disabled (RAVEN_INSIGHTS_DISABLED=1), the route tests would
           // inherit that and see 503 from /generate/* instead of the

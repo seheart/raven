@@ -4,8 +4,8 @@
 
 ### All Platforms
 
-- Node.js 18+ (`node --version`)
-- npm 9+ (`npm --version`)
+- Node.js 20.19+ (`node --version`)
+- npm 10+ (`npm --version`)
 - **rsync** (for Server Sync feature)
   - Arch Linux: `sudo pacman -S rsync`
   - Ubuntu/Debian: `sudo apt install rsync`
@@ -298,13 +298,13 @@ tail -f /tmp/raven-frontend.log
 
 ### Minimum
 
-- Node.js 18+
+- Node.js 20.19+
 - 2GB RAM
 - 500MB disk space
 
 ### Recommended
 
-- Node.js 20+
+- Node.js 22+
 - 4GB RAM
 - 2GB disk space (for snapshots)
 - Modern browser (Chrome, Firefox, Edge)

@@ -30,7 +30,7 @@ class WebSocketService {
       return this.socket;
     }
 
-    // Connect without authentication (RAVEN_DEV_DISABLE_AUTH mode)
+    // No authentication — Raven is a single-user localhost tool.
     this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,

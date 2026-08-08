@@ -30,27 +30,28 @@ Everything runs locally. No network calls, no cloud services.
 
 These were discovered during the initial cleanup and are important for anyone modifying the analysis system or the checks it runs.
 
-### Auth-bypass env leak (RAVEN_DEV_DISABLE_AUTH)
-The Raven server runs with `RAVEN_DEV_DISABLE_AUTH=true` (set in `start.sh`). Subprocesses spawned by the analysis service inherit the server's environment. Two layers of defense ensure auth tests still exercise rejection paths:
+### Auth-bypass env leak (historical)
 
-1. The auth middleware requires *both* `RAVEN_DEV_DISABLE_AUTH === 'true'` AND `NODE_ENV !== 'production'`. The analysis service sets `NODE_ENV: 'test'` for the subprocess, which by itself does not disable the bypass — but combined with point 2, the bypass cannot trip in tests.
-2. The analysis service explicitly clears `RAVEN_DEV_DISABLE_AUTH: ''` (and the older generic `DISABLE_AUTH: ''` for safety during any transitional period) in the exec environment.
-
-The variable was renamed from the generic `DISABLE_AUTH` so it doesn't collide with anything else that might happen to set the same name.
+Raven no longer ships auth middleware at all (the unmounted JWT layer was deleted in 0.6.0 — see DECISIONS.md "Auth on or off?"), so the `RAVEN_DEV_DISABLE_AUTH` bypass and its subprocess-env hygiene are gone with it. Kept here as a pointer for anyone reading old commits.
 
 ### Jest --forceExit exit code
+
 Jest with `--forceExit` exits non-zero even when all tests pass (due to open handles). Do not rely on exit code alone. The service uses `--json` and parses `numFailedTests` / `numPassedTests` from the structured output.
 
 ### Jest output size
+
 Winston logging in tests produces huge output (>50KB). The `--json` flag puts structured results in stdout. The service extracts failure details (test names, error messages) from the JSON before the output gets truncated for storage.
 
 ### Build order
+
 Backend tests import from `dist/`. If build runs after tests, you're testing stale compiled code. Build always runs first.
 
 ### Prettier vs ESLint indentation
+
 Both backend and frontend configs include `eslint-config-prettier` as the last config entry. This disables ESLint's formatting rules (indent, semi, quotes, etc.) so Prettier owns all formatting. Without this, the two tools fight over indentation and the format check never passes.
 
 ### bcrypt → bcryptjs
+
 `bcrypt` was replaced with `bcryptjs` (pure JS drop-in replacement) to eliminate 2 unfixable high-severity vulnerabilities in bcrypt's native build chain (`tar` via `@mapbox/node-pre-gyp`). These were build-time only, not runtime risk, but `npm audit` correctly flagged them.
 
 ## Fix History
@@ -58,23 +59,28 @@ Both backend and frontend configs include `eslint-config-prettier` as the last c
 ### 2026-04-11: Initial cleanup (3/10 → 10/10)
 
 **Lint fixes:**
+
 - Backend: single quotes in `insights.test.js`, removed unused `jest` import from `insights-service.test.js`
 - Frontend: quote style in `renderMarkdown.test.js`, `{#each}` key in `CostsPage`, trailing comma in `SubAgentTreePage`, unused `catch` vars, removed unused `cpuColor`/`memColor` from `OverviewPage`
 
 **Svelte 5 reactivity (49 warnings → 0):**
+
 - 12 UI components (`Accordion`, `Breadcrumbs`, `CodeBlock`, `Container`, `Divider`, `Dropdown`, `DropdownItem`, `List`, `Pagination`, `Skeleton`, `Spacer`, `Stat`, `Tabs`) had props destructured from `$props()` used in plain `const` expressions. Changed to `$derived()` for reactive updates.
 - `Accordion.defaultOpen` is intentionally an initial value — suppressed with `svelte-ignore state_referenced_locally`.
 
 **Svelte a11y:**
+
 - Wrapped form inputs inside `<label>` tags in `SystemProjectsPage`
 - Added `aria-label` to close button in `RateLimitIndicator`
 - Removed invalid `aria-invalid` from button-role element in `FileUpload`
 
 **Svelte 5 migration:**
+
 - `VirtualScroll.svelte`: migrated from deprecated `on:scroll`/`<slot>` to Svelte 5 `onscroll`/`{@render children()}`
 - Updated `ErrorLog.svelte` consumer to use `{#snippet children(item)}` pattern
 
 **Formatting:**
+
 - Added `.prettierignore` to both backend and frontend (excludes `dist/`, `node_modules/`, `coverage/`)
 - Added `eslint-config-prettier` to both `eslint.config.js` files
 - Ran `prettier --write` and `eslint --fix` across both codebases
@@ -82,13 +88,14 @@ Both backend and frontend configs include `eslint-config-prettier` as the last c
 - Removed unused `.animate-spin` CSS from `ActivityOverviewPage`
 
 **Dependencies:**
+
 - Frontend: `npm audit fix` resolved all 15 vulnerabilities
 - Backend: replaced `bcrypt` with `bcryptjs`, removed `@types/bcrypt`, added `@types/bcryptjs`
 
 **Analysis accuracy fixes:**
+
 - Reordered checks: build runs before tests
 - Backend test parser: uses `--json` + JSON parsing instead of regex on truncated output
 - Frontend type parser: only marks `warn` when warning count > 0 (was matching "0 warnings" as a warning)
-- Clears `RAVEN_DEV_DISABLE_AUTH` env var for test runs (formerly `DISABLE_AUTH`)
 - Cleans up stale "running" records on server restart
 - `getLatestRun()` only returns completed runs

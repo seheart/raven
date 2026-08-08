@@ -10,7 +10,7 @@ Thanks for your interest. Raven is a small, opinionated project — a few princi
 
 ## Dev setup
 
-Requirements: Node 18+, Linux or macOS.
+Requirements: Node 20.19+, Linux or macOS.
 
 ```bash
 git clone https://github.com/seheart/raven.git

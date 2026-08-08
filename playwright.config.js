@@ -98,7 +98,6 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         NODE_ENV: 'test',
-        RAVEN_DEV_DISABLE_AUTH: 'true',
         PORT: process.env.RAVEN_E2E_BACKEND_PORT || '9101',
         // Isolated state dir so the test run never writes into the dev DB.
         RAVEN_DIR: process.env.RAVEN_E2E_DIR || '/tmp/raven-e2e/.raven'

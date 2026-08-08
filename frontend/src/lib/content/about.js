@@ -307,18 +307,18 @@ export const RESOLVED_DECISIONS = [
   {
     q: 'Local-only or networked?',
     decision:
-      'Bind to 127.0.0.1, full stop. LAN exposure is not exposed as a config knob — adding it would mean designing auth, audit, and a threat model we are not ready to ship. Cloud is not on the roadmap.',
+      'Bind to 127.0.0.1 by default. RAVEN_BIND=0.0.0.0 is a deliberate, documented escape hatch for trusted networks — with the README and Settings both stating plainly that Raven has no auth, so exposure means everything it records is readable by the network. Cloud is not on the roadmap.',
     alternatives:
-      'A RAVEN_HOST=0.0.0.0 escape hatch (rejected — the friction is doing real work here; an SSO proxy is the supported path for LAN).',
+      'No escape hatch at all (punished legitimate single-user LAN setups), per-instance API key, mTLS between dev machines.',
     livesAt: 'backend/server.ts'
   },
   {
     q: 'Auth on or off?',
     decision:
-      'Off in dev (RAVEN_DEV_DISABLE_AUTH=true, plus NODE_ENV != production). Middleware is wired and ready for LAN/cloud deployments — drop the env var (or set NODE_ENV=production) and provide a JWT secret.',
+      'No auth, period. Raven is a single-user localhost tool; the JWT middleware that used to ship "wired and ready" was never mounted on a single route, so it was deleted rather than left implying protection that did not exist.',
     alternatives:
-      'Mandatory auth even on localhost (friction without payoff for single-user case).',
-    livesAt: 'backend/middleware/security.ts'
+      'Mandatory auth even on localhost (friction without payoff for single-user case), keeping the unmounted middleware (a security suite testing code that never runs is worse than nothing).',
+    livesAt: 'backend/middleware/security.js (helmet/cors/rate-limit only)'
   },
   {
     q: 'How do we capture diffs without bloating the DB?',

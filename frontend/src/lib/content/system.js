@@ -139,10 +139,10 @@ export const PARAMETERS = [
   { label: 'Bind host', value: '127.0.0.1 (RAVEN_HOST to override)' },
   { label: 'Database', value: '.raven/db/raven.db (SQLite, WAL)' },
   { label: 'Auto-vacuum', value: 'incremental — reclaims pages on retention sweep' },
-  { label: 'Event retention', value: '7 days (RETENTION_EVENT_DAYS)' },
-  { label: 'Metrics retention', value: '30 days (RETENTION_METRICS_DAYS)' },
+  { label: 'Event retention', value: 'keep forever by default (RETENTION_EVENT_DAYS opts in)' },
+  { label: 'Metrics retention', value: 'keep forever by default (RETENTION_METRICS_DAYS opts in)' },
   { label: 'Diff size cap', value: '64 KB per text-file change' },
-  { label: 'Auth (dev)', value: 'Disabled (RAVEN_DEV_DISABLE_AUTH=true)' },
+  { label: 'Auth', value: 'None — loopback bind (127.0.0.1) is the boundary' },
   { label: 'WebSocket transport', value: 'Socket.IO — websocket + polling fallback' },
   { label: 'Agent-stats coalesce', value: '2s broadcast window + 2s memo' },
   { label: 'Insights model (default)', value: 'qwen2.5-coder:14b via local Ollama' }

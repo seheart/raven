@@ -371,9 +371,8 @@ VITE_API_URL=http://localhost:9100  # API base URL
 
 ### Production Recommendations
 
-1. **Add Authentication:**
-   - JWT tokens
-   - API keys for telemetry endpoint
+1. **Keep it loopback-only** (Raven deliberately ships no auth — see DECISIONS.md).
+   If you must expose it, put an authenticating reverse proxy in front.
 
 2. **Enable HTTPS:**
    - SSL/TLS certificates
@@ -481,9 +480,6 @@ npm test
 
 ### Short-term
 
-- [ ] Add authentication (JWT)
-- [ ] Enable HTTPS
-- [ ] Docker containerization
 - [ ] Health monitoring dashboard
 
 ### Long-term

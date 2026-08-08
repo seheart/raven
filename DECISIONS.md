@@ -19,21 +19,21 @@ heading is treated as the note.
 
 ### Where do events live?
 
-**Decision:** Local SQLite via better-sqlite3, single file under `.raven/db/raven.db`. WAL journal mode, `auto_vacuum=incremental`, 7-day retention sweep nightly. Full SQL is exposed for ad-hoc queries.
-**Alternatives:** Postgres (overkill for single-host), Parquet (no live writes), event-stream service (cloud).
-**Lives at:** backend/db.ts
+**Decision:** Local SQLite via better-sqlite3, single file under `.raven/db/raven.db`. WAL journal mode, `auto_vacuum=incremental`. Retention defaults to keep-forever; `RETENTION_*_DAYS` env vars opt into nightly sweeps (snapshots default to 7 days). Full SQL is exposed for ad-hoc queries.
+**Alternatives:** Postgres (overkill for single-host), Parquet (no live writes), event-stream service (cloud), mandatory retention (rejected — deleting a user's history by default is worse than a big file).
+**Lives at:** backend/db.ts, backend/services/retention-cleanup.ts
 
 ### Local-only or networked?
 
-**Decision:** Bind to 127.0.0.1, full stop. LAN exposure is intentionally not a config knob — exposing it would mean designing auth, audit, and a threat model we are not ready to ship. The supported path for LAN access is an SSO-aware reverse proxy in front. Cloud is not on the roadmap.
-**Alternatives:** A `RAVEN_HOST=0.0.0.0` escape hatch (rejected — the friction is doing real work here), per-instance API key, mTLS between dev machines, hosted aggregator.
+**Decision:** Bind to 127.0.0.1 by default. `RAVEN_BIND=0.0.0.0` exists as a deliberate, documented escape hatch for trusted networks — with the README and Settings both stating plainly that Raven has no auth, so exposure means everything it records is readable by the network. Cloud is not on the roadmap. (This entry originally recorded the escape hatch as rejected; the code shipped one anyway, and the record now matches the code.)
+**Alternatives:** No escape hatch at all (the friction punished legitimate single-user LAN setups), per-instance API key, mTLS between dev machines, hosted aggregator.
 **Lives at:** backend/server.ts
 
 ### Auth on or off?
 
-**Decision:** Off in dev (`RAVEN_DEV_DISABLE_AUTH=true`, plus `NODE_ENV != production`). Middleware is wired and ready for LAN/cloud deployments — drop the env var (or set `NODE_ENV=production`) and provide a JWT secret.
-**Alternatives:** Mandatory auth even on localhost (friction without payoff for the single-user case).
-**Lives at:** backend/middleware/security.ts
+**Decision:** No auth, period. Raven is a single-user localhost tool; the JWT middleware that used to ship "wired and ready" was never mounted on a single route, so it was deleted rather than left implying protection that didn't exist. If a multi-user deployment story ever becomes real, auth gets designed then — in front of a threat model, not ahead of one.
+**Alternatives:** Mandatory auth even on localhost (friction without payoff for the single-user case), keeping the unmounted middleware (rejected — a security suite testing code that never runs is worse than nothing).
+**Lives at:** backend/middleware/security.js (helmet/cors/rate-limit only)
 
 ### How do we capture diffs without bloating the DB?
 
