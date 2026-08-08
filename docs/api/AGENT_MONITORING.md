@@ -69,13 +69,13 @@ Raven's Agent Monitoring feature enables automatic discovery and tracking of mul
 
 ## 🎨 Agent Types & Colors
 
-| Agent Type | Color | Hex Code | Description |
-|------------|-------|----------|-------------|
-| **Claude** | 🟠 Orange | `#FF6B35` | Anthropic Claude via telemetry API |
-| **Ollama** | 🔵 Teal | `#4ECDC4` | Ollama local LLM runtime |
-| **LM Studio** | 🟢 Mint | `#95E1D3` | LM Studio desktop app |
-| **OpenAI** | 🟢 Green | `#10B981` | OpenAI API (future) |
-| **Custom** | ⚫ Gray | `#6B7280` | User-defined adapters |
+| Agent Type    | Color     | Hex Code  | Description                        |
+| ------------- | --------- | --------- | ---------------------------------- |
+| **Claude**    | 🟠 Orange | `#FF6B35` | Anthropic Claude via telemetry API |
+| **Ollama**    | 🔵 Teal   | `#4ECDC4` | Ollama local LLM runtime           |
+| **LM Studio** | 🟢 Mint   | `#95E1D3` | LM Studio desktop app              |
+| **OpenAI**    | 🟢 Green  | `#10B981` | OpenAI API (future)                |
+| **Custom**    | ⚫ Gray   | `#6B7280` | User-defined adapters              |
 
 ---
 
@@ -114,9 +114,11 @@ pub trait AgentMonitor: Send + Sync {
 ## 🦙 Ollama Adapter
 
 ### Overview
+
 Monitors Ollama via its REST API at `localhost:11434`.
 
 ### Features
+
 - Health checking via `/api/tags` endpoint
 - Model discovery
 - Running model detection via `/api/ps`
@@ -124,6 +126,7 @@ Monitors Ollama via its REST API at `localhost:11434`.
 - Heartbeat events
 
 ### Configuration
+
 ```rust
 use raven::modules::ollama_adapter::OllamaAdapter;
 use raven::modules::agent_monitor::AgentConfig;
@@ -142,10 +145,12 @@ let adapter = OllamaAdapter::new(
 ```
 
 ### API Endpoints Used
+
 - `GET /api/tags` - List available models
 - `GET /api/ps` - List running models (active inference)
 
 ### Events Generated
+
 1. **Heartbeat** - When Ollama comes online
 2. **Generate** - When models are actively running
 
@@ -154,15 +159,18 @@ let adapter = OllamaAdapter::new(
 ## 🎓 LM Studio Adapter
 
 ### Overview
+
 Monitors LM Studio via its OpenAI-compatible API at `localhost:1234`.
 
 ### Features
+
 - Health checking via `/v1/models` endpoint
 - Model discovery
 - Automatic online/offline detection
 - Heartbeat events
 
 ### Configuration
+
 ```rust
 use raven::modules::lmstudio_adapter::LMStudioAdapter;
 use raven::modules::agent_monitor::AgentConfig;
@@ -177,9 +185,11 @@ let adapter = LMStudioAdapter::new(
 ```
 
 ### API Endpoints Used
+
 - `GET /v1/models` - List available models
 
 ### Events Generated
+
 1. **Heartbeat** - When LM Studio comes online
 
 ---
@@ -198,6 +208,7 @@ pub struct AgentConfig {
 ```
 
 **Default values:**
+
 ```rust
 AgentConfig {
     enabled: true,
@@ -226,6 +237,7 @@ pub struct AgentStatus {
 ```
 
 **Example:**
+
 ```json
 {
   "agent_name": "ollama",
@@ -248,6 +260,7 @@ const agents = await invoke('get_agents_status');
 ```
 
 **Returns:**
+
 ```typescript
 interface AgentStatusData {
   agent_name: string;
@@ -257,11 +270,12 @@ interface AgentStatusData {
   models_available: string[];
   requests_handled: number;
   errors: number;
-  color: string;  // Hex color for UI
+  color: string; // Hex color for UI
 }
 ```
 
 **Example:**
+
 ```javascript
 const agents = await invoke('get_agents_status');
 console.log(agents);
@@ -299,6 +313,7 @@ const count = await invoke('get_agent_count');
 ```
 
 **Example:**
+
 ```javascript
 const count = await invoke('get_agent_count');
 console.log(`Monitoring ${count} agents`);
@@ -365,6 +380,7 @@ registry.stop_all().await?;
 ### Features
 
 **Visual Design:**
+
 - Color-coded agent cards (left border + icon)
 - Status indicators (🟢 Running / 🔴 Offline)
 - Last seen timestamps
@@ -373,6 +389,7 @@ registry.stop_all().await?;
 - Request/error counters
 
 **Behavior:**
+
 - Auto-refresh every 5 seconds
 - Manual refresh button
 - Responsive grid layout
@@ -455,6 +472,7 @@ registry.register(custom);
 ### Manual Testing
 
 1. **Start Ollama:**
+
    ```bash
    ollama serve
    ```
@@ -465,8 +483,9 @@ registry.register(custom);
    - Start local server
 
 3. **Start Raven:**
+
    ```bash
-   cd /home/seth/Projects/raven
+   cd ~/Projects/raven
    ./start.sh
    ```
 
@@ -483,6 +502,7 @@ registry.register(custom);
 ### Testing Agent Discovery
 
 **Scenario 1: Ollama starts after Raven**
+
 1. Start Raven (Ollama offline)
 2. Verify Ollama shows 🔴 Offline
 3. Start Ollama
@@ -490,6 +510,7 @@ registry.register(custom);
 5. Verify Ollama shows 🟢 Running
 
 **Scenario 2: Ollama stops while Raven running**
+
 1. Start Raven and Ollama (both running)
 2. Verify Ollama shows 🟢 Running
 3. Stop Ollama
@@ -501,12 +522,14 @@ registry.register(custom);
 ## ⚡ Performance
 
 ### Polling Overhead
+
 - **Per-agent HTTP request:** ~5-50ms (depending on agent)
 - **Poll interval:** 5 seconds (default)
 - **CPU overhead:** <0.1% idle, <1% during poll
 - **Memory overhead:** ~500 KB per adapter
 
 ### Scaling
+
 - **Agents supported:** Up to 10 agents without performance impact
 - **Request batching:** Not implemented (future optimization)
 - **Concurrent polling:** Uses tokio async tasks
@@ -543,6 +566,7 @@ Monitor `requests_handled` and `errors` to see which agents are most reliable an
 **Scenario:** Ensure all required agents are running before starting work.
 
 Quick visual check of agent cards:
+
 - All agents 🟢 = Ready to work
 - Any 🔴 = Need to start missing agents
 
@@ -551,16 +575,19 @@ Quick visual check of agent cards:
 ## 📝 Best Practices
 
 ### 1. Polling Intervals
+
 - **Development:** 5 seconds (default) - good balance
 - **Production:** 10-30 seconds - reduce overhead
 - **Testing:** 1-2 seconds - faster feedback
 
 ### 2. Error Handling
+
 - Agents going offline is normal - don't alert on every failure
 - Track error counts for persistent issues
 - Log errors for debugging
 
 ### 3. Resource Usage
+
 - Don't poll inactive agents too frequently
 - Disable agents you're not using
 - Use health checks before expensive operations

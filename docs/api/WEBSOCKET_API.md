@@ -159,7 +159,7 @@ socket.on('git-status-updated', data => {
 ```javascript
 {
   project_name: 'ant312',
-  project_path: '/home/seth/Projects/ant312',
+  project_path: '/home/you/Projects/myproject',
   previous_project: 'raven',
   timestamp: '2025-10-19T12:34:56.789Z'
 }

@@ -16,7 +16,7 @@ Raven uses SQLite with Write-Ahead Logging (WAL) mode for optimal performance an
 
 - **Total Tables:** 4
 - **Journal Mode:** WAL (Write-Ahead Logging)
-- **Location:** `/home/seth/Projects/raven/.raven/db/raven.db`
+- **Location:** `~/Projects/raven/.raven/db/raven.db`
 - **Initialization:** Automatic on first run
 
 ---

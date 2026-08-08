@@ -93,6 +93,7 @@ cooldown_seconds = 60      # Optional: default 60
 ### Conditions
 
 #### File Pattern
+
 ```toml
 file = "main.rs"          # Exact match
 file = "*.rs"             # Extension match
@@ -101,12 +102,14 @@ file = "**/test/**"       # Contains pattern
 ```
 
 #### Agent Filter
+
 ```toml
 agent = "claude"          # Only Claude events
 agent = "ollama"          # Only Ollama events
 ```
 
 #### Event Type
+
 ```toml
 event_type = "edit"       # File edits
 event_type = "create"     # File creations
@@ -115,6 +118,7 @@ event_type = "modified"   # File modifications
 ```
 
 #### Numeric Conditions
+
 Supported for: `lines_changed`, `duration_ms`, `cpu_percent`, `memory_percent`
 
 ```toml
@@ -128,6 +132,7 @@ lines_changed = "<=10"    # Less or equal
 ### Actions
 
 #### 1. Notify (Desktop Notification)
+
 ```toml
 [triggers.example_notify]
 action = "notify"
@@ -135,6 +140,7 @@ message = "Alert: {file} changed with {lines_changed} lines"
 ```
 
 **Supported placeholders:**
+
 - `{file}` - File path
 - `{agent}` - Agent name
 - `{event_type}` - Event type
@@ -144,11 +150,13 @@ message = "Alert: {file} changed with {lines_changed} lines"
 - `{memory_percent}` - Memory percentage
 
 **Platform-specific notifications:**
+
 - **Linux**: `notify-send` (automatic)
 - **macOS**: `osascript` (automatic)
 - **Windows**: PowerShell ToastNotification (automatic)
 
 #### 2. Log (File Logging)
+
 ```toml
 [triggers.example_log]
 action = "log"
@@ -158,11 +166,13 @@ message = "Logged event: {file}"
 Logs to: `.raven/triggers.log`
 
 Format:
+
 ```
 [2025-10-17T14:30:45Z] trigger_name - Message content
 ```
 
 #### 3. Command (Shell Execution)
+
 ```toml
 [triggers.example_command]
 action = "command"
@@ -185,6 +195,7 @@ cooldown_seconds = 300    # 5 minute cooldown
 ## 📚 Example Triggers
 
 ### 1. Large Edit Alert
+
 ```toml
 [triggers.large_edit]
 file = "*.rs"
@@ -199,6 +210,7 @@ cooldown_seconds = 60
 ---
 
 ### 2. Slow Operation Warning
+
 ```toml
 [triggers.slow_operation]
 agent = "claude"
@@ -213,6 +225,7 @@ cooldown_seconds = 120
 ---
 
 ### 3. High CPU Alert
+
 ```toml
 [triggers.high_cpu]
 cpu_percent = ">80"
@@ -226,6 +239,7 @@ cooldown_seconds = 300
 ---
 
 ### 4. Track All Deletions
+
 ```toml
 [triggers.track_deletes]
 event_type = "deleted"
@@ -239,6 +253,7 @@ cooldown_seconds = 0
 ---
 
 ### 5. Automatic Backup on Edit
+
 ```toml
 [triggers.backup_on_edit]
 file = "main.rs"
@@ -254,6 +269,7 @@ cooldown_seconds = 3600
 ---
 
 ### 6. Critical File Protection
+
 ```toml
 [triggers.protect_critical]
 file = "src/database.rs"
@@ -269,6 +285,7 @@ cooldown_seconds = 0
 ---
 
 ### 7. Memory Leak Detection
+
 ```toml
 [triggers.memory_leak]
 memory_percent = ">85"
@@ -282,6 +299,7 @@ cooldown_seconds = 180
 ---
 
 ### 8. Agent Performance Monitor
+
 ```toml
 [triggers.agent_perf]
 agent = "ollama"
@@ -296,6 +314,7 @@ cooldown_seconds = 60
 ---
 
 ### 9. Comprehensive Test File Changes
+
 ```toml
 [triggers.test_changes]
 file = "**/test/**"
@@ -311,6 +330,7 @@ cooldown_seconds = 300
 ---
 
 ### 10. Multi-Condition Complex Trigger
+
 ```toml
 [triggers.complex_trigger]
 file = "src/**"
@@ -335,6 +355,7 @@ const triggers = await invoke('get_triggers_config');
 ```
 
 **Returns:**
+
 ```typescript
 interface TriggerRuleData {
   name: string;
@@ -362,6 +383,7 @@ const events = await invoke('get_triggered_events', { limit: 100 });
 ```
 
 **Returns:**
+
 ```typescript
 interface TriggeredEventData {
   trigger_name: string;
@@ -381,10 +403,11 @@ const stats = await invoke('get_trigger_stats');
 ```
 
 **Returns:**
+
 ```typescript
 interface TriggerStatsData {
-  total_triggers: number;          // Total times any trigger fired
-  active_triggers: number;          // Number of configured triggers
+  total_triggers: number; // Total times any trigger fired
+  active_triggers: number; // Number of configured triggers
   trigger_counts: Record<string, number>; // Per-trigger fire counts
 }
 ```
@@ -493,11 +516,13 @@ pub struct TriggerRule {
 ### Features
 
 **Three Tabs:**
+
 1. **📋 Trigger Rules** - View all configured triggers with conditions and actions
 2. **🔔 Triggered Events** - History of all fired triggers
 3. **📊 Statistics** - Trigger counts and statistics
 
 **Actions:**
+
 - 🔄 **Reload Config** - Reload `.raven/config.toml`
 - ⏰ **Clear Cooldowns** - Reset all rate limiting
 - ↻ **Refresh** - Refresh UI data
@@ -509,12 +534,14 @@ pub struct TriggerRule {
 ### Manual Testing
 
 1. **Start Raven:**
+
    ```bash
-   cd /home/seth/Projects/raven
+   cd ~/Projects/raven
    ./start.sh
    ```
 
 2. **Edit `.raven/config.toml`:**
+
    ```toml
    [triggers.test_trigger]
    file = "test.txt"
@@ -528,11 +555,13 @@ pub struct TriggerRule {
    - Click "🔄 Reload Config" button
 
 4. **Create test file:**
+
    ```bash
    echo "test content" > test_workspace/test.txt
    ```
 
 5. **Edit test file:**
+
    ```bash
    echo "modified" >> test_workspace/test.txt
    ```
@@ -544,16 +573,19 @@ pub struct TriggerRule {
 ### Test Notification System
 
 **Linux:**
+
 ```bash
 notify-send "Test" "Raven notification test"
 ```
 
 **macOS:**
+
 ```bash
 osascript -e 'display notification "Test" with title "Raven"'
 ```
 
 **Windows:**
+
 ```powershell
 # (PowerShell notification command - see trigger_engine.rs)
 ```
@@ -654,12 +686,14 @@ cooldown_seconds = 0
 ## 📝 Best Practices
 
 ### 1. Use Appropriate Cooldowns
+
 - **Frequent events** (file edits): 60-300 seconds
 - **Rare events** (deletes): 0 seconds
 - **System metrics**: 180-600 seconds
 - **Performance alerts**: 120-300 seconds
 
 ### 2. Message Clarity
+
 ```toml
 # Bad
 message = "Alert"
@@ -669,6 +703,7 @@ message = "High CPU: {cpu_percent}% during {event_type} on {file}"
 ```
 
 ### 3. File Patterns
+
 ```toml
 # Specific
 file = "main.rs"              # Single file
@@ -681,6 +716,7 @@ file = "src/**"               # Entire src/ directory
 ```
 
 ### 4. Combine Conditions
+
 ```toml
 # More specific = fewer false positives
 file = "src/**"
@@ -689,6 +725,7 @@ cpu_percent = ">60"
 ```
 
 ### 5. Test Before Deploying
+
 Always test triggers with `cooldown_seconds = 0` first, then adjust.
 
 ---

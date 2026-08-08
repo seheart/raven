@@ -413,7 +413,7 @@
                 <input
                   id="ds-text"
                   type="text"
-                  placeholder="e.g. /home/seth/Projects/raven"
+                  placeholder="e.g. ~/Projects/raven"
                   class="w-full bg-surface-2 border border-border rounded px-3 py-2 text-sm font-mono text-body placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </div>
@@ -835,7 +835,7 @@
                   {:else if s.demo.kind === 'missing'}
                     <div class="bg-error/10 border-l-4 border-error rounded-r p-3 w-full">
                       <div class="flex items-center gap-3">
-                        <strong class="text-body line-through">/home/seth/Projects/gone</strong>
+                        <strong class="text-body line-through">~/Projects/gone</strong>
                         <span
                           class="inline-block px-2 py-0.5 text-xs font-mono bg-error/15 text-error rounded uppercase tracking-wide"
                           >missing</span

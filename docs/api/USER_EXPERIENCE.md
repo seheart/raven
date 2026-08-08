@@ -34,15 +34,16 @@ The Dashboard is the central hub for monitoring your AI development session. It 
 
 Five key metrics displayed as large, colorful cards:
 
-| Stat | Icon | Description |
-|------|------|-------------|
-| **Total Events** | 📊 | Total number of file system events recorded |
-| **Tracked Files** | 📁 | Number of files being monitored |
-| **AI Agents** | 🤖 | Number of detected AI agents |
-| **Session Duration** | ⏱️ | Time elapsed since session start |
-| **Active Today** | 🔥 | Files modified in the last 24 hours |
+| Stat                 | Icon | Description                                 |
+| -------------------- | ---- | ------------------------------------------- |
+| **Total Events**     | 📊   | Total number of file system events recorded |
+| **Tracked Files**    | 📁   | Number of files being monitored             |
+| **AI Agents**        | 🤖   | Number of detected AI agents                |
+| **Session Duration** | ⏱️   | Time elapsed since session start            |
+| **Active Today**     | 🔥   | Files modified in the last 24 hours         |
 
 **Example:**
+
 ```
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
 │ 📊           │ │ 📁           │ │ 🤖           │
@@ -58,11 +59,13 @@ Five key metrics displayed as large, colorful cards:
 **Purpose:** Identify hotspots in your codebase - files that change most frequently.
 
 **Columns:**
+
 - **File** - File path with icon
 - **Edits** - Number of modifications
 - **Last Modified** - Timestamp of most recent change
 
 **Example:**
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │ 📝 Top Modified Files                            10 │
@@ -74,6 +77,7 @@ Five key metrics displayed as large, colorful cards:
 ```
 
 **Use Cases:**
+
 - Find files that need refactoring (too many changes)
 - Identify critical files for code review
 - Track development focus areas
@@ -85,11 +89,13 @@ Five key metrics displayed as large, colorful cards:
 **Purpose:** Highlight the most significant code changes made by AI agents.
 
 **Columns:**
+
 - **File** - File path
 - **Lines** - Number of lines changed
 - **Agent** - AI agent that made the edit (color-coded badge)
 
 **Example:**
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │ 🎯 Longest Edits                                  10 │
@@ -101,6 +107,7 @@ Five key metrics displayed as large, colorful cards:
 ```
 
 **Use Cases:**
+
 - Review large AI-generated changes
 - Identify complex implementations
 - Track agent productivity
@@ -112,6 +119,7 @@ Five key metrics displayed as large, colorful cards:
 **Purpose:** Monitor the status of all AI agents in real-time.
 
 **Display:**
+
 - Agent name (capitalized)
 - Status indicator (🟢 Running / 🔴 Offline)
 - Model count
@@ -119,6 +127,7 @@ Five key metrics displayed as large, colorful cards:
 - Color-coded left border
 
 **Example:**
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │ 🤖 Active Agents                                2/2  │
@@ -132,6 +141,7 @@ Five key metrics displayed as large, colorful cards:
 ```
 
 **Use Cases:**
+
 - Verify all required agents are running
 - Monitor agent activity levels
 - Quick health check before starting work
@@ -204,11 +214,13 @@ Binary location: `target/release/raven`
 **Purpose:** Display agent connection status and session statistics.
 
 **Usage:**
+
 ```bash
 raven status [OPTIONS]
 ```
 
 **Options:**
+
 - `-v`, `--verbose` - Show detailed information
 
 **Example Output:**
@@ -261,6 +273,7 @@ Raven Status
 ```
 
 **Use Cases:**
+
 - Quick health check before coding session
 - Verify agent connectivity
 - Troubleshoot agent discovery issues
@@ -272,11 +285,13 @@ Raven Status
 **Purpose:** Open session replay at a specific timestamp.
 
 **Usage:**
+
 ```bash
 raven replay [TIMESTAMP]
 ```
 
 **Parameters:**
+
 - `TIMESTAMP` - ISO 8601 timestamp (optional)
 
 **Example:**
@@ -304,6 +319,7 @@ Opening replay at timestamp: 2025-10-17T14:30:00Z
 ```
 
 **Use Cases:**
+
 - Review specific time periods
 - Analyze what happened at a certain time
 - Debug issues that occurred at known timestamps
@@ -315,11 +331,13 @@ Opening replay at timestamp: 2025-10-17T14:30:00Z
 **Purpose:** Package logs and diffs into a compressed archive for sharing or backup.
 
 **Usage:**
+
 ```bash
 raven export [OPTIONS]
 ```
 
 **Options:**
+
 - `-o`, `--output <FILE>` - Output file path (default: `raven-export.tar.gz`)
 
 **Example:**
@@ -363,6 +381,7 @@ raven-export.tar.gz
 ```
 
 **Use Cases:**
+
 - Backup session data
 - Share logs with team members
 - Preserve session for later analysis
@@ -378,6 +397,7 @@ const stats = await invoke('get_dashboard_stats');
 ```
 
 **Returns:**
+
 ```typescript
 interface DashboardStatsData {
   total_events: number;
@@ -398,6 +418,7 @@ const topFiles = await invoke('get_top_modified_files', { limit: 10 });
 ```
 
 **Returns:**
+
 ```typescript
 interface FileStatData {
   filepath: string;
@@ -417,6 +438,7 @@ const edits = await invoke('get_longest_edits', { limit: 10 });
 ```
 
 **Returns:**
+
 ```typescript
 interface LongestEditData {
   filepath: string;
@@ -445,16 +467,19 @@ interface LongestEditData {
 ### Features
 
 **Auto-Refresh:**
+
 - Updates every 5 seconds automatically
 - Manual refresh button available
 - Minimal performance impact
 
 **Responsive Design:**
+
 - Desktop: 3-column grid
 - Tablet: 2-column grid
 - Mobile: Single column stack
 
 **Accessibility:**
+
 - High contrast ratios
 - Clear visual hierarchy
 - Tooltips for truncated text
@@ -500,8 +525,9 @@ stats.sort_by(|a, b| b.1.cmp(&a.1));
 ### Manual Testing
 
 1. **Start Raven:**
+
    ```bash
-   cd /home/seth/Projects/raven
+   cd ~/Projects/raven
    ./start.sh
    ```
 
@@ -526,12 +552,14 @@ stats.sort_by(|a, b| b.1.cmp(&a.1));
 ## ⚡ Performance
 
 ### Dashboard Rendering
+
 - **Initial load:** <100ms
 - **Refresh interval:** 5 seconds
 - **Update latency:** <50ms
 - **Memory overhead:** ~5 MB for UI + data
 
 ### CLI Commands
+
 - **`raven status`:** <500ms (including agent checks)
 - **`raven export`:** <2s for 100 MB archive
 - **`raven replay`:** <100ms (placeholder)
@@ -549,6 +577,7 @@ raven status --verbose
 ```
 
 Shows:
+
 - Files modified
 - Agent activity
 - Session duration

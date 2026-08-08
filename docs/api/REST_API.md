@@ -699,7 +699,7 @@ Raven provides a comprehensive REST API for accessing all monitoring data, agent
 {
   "success": true,
   "active_project": "ant312",
-  "watch_path": "/home/seth/Projects/ant312"
+  "watch_path": "/home/you/Projects/myproject"
 }
 ```
 

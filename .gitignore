@@ -96,3 +96,4 @@ test-results/
 # Nightly test logs
 logs/nightly-tests/
 /raven.db
+.raven/
