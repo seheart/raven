@@ -92,13 +92,15 @@ export class InsightsService {
 
   // Preference order for auto-selection when no model is pinned. First match
   // against Ollama's /api/tags wins; otherwise we fall through to whatever's
-  // installed. Ordered by "fast + good at code" for diff-risk scoring.
+  // installed. Ordered smallest-first: these are short scoring and summary
+  // prompts, so the smallest capable model is the right default — it's the
+  // difference between a ~5 GB and a ~9 GB resident footprint on the GPU.
   private static readonly MODEL_PREFERENCE = [
     'qwen2.5-coder:7b',
+    'llama3.1:8b',
     'qwen2.5-coder:14b',
-    'qwen2.5-coder:32b',
     'qwen3:14b',
-    'llama3.1:8b'
+    'qwen2.5-coder:32b'
   ];
 
   // Kill switch: when RAVEN_INSIGHTS_DISABLED=1, every Ollama-bound method
@@ -1008,8 +1010,15 @@ Keep it under 150 words.`;
     if (this.model) return true;
     const installed = await this.getModels();
     if (installed.length === 0) return false;
+    // Exact tag first, then quantization/instruct variants of the same size:
+    // a preference for "qwen2.5-coder:7b" should be satisfied by an installed
+    // "qwen2.5-coder:7b-instruct-q5_K_M". Requiring the trailing "-" keeps
+    // ":7b" from matching ":70b". Without this, a pulled variant looks
+    // uninstalled and selection silently falls through to a larger model.
     const picked =
-      InsightsService.MODEL_PREFERENCE.find(m => installed.includes(m)) || installed[0];
+      InsightsService.MODEL_PREFERENCE.map(
+        m => installed.find(i => i === m || i.startsWith(`${m}-`)) ?? null
+      ).find((m): m is string => m !== null) || installed[0];
     this.model = picked;
     logger.info(`Auto-selected Ollama model: ${picked} (installed: ${installed.join(', ')})`);
     return true;
@@ -1061,7 +1070,13 @@ Keep it under 150 words.`;
             model: this.model,
             prompt,
             stream: false,
-            keep_alive: '1m',
+            // Unload as soon as the response is done. Raven's LLM use is
+            // bursty and on-demand, so lingering in VRAM buys nothing: the
+            // next request is usually minutes or hours away, well past any
+            // keep-alive we'd set. Holding a multi-GB model resident for a
+            // speculative follow-up starves Ollama's other clients — and
+            // Ollama here is shared infrastructure, not Raven's alone.
+            keep_alive: 0,
             options: {
               temperature: 0.3,
               num_predict: numPredict

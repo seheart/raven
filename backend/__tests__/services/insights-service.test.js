@@ -6,6 +6,7 @@
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import { InsightsService } from '../../dist/services/insights-service.js';
 import { RavenDB } from '../../dist/db.js';
+import { getBreaker } from '../../dist/utils/circuit-breaker.js';
 import { createAgentEventsRepository } from '../../dist/repositories/agent-events-repository.js';
 import { createFileEventsRepository } from '../../dist/repositories/file-events-repository.js';
 import { mkdtempSync, rmSync } from 'fs';
@@ -305,5 +306,74 @@ describe('InsightsService - Kill switch (RAVEN_INSIGHTS_DISABLED)', () => {
   test('generateSummary returns null without touching Ollama', async () => {
     const result = await disabledService.generateSummary(60);
     expect(result).toBeNull();
+  });
+});
+
+describe('InsightsService - GPU footprint', () => {
+  let gpuDb;
+  let gpuDir;
+  let gpuService;
+
+  beforeAll(() => {
+    gpuDir = mkdtempSync(join(tmpdir(), 'raven-insights-gpu-'));
+    gpuDb = new RavenDB(join(gpuDir, 'test.db'));
+  });
+
+  afterAll(() => {
+    if (gpuDb) gpuDb.close();
+    if (gpuDir) rmSync(gpuDir, { recursive: true, force: true });
+  });
+
+  // No third arg — model unpinned, so auto-selection runs.
+  const unpinned = () => new InsightsService(gpuDb, 'http://localhost:99999');
+
+  test('auto-selection matches a quantized variant of a preferred tag', async () => {
+    gpuService = unpinned();
+    // The exact tag "qwen2.5-coder:7b" isn't present; the pulled variant is.
+    // Before prefix matching this fell through to the 14b — roughly double
+    // the resident VRAM for the same short prompts.
+    gpuService.getModels = async () => [
+      'qwen2.5-coder:7b-instruct-q5_K_M',
+      'qwen2.5-coder:14b',
+      'llama3.3:70b'
+    ];
+    expect(await gpuService.ensureModel()).toBe(true);
+    expect(gpuService.model).toBe('qwen2.5-coder:7b-instruct-q5_K_M');
+  });
+
+  test('auto-selection does not let :7b match :70b', async () => {
+    gpuService = unpinned();
+    gpuService.getModels = async () => ['llama3.3:70b', 'qwen3:14b'];
+    expect(await gpuService.ensureModel()).toBe(true);
+    // :70b must not satisfy the :7b preference — qwen3:14b is the first
+    // genuine preference hit, so it wins over the merely-installed 70b.
+    expect(gpuService.model).toBe('qwen3:14b');
+  });
+
+  test('generate requests ask Ollama to unload immediately (keep_alive 0)', async () => {
+    gpuService = unpinned();
+    gpuService.getModels = async () => ['qwen2.5-coder:7b'];
+
+    // The 'ollama' breaker is process-global and shared with every other
+    // Ollama caller. Earlier tests in this file point at a dead port, so by
+    // now it has tripped open and would short-circuit before fetch.
+    getBreaker('ollama').recordSuccess();
+
+    const realFetch = global.fetch;
+    let sent = null;
+    global.fetch = async (url, init) => {
+      sent = JSON.parse(init.body);
+      return { ok: true, json: async () => ({ response: 'ok' }) };
+    };
+    try {
+      await gpuService.callOllamaShort('probe', 10);
+    } finally {
+      global.fetch = realFetch;
+    }
+
+    expect(sent).not.toBeNull();
+    // A lingering model holds multi-GB of VRAM for a follow-up that, for
+    // on-demand generation, is usually minutes or hours away.
+    expect(sent.keep_alive).toBe(0);
   });
 });

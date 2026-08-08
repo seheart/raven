@@ -366,17 +366,23 @@ scheduleDaily(18, () => {
     });
 });
 
-// Hourly analysis — while Raven is up, batch-analyze recent activity on a
-// fixed interval (default 60 min) rather than reacting to every file edit.
-// This is independent of RAVEN_INSIGHTS_AUTO (the real-time per-edit triggers):
-// data is always collected, and once an hour the local LLM produces a session
-// summary over the window. generateSummary() returns null when there's been no
-// activity, so idle hours cost nothing. Set RAVEN_INSIGHTS_INTERVAL_MIN=0 to
-// disable the periodic pass (on-demand generation still works either way).
+// Periodic batch analysis — OFF by default. Set RAVEN_INSIGHTS_INTERVAL_MIN
+// to a positive number of minutes to opt in.
+//
+// "Idle hours cost nothing" was true of CPU and disk but not of VRAM: each
+// pass loads a multi-GB model onto the GPU whether or not anyone asked for an
+// insight. On a 12 GB card a 14B model is ~9.3 GB, so an unattended timer can
+// evict whatever else is resident. Raven shares Ollama with other tools, so
+// the local LLM now runs only when something actually requests it —
+// on-demand generation via /api/insights/* is unaffected either way.
+//
+// Data collection is untouched: file events, diffs, and sessions are always
+// recorded, so opting back in later still has the full window to analyze.
+//
 // A malformed value (e.g. "60m", "abc") parses to NaN — fall back to the
-// documented 60-minute default rather than silently disabling the pass.
-const rawInterval = parseInt(process.env.RAVEN_INSIGHTS_INTERVAL_MIN ?? '60', 10);
-const insightsIntervalMin = Number.isNaN(rawInterval) ? 60 : rawInterval;
+// documented default rather than silently enabling an unattended pass.
+const rawInterval = parseInt(process.env.RAVEN_INSIGHTS_INTERVAL_MIN ?? '0', 10);
+const insightsIntervalMin = Number.isNaN(rawInterval) ? 0 : rawInterval;
 if (insightsService.isDisabled()) {
   // Whole service is off; nothing to schedule.
 } else if (insightsIntervalMin > 0) {
@@ -401,8 +407,10 @@ if (insightsService.isDisabled()) {
   hourlyAnalysis.unref();
   logger.info(`[hourly-analysis] scheduled every ${insightsIntervalMin}m`);
 } else {
-  // Explicitly disabled (<=0) — log it so it's distinguishable from a default run.
-  logger.info('[hourly-analysis] periodic pass disabled (RAVEN_INSIGHTS_INTERVAL_MIN <= 0)');
+  logger.info(
+    '[hourly-analysis] periodic pass off — local LLM runs on demand only ' +
+      '(set RAVEN_INSIGHTS_INTERVAL_MIN=60 to opt into an unattended hourly pass)'
+  );
 }
 
 const agentRegistry = new Map<string, AgentInfo>();
