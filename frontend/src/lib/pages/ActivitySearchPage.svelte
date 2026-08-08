@@ -53,7 +53,10 @@
     return { filesFound, agentsFound, fileChanges, agentEvents };
   });
 
-  // Perform search
+  // Perform search — server-side over the FULL database via
+  // /api/search/global (file events, agent events, conversations, errors,
+  // notifications). This page used to client-filter the most recent 500
+  // rows of two endpoints, i.e. it silently searched ~0.1% of history.
   async function performSearch() {
     if (!searchQuery.trim()) {
       results = [];
@@ -65,51 +68,28 @@
       loading = true;
       hasSearched = true;
       const startTime = performance.now();
-      const query = searchQuery.toLowerCase();
 
-      // Search both file events and agent events
-      const [fileEvents, agentEvents] = await Promise.all([
-        api.get('/file-events?limit=500&diff=false').catch(() => []),
-        api.get('/all-agent-events?limit=500').catch(() => [])
-      ]);
+      const data = await api.get(`/search/global?q=${encodeURIComponent(searchQuery)}&limit=500`);
+      const items = Array.isArray(data?.results) ? data.results : [];
 
-      const fileArray = Array.isArray(fileEvents) ? fileEvents : [];
-      const agentArray = Array.isArray(agentEvents) ? agentEvents : [];
-
-      // Normalize and filter file events
-      const matchedFiles = fileArray
-        .filter(
-          e =>
-            e.filepath?.toLowerCase().includes(query) ||
-            e.change_type?.toLowerCase().includes(query)
-        )
-        .map(e => ({
-          ...e,
-          filepath: e.filepath,
-          change_type: e.change_type,
-          source: 'file'
-        }));
-
-      // Normalize and filter agent events
-      const matchedAgent = agentArray
-        .filter(
-          e =>
-            (e.file || '').toLowerCase().includes(query) ||
-            (e.message || '').toLowerCase().includes(query) ||
-            (e.agent || '').toLowerCase().includes(query) ||
-            (e.event_type || '').toLowerCase().includes(query)
-        )
-        .map(e => ({
-          ...e,
-          filepath: e.file || e.filepath,
-          change_type: e.event_type,
-          source: 'agent'
-        }));
-
-      // Combine and sort by timestamp
-      results = [...matchedFiles, ...matchedAgent].sort(
-        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-      );
+      // Normalize the SearchResultItem shape onto the row shape the table
+      // renders: filepath / message / agent / change_type / source.
+      // For 'event' rows title is a path; for 'agent' rows title is the file
+      // if there was one (then `message` carries the text), otherwise the
+      // message itself; for everything else title is display text.
+      results = items.map(item => {
+        const hasPath = item.type === 'event' || (item.type === 'agent' && item.message != null);
+        return {
+          id: `${item.type}:${item.id}`,
+          timestamp: item.timestamp,
+          filepath: hasPath ? item.title : null,
+          message: hasPath ? item.message || null : item.type === 'event' ? null : item.title,
+          agent: item.agent || null,
+          change_type: item.description,
+          project_name: item.project_name || null,
+          source: item.type === 'event' ? 'file' : item.type === 'agent' ? 'agent' : item.type
+        };
+      });
 
       const endTime = performance.now();
       searchTime = Math.round(endTime - startTime);

@@ -25,6 +25,7 @@ export function createSearchRouter(repo: SearchRepository): Router {
 
       const categories = {
         events: count(results, 'event'),
+        agents: count(results, 'agent'),
         conversations: count(results, 'conversation'),
         errors: count(results, 'error'),
         notifications: count(results, 'notification')

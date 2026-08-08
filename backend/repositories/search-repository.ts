@@ -9,12 +9,14 @@
 import type { RavenDB } from '../db.js';
 
 export interface SearchResultItem {
-  type: 'event' | 'conversation' | 'error' | 'notification';
+  type: 'event' | 'agent' | 'conversation' | 'error' | 'notification';
   id: number;
   title: string;
   description: string;
   timestamp: string;
   project_name?: string | null;
+  agent?: string | null;
+  message?: string | null;
   icon: string;
 }
 
@@ -67,6 +69,42 @@ export function createSearchRepository(db: RavenDB): SearchRepository {
           project_name: e.project_name,
           icon: '📄'
         });
+      }
+
+      // Agent events — tool calls, messages, file touches attributed to an
+      // agent. This is the bulk of what "search everything" means for a
+      // monitoring tool, so it joins the party alongside raw file events.
+      if (tableExists(db, 'agent_events', tableCache)) {
+        const agentEvents = db.db
+          .prepare(
+            `SELECT id, timestamp, agent, event_type, file, message, project_name
+             FROM agent_events
+             WHERE file LIKE ? OR message LIKE ? OR agent LIKE ? OR event_type LIKE ?
+             ORDER BY timestamp DESC
+             LIMIT ?`
+          )
+          .all(pattern, pattern, pattern, pattern, limit) as Array<{
+          id: number;
+          timestamp: string;
+          agent: string;
+          event_type: string;
+          file: string | null;
+          message: string;
+          project_name: string | null;
+        }>;
+        for (const e of agentEvents) {
+          results.push({
+            type: 'agent',
+            id: e.id,
+            title: e.file || e.message,
+            description: e.event_type,
+            timestamp: e.timestamp,
+            project_name: e.project_name,
+            agent: e.agent,
+            message: e.file ? e.message : null,
+            icon: '🤖'
+          });
+        }
       }
 
       // Conversations (optional table)

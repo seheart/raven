@@ -24,6 +24,7 @@ import type { InsightsService } from './insights-service.js';
 import type { SyntaxErrorsRepository } from '../repositories/syntax-errors-repository.js';
 import type { PatternWarningsRepository } from '../repositories/pattern-warnings-repository.js';
 import type { FileEventsRepository } from '../repositories/file-events-repository.js';
+import type { DiffAnnotationService } from './diff-annotation-service.js';
 
 interface FileWatcherLike {
   getCachedContent(absolutePath: string): string | undefined;
@@ -52,6 +53,7 @@ interface BindingsDeps {
   syntaxErrorsRepo: SyntaxErrorsRepository;
   patternWarningsRepo: PatternWarningsRepository;
   fileEventsRepo: FileEventsRepository;
+  diffAnnotationService: DiffAnnotationService;
 }
 
 async function saveSnapshot(
@@ -86,7 +88,8 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
     insightsService,
     syntaxErrorsRepo,
     patternWarningsRepo,
-    fileEventsRepo
+    fileEventsRepo,
+    diffAnnotationService
   } = deps;
 
   // ── File change events ──────────────────────────────────────────────
@@ -171,6 +174,31 @@ export function bindEventBusListeners(deps: BindingsDeps): void {
         eventProjectName,
         agentSource
       );
+
+      // Risk-annotate the diff at write time. This is the write path the
+      // feature was always missing: annotations used to be computed only
+      // lazily when a single diff was opened in the viewer, so the "recent
+      // risks" feed stayed empty forever. Regex rules over one diff are
+      // cheap (<1ms typical); failures must never block ingest.
+      if (diff) {
+        try {
+          const found = diffAnnotationService.annotate({
+            event_id: eventId,
+            filepath: storedPath,
+            diff,
+            timestamp: new Date(event.ts).toISOString()
+          });
+          if (found.length > 0) {
+            io.emit('diff-annotations', {
+              event_id: eventId,
+              filepath: storedPath,
+              count: found.length
+            });
+          }
+        } catch (error) {
+          logger.error('❌ Diff annotation error:', error as Error);
+        }
+      }
 
       // Save snapshot at the same project-prefixed path so file-diff lookups match.
       if (event.content && event.type !== 'unlink') {

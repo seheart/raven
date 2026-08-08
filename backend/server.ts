@@ -48,6 +48,7 @@ import { createProjectsConfigService } from './services/projects-config.js';
 import { createAgentEventHandlerFactory } from './services/agent-event-handler-factory.js';
 import { bindEventBusListeners } from './services/event-bus-bindings.js';
 import { startRetentionCleanup, scheduleDaily } from './services/retention-cleanup.js';
+import { startDiffAnnotationBackfill } from './services/diff-annotation-backfill.js';
 import { installGracefulShutdown } from './services/graceful-shutdown.js';
 import { startTransparentOllamaProxy } from './services/transparent-ollama-proxy.js';
 import { onDiskStateChange, getDiskState } from './utils/disk-state.js';
@@ -427,6 +428,7 @@ const dashboardRepository = createDashboardRepository(db);
 const diffRiskRepository = createDiffRiskRepository(db);
 const diffAnnotationsRepository = createDiffAnnotationsRepository(db);
 const diffAnnotationService = createDiffAnnotationService(diffAnnotationsRepository);
+startDiffAnnotationBackfill({ db, diffAnnotationService, ravenDir: RAVEN_DIR });
 const digestService = createDigestService(db);
 const personaService = createPersonaService(db);
 const decisionsService = createDecisionsService(ravenPaths.repoRoot);
@@ -526,7 +528,8 @@ bindEventBusListeners({
   insightsService,
   syntaxErrorsRepo: syntaxErrorsRepository,
   patternWarningsRepo: patternWarningsRepository,
-  fileEventsRepo: fileEventsRepository
+  fileEventsRepo: fileEventsRepository,
+  diffAnnotationService
 });
 
 // ==================== REST API Endpoints ====================
