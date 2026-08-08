@@ -29,12 +29,18 @@
   // Billing mode
   let billingMode = $state(get(settings)?.billing?.mode || 'subscription');
   let planName = $state(get(settings)?.billing?.planName || 'Claude Max');
+  let planTier = $state(get(settings)?.billing?.planTier || 'max_5x');
+  let planBudgetUsd = $state(get(settings)?.billing?.planBudgetUsd ?? null);
+  let weeklyBudgetUsd = $state(get(settings)?.billing?.weeklyBudgetUsd ?? null);
   const isApi = $derived(billingMode === 'api');
 
   // Sync with settings store
   const unsubSettings = settings.subscribe(s => {
     billingMode = s?.billing?.mode || 'subscription';
     planName = s?.billing?.planName || 'Claude Max';
+    planTier = s?.billing?.planTier || 'max_5x';
+    planBudgetUsd = s?.billing?.planBudgetUsd ?? null;
+    weeklyBudgetUsd = s?.billing?.weeklyBudgetUsd ?? null;
   });
 
   // State
@@ -79,6 +85,31 @@
   /** @type {string|null} */
   let loadError = $state(null);
 
+  // Plan-limit burn-down (subscription plans only). Estimated budgets —
+  // the backend labels the payload accordingly and Settings can override.
+  let limits = $state(null);
+
+  async function loadLimits() {
+    if (isApi) {
+      limits = null;
+      return;
+    }
+    try {
+      let q = `plan=${encodeURIComponent(planTier)}`;
+      if (planBudgetUsd > 0) q += `&budget=${planBudgetUsd}`;
+      if (weeklyBudgetUsd > 0) q += `&weekly_budget=${weeklyBudgetUsd}`;
+      limits = await api.get(`/costs/limits?${q}`);
+    } catch (err) {
+      logger.error('Failed to load plan limits:', err);
+      limits = null;
+    }
+  }
+
+  function formatClock(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
   async function loadData() {
     try {
       loading = true;
@@ -109,6 +140,7 @@
       timeline = Array.isArray(timelineData) ? timelineData : [];
 
       lastUpdated = new Date();
+      loadLimits();
     } catch (err) {
       // Surface the failure inline. Previously this was logger.error-only
       // and the page rendered blank summary tiles ("Requests" with no
@@ -370,6 +402,66 @@
         </div>
       </div>
     </div>
+
+    <!-- Plan-limit burn-down. Subscription plans meter in rolling 5h windows;
+         budgets are community estimates (backend flags `estimated: true`),
+         overridable in Settings once the user observes their real cap. -->
+    {#if !isApi && limits?.window}
+      {@const w = limits.window}
+      {@const barPct = Math.min(100, w.pct_used)}
+      {@const barColor =
+        w.pct_used >= 90 ? 'bg-error/60' : w.on_pace_to_hit_cap ? 'bg-warning/60' : 'bg-accent/50'}
+      <div class="bg-surface border border-border rounded p-4 mb-6">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div class="text-xs font-semibold text-muted uppercase tracking-wide">
+            5-Hour Window · {planTier === 'pro'
+              ? 'Pro'
+              : planTier === 'max_20x'
+                ? 'Max 20x'
+                : 'Max 5x'}
+          </div>
+          <div
+            class="text-[10px] text-muted italic"
+            title="Budget is a community estimate in API-equivalent dollars. Set your observed cap in Settings → Billing."
+          >
+            estimated budget · adjustable in Settings
+          </div>
+        </div>
+        {#if w.start}
+          <div class="flex items-baseline gap-3 mb-2 font-mono">
+            <span class="text-2xl font-bold text-body">{w.pct_used.toFixed(0)}%</span>
+            <span class="text-sm text-muted">
+              ${w.usage_usd.toFixed(2)} of ~${w.budget_usd} equivalent
+            </span>
+          </div>
+          <div class="h-2 bg-canvas border border-border rounded overflow-hidden mb-3">
+            <div class="h-full {barColor}" style="width: {barPct}%"></div>
+          </div>
+          <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs font-mono text-muted">
+            <span>burn ${w.burn_rate_usd_per_hour.toFixed(2)}/h</span>
+            <span>window resets {formatClock(w.resets_at)}</span>
+            {#if w.on_pace_to_hit_cap}
+              <span class="text-warning font-semibold">
+                on pace to hit the cap ~{formatClock(w.projected_exhaustion)}
+              </span>
+            {:else if w.projected_exhaustion}
+              <span>would exhaust ~{formatClock(w.projected_exhaustion)} at this rate</span>
+            {/if}
+            <span
+              >rolling 7d ${limits.weekly.usage_usd.toFixed(2)}{limits.weekly.pct_used !== null
+                ? ` (${limits.weekly.pct_used.toFixed(0)}% of weekly)`
+                : ''}</span
+            >
+          </div>
+        {:else}
+          <div class="text-sm text-muted font-mono">
+            No usage in the last 5 hours — window closed. Rolling 7d: ${limits.weekly.usage_usd.toFixed(
+              2
+            )}
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Prompt cache panel: hit ratio + estimated savings vs uncached input.
            Anthropic charges cache reads at 0.1× input rate, so 1 cached token

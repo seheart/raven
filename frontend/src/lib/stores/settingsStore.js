@@ -35,7 +35,10 @@ const DEFAULT_SETTINGS = {
   },
   billing: {
     mode: 'subscription', // 'subscription' or 'api'
-    planName: 'Claude Max' // display label for current plan
+    planName: 'Claude Max', // display label for current plan
+    planTier: 'max_5x', // 'pro' | 'max_5x' | 'max_20x' — drives limit estimates
+    planBudgetUsd: null, // observed 5h-window budget override (null = community estimate)
+    weeklyBudgetUsd: null // observed weekly budget (null = don't predict weekly)
   }
 };
 

@@ -349,6 +349,41 @@
               <option value="Free">Free</option>
             </select>
           </div>
+          <div class="flex justify-between items-center">
+            <div>
+              <label for="settings-plan-tier" class="text-sm text-body">Limit Tier</label>
+              <div class="text-xs text-muted">Drives the 5-hour window burn-down on Costs</div>
+            </div>
+            <select
+              id="settings-plan-tier"
+              bind:value={currentSettings.billing.planTier}
+              class="px-3 py-1.5 bg-canvas border border-border rounded text-sm font-mono text-body cursor-pointer"
+            >
+              <option value="pro">Pro</option>
+              <option value="max_5x">Max 5x</option>
+              <option value="max_20x">Max 20x</option>
+            </select>
+          </div>
+          <div class="flex justify-between items-center">
+            <div>
+              <label for="settings-plan-budget" class="text-sm text-body">5h Budget Override</label>
+              <div class="text-xs text-muted">
+                Cost-equivalent $ per window. Leave blank to use the community estimate.
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted">$</span>
+              <input
+                id="settings-plan-budget"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="auto"
+                bind:value={currentSettings.billing.planBudgetUsd}
+                class="w-20 px-2 py-1 bg-canvas border border-border rounded text-sm font-mono text-body text-center"
+              />
+            </div>
+          </div>
           <div class="text-xs text-muted bg-canvas rounded p-3">
             On a subscription plan, token usage is tracked for visibility but you are not billed per
             token. Cost estimates are hidden. Switch to API mode if you use pay-per-token billing.

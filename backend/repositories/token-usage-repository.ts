@@ -43,6 +43,14 @@ export interface TokenUsageRepository {
   /** Aggregate totals for the given window/project filter. */
   costSummary(filter: CostFilter): CostSummary;
 
+  /**
+   * Timestamp of the earliest usage row at-or-after `sinceIso`, or null.
+   * Anchors the rolling plan-limit window: Claude's 5-hour session window
+   * starts at the first request, so "first usage in the last 5h" is the
+   * closest approximation the local logs can give.
+   */
+  firstUsageSince(sinceIso: string): string | null;
+
   /** Cost rollup grouped by project_name, ordered by cost DESC. */
   costByProject(filter: Pick<CostFilter, 'start' | 'end'>): unknown[];
 
@@ -158,6 +166,13 @@ export function createTokenUsageRepository(db: RavenDB): TokenUsageRepository {
           total_cost_usd: 0
         }
       );
+    },
+
+    firstUsageSince(sinceIso) {
+      const row = db.db
+        .prepare(`SELECT MIN(timestamp) as first_ts FROM token_usage WHERE timestamp >= ?`)
+        .get(sinceIso) as { first_ts: string | null } | undefined;
+      return row?.first_ts ?? null;
     },
 
     costByProject(filter) {
