@@ -32,10 +32,9 @@ if [ -f /tmp/raven-frontend.pid ]; then
   rm /tmp/raven-frontend.pid
 fi
 
-# Fallback: kill by process name and port
-pkill -f "node.*dist/server.js" 2>/dev/null || true
-pkill -f "vite" 2>/dev/null || true
-
+# Fallback: kill whatever holds Raven's ports. Deliberately NOT a
+# `pkill -f vite` / `pkill -f node` — those patterns match other projects'
+# dev servers too.
 # Kill processes on ports (works on both Linux and macOS)
 if command -v fuser &> /dev/null; then
   # Linux: use fuser

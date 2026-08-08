@@ -645,6 +645,21 @@ startTransparentOllamaProxy({
   agentEventsRepo: agentEventsRepository
 });
 
+httpServer.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    logger.error(
+      `Port ${PORT} is already in use. Either another Raven instance is running, ` +
+        `or something else owns the port. Stop it, or pick a different port with ` +
+        `PORT=<n> raven-monitor.`
+    );
+  } else if (err.code === 'EACCES') {
+    logger.error(`No permission to bind ${BIND_HOST}:${PORT}. Try a port above 1024 via PORT=<n>.`);
+  } else {
+    logger.error(`Failed to start server on ${BIND_HOST}:${PORT}: ${err.message}`);
+  }
+  process.exit(1);
+});
+
 httpServer.listen(PORT, BIND_HOST, async () => {
   // Detect LAN IP for mobile access
   const nets = os.networkInterfaces();

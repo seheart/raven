@@ -8,6 +8,7 @@
   },
   "files": [
     "bin/raven-npx.js",
+    "scripts/postinstall.mjs",
     "backend/dist/**",
     "backend/package.json",
     "frontend/dist/**",
@@ -33,6 +34,7 @@
     "test:all": "npm run test && npm run test:e2e",
     "playwright:install": "playwright install --with-deps",
     "prepare": "husky",
+    "postinstall": "node scripts/postinstall.mjs",
     "prepublishOnly": "npm run build:all",
     "typecheck": "cd backend && npm run type-check && cd ../frontend && npm run check",
     "lint:dead": "knip --include duplicates,exports,types,dependencies,devDependencies,unlisted,binaries",
@@ -47,6 +49,9 @@
   ],
   "author": "Seth Eheart",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
     "chokidar": "^4.0.3",
@@ -56,7 +61,6 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.1.0",
     "helmet": "^8.0.0",
-    "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.1.6",
     "simple-git": "^3.28.0",
     "socket.io": "^4.8.1",

@@ -86,23 +86,30 @@ if (!existsSync(SERVER_ENTRY) || !existsSync(FRONTEND_DIST)) {
   }
 }
 
-const nets = networkInterfaces();
-let lanIp = 'localhost';
-for (const ifaces of Object.values(nets)) {
-  for (const iface of ifaces || []) {
-    if (iface.family === 'IPv4' && !iface.internal) {
-      lanIp = iface.address;
-      break;
+const PORT = process.env.PORT || '9100';
+
+// The server binds 127.0.0.1 unless RAVEN_BIND says otherwise, so only
+// advertise a LAN URL when one will actually work.
+const bindHost = process.env.RAVEN_BIND || '127.0.0.1';
+const isExposed = bindHost !== '127.0.0.1' && bindHost !== 'localhost';
+let lanLine = '';
+if (isExposed) {
+  const nets = networkInterfaces();
+  for (const ifaces of Object.values(nets)) {
+    for (const iface of ifaces || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        lanLine = `  LAN:     http://${iface.address}:${PORT}\n`;
+        break;
+      }
     }
+    if (lanLine) break;
   }
 }
-
-const PORT = process.env.PORT || '9100';
 
 log('Starting Raven...');
 console.log('');
 console.log(`  Local:   http://localhost:${PORT}`);
-console.log(`  LAN:     http://${lanIp}:${PORT}`);
+if (lanLine) process.stdout.write(lanLine);
 console.log(`  Watching: ${process.cwd()}`);
 console.log('');
 
@@ -115,3 +122,29 @@ const server = spawn('node', [SERVER_ENTRY], {
 server.on('close', code => process.exit(code || 0));
 process.on('SIGINT', () => server.kill('SIGINT'));
 process.on('SIGTERM', () => server.kill('SIGTERM'));
+
+// Open the dashboard once the server answers. Cold start only (this launcher
+// IS the cold start); set RAVEN_NO_OPEN=1 to suppress.
+if (!process.env.RAVEN_NO_OPEN) {
+  const url = `http://localhost:${PORT}`;
+  const deadline = Date.now() + 30_000;
+  const tryOpen = async () => {
+    if (server.exitCode !== null || Date.now() > deadline) return;
+    try {
+      const res = await fetch(`${url}/api/health`);
+      if (res.ok) {
+        const opener =
+          process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+        spawn(opener, [url], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).on(
+          'error',
+          () => {}
+        );
+        return;
+      }
+    } catch {
+      /* not up yet */
+    }
+    setTimeout(tryOpen, 500).unref();
+  };
+  setTimeout(tryOpen, 500).unref();
+}

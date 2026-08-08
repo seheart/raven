@@ -1,4 +1,4 @@
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { homedir } from 'os';
 import { basename, dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -55,12 +55,29 @@ function doResolveRavenPaths(): RavenPaths {
   return { ravenDir, watchPath, projectName, repoRoot: repoRoot || cwd, packageRoot, mode };
 }
 
+// Dev mode means "running from inside the Raven source repo" — nothing else.
+// A bare `.raven/` directory is NOT enough: installed mode creates ~/.raven,
+// and treating that as a repo root once made a second `npx raven-monitor` run
+// from anywhere under $HOME watch the entire /home tree.
 function findRepoRoot(start: string): string | null {
+  const home = homedir();
   let dir = start;
   while (true) {
-    if (existsSync(join(dir, '.raven'))) return dir;
+    if (dir === home) return null;
+    if (isRavenSourceRepo(dir)) return dir;
     const parent = dirname(dir);
     if (parent === dir) return null;
     dir = parent;
+  }
+}
+
+function isRavenSourceRepo(dir: string): boolean {
+  const pkgPath = join(dir, 'package.json');
+  if (!existsSync(pkgPath) || !existsSync(join(dir, 'backend'))) return false;
+  try {
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    return pkg.name === 'raven-monitor';
+  } catch {
+    return false;
   }
 }

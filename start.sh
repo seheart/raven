@@ -61,8 +61,15 @@ echo ""
 
 # ── Clean up ────────────────────────────────────────
 start_spin "Cleaning up old processes..."
-pkill -f "node.*dist/server.js" 2>/dev/null || true
-pkill -f "vite" 2>/dev/null || true
+# Kill only OUR processes: PID files first, then whatever holds Raven's ports.
+# (A blanket `pkill -f vite` here used to take out every Vite dev server on
+# the machine.)
+for pidfile in /tmp/raven-backend.pid /tmp/raven-frontend.pid; do
+  if [ -f "$pidfile" ]; then
+    kill "$(cat "$pidfile")" 2>/dev/null || true
+    rm -f "$pidfile"
+  fi
+done
 BACKEND_PORT_PID=$(check_port 9100 || true)
 FRONTEND_PORT_PID=$(check_port 9000 || true)
 [[ "$BACKEND_PORT_PID" =~ ^[0-9]+$ ]] && kill -9 $BACKEND_PORT_PID 2>/dev/null || true

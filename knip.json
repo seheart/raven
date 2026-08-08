@@ -13,7 +13,6 @@
         "express",
         "express-rate-limit",
         "helmet",
-        "jsonwebtoken",
         "nanoid",
         "simple-git",
         "socket.io",
@@ -27,7 +26,6 @@
       "entry": [
         "server.ts",
         "run-migrations.js",
-        "healthcheck.js",
         "scripts/**/*.{ts,js}",
         "migrations/**/*.{ts,js}"
       ],

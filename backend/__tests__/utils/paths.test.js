@@ -129,6 +129,37 @@ describe('paths utility', () => {
       expect(result.repoRoot).toBe(deep);
     });
 
+    test('a bare .raven directory up the tree does NOT trigger dev mode', async () => {
+      // Regression: installed mode creates ~/.raven. On a second run the
+      // walker used to mistake that data dir for a source checkout, flip to
+      // dev mode, and watch dirname($HOME) — i.e. all of /home. Dev mode now
+      // requires an actual raven-monitor repo (package.json name + backend/).
+      const fakeHome = join(tmpRoot, 'home');
+      const projectDir = join(fakeHome, 'some-project');
+      mkdirSync(join(fakeHome, '.raven'), { recursive: true });
+      mkdirSync(projectDir, { recursive: true });
+      process.chdir(projectDir);
+      const { resolveRavenPaths } = await freshPathsModule();
+
+      const result = resolveRavenPaths();
+      expect(result.mode).toBe('installed');
+      expect(result.watchPath).toBe(projectDir);
+    });
+
+    test('a raven-monitor source checkout DOES trigger dev mode', async () => {
+      const repo = join(tmpRoot, 'checkout', 'raven');
+      const nested = join(repo, 'backend');
+      mkdirSync(nested, { recursive: true });
+      const { writeFileSync } = await import('fs');
+      writeFileSync(join(repo, 'package.json'), JSON.stringify({ name: 'raven-monitor' }));
+      process.chdir(nested);
+      const { resolveRavenPaths } = await freshPathsModule();
+
+      const result = resolveRavenPaths();
+      expect(result.mode).toBe('dev');
+      expect(result.repoRoot).toBe(repo);
+    });
+
     test('parsing the filesystem root produces a stable parent (no infinite loop)', async () => {
       // The walker termination condition is `dirname(dir) === dir`. Verify
       // that the standard library actually has this property on this platform,
