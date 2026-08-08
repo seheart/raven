@@ -267,13 +267,13 @@ class NotificationService {
     let finalLink = link;
     if (!finalLink) {
       if (type === 'error') {
-        finalLink = '/system';
+        finalLink = '/system/errors';
       } else if (type === 'warning') {
-        finalLink = '/system/safety';
+        finalLink = '/system/errors';
       } else if (type === 'trigger') {
         finalLink = '/activity';
       } else if (type === 'performance') {
-        finalLink = '/agents/performance';
+        finalLink = '/agents';
       }
     }
 

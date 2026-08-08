@@ -83,20 +83,22 @@
       >
         About
       </button>
-      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={onDesignSystemClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
-      >
-        Design
-      </button>
-      <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
-      <button
-        onclick={onRoadmapClick}
-        class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
-      >
-        Roadmap
-      </button>
+      {#if import.meta.env.DEV}
+        <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
+        <button
+          onclick={onDesignSystemClick}
+          class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+        >
+          Design
+        </button>
+        <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
+        <button
+          onclick={onRoadmapClick}
+          class="text-[var(--muted)] hover:text-[var(--accent)] transition-colors bg-transparent border-0 p-0 cursor-pointer"
+        >
+          Roadmap
+        </button>
+      {/if}
       <span class="hidden md:inline text-[var(--muted)]" aria-hidden="true">|</span>
       <button
         onclick={onDiagnosticClick}

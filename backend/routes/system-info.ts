@@ -342,12 +342,20 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
       }
     }
     const frontendPort = parseInt(process.env.FRONTEND_PORT || '9000', 10);
+    // Only advertise LAN URLs when the server is actually reachable from the
+    // LAN. The default bind is 127.0.0.1, where a LAN URL is a lie — Settings
+    // used to show one anyway ("open this on your phone") and it never worked.
+    const bindHost = process.env.RAVEN_BIND || '127.0.0.1';
+    const isExposed = bindHost !== '127.0.0.1' && bindHost !== 'localhost';
     res.json({
       addresses,
       backend_port: deps.port,
       frontend_port: frontendPort,
-      lan_url: addresses.length > 0 ? `http://${addresses[0].address}:${frontendPort}` : null,
-      backend_url: addresses.length > 0 ? `http://${addresses[0].address}:${deps.port}` : null
+      bind_host: bindHost,
+      lan_url:
+        isExposed && addresses.length > 0 ? `http://${addresses[0].address}:${frontendPort}` : null,
+      backend_url:
+        isExposed && addresses.length > 0 ? `http://${addresses[0].address}:${deps.port}` : null
     });
   });
 

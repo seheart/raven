@@ -540,14 +540,9 @@
        sub-pages are the workshop. -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <!-- Code Health -->
-    <button
-      onclick={() => navigate('/system/code-health')}
-      class="bg-surface border border-border rounded-lg p-5 text-left cursor-pointer hover:border-accent transition-colors"
-      title="View full code-health report"
-    >
+    <div class="bg-surface border border-border rounded-lg p-5 text-left">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Code Health</h3>
-        <span class="text-[10px] text-muted">→ details</span>
       </div>
       {#if codeHealth.data}
         <div class="flex items-center gap-2 mb-2">
@@ -577,17 +572,12 @@
       {:else}
         <div class="text-sm text-muted">No runs yet — click Run All to start.</div>
       {/if}
-    </button>
+    </div>
 
     <!-- Health Monitor -->
-    <button
-      onclick={() => navigate('/system/health-monitor')}
-      class="bg-surface border border-border rounded-lg p-5 text-left cursor-pointer hover:border-accent transition-colors"
-      title="View full health-monitor report"
-    >
+    <div class="bg-surface border border-border rounded-lg p-5 text-left">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Health Monitor</h3>
-        <span class="text-[10px] text-muted">→ details</span>
       </div>
       {#if healthMonitor.data}
         <div class="flex items-center gap-2 mb-2">
@@ -611,7 +601,7 @@
       {:else}
         <div class="text-sm text-muted">No report yet.</div>
       {/if}
-    </button>
+    </div>
 
     <!-- Errors -->
     <button
@@ -656,14 +646,9 @@
     </button>
 
     <!-- Pattern Warnings (Safety) -->
-    <button
-      onclick={() => navigate('/system/safety')}
-      class="bg-surface border border-border rounded-lg p-5 text-left cursor-pointer hover:border-accent transition-colors"
-      title="View safety pattern warnings"
-    >
+    <div class="bg-surface border border-border rounded-lg p-5 text-left">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wide">Safety Patterns</h3>
-        <span class="text-[10px] text-muted">→ details</span>
       </div>
       <div class="flex items-center gap-2 mb-2">
         <span
@@ -691,7 +676,7 @@
             ? 'Credential leaks, debug statements, etc.'
             : 'No flagged patterns.'}
       </div>
-    </button>
+    </div>
   </div>
 
   <!-- Endpoint coverage. Every /system page's primary GET, exercised

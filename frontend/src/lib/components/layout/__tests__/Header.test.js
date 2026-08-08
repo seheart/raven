@@ -61,29 +61,28 @@ describe('Header', () => {
 
   it('renders the Activity sub-tabs when activeTab="activity"', () => {
     render(Header, { props: { activeTab: 'activity', activeSubTab: '' } });
-    expect(screen.getByText('Live')).toBeTruthy();
-    expect(screen.getByText('Timeline')).toBeTruthy();
-    expect(screen.getByText('Search')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Changes' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeTruthy();
   });
 
   it('renders the Agents sub-tabs when activeTab="agents"', () => {
     render(Header, { props: { activeTab: 'agents', activeSubTab: '' } });
-    expect(screen.getByText('Stats')).toBeTruthy();
-    expect(screen.getByText('Sub-Agents')).toBeTruthy();
-    expect(screen.getByText('Models')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Conversations' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Models' })).toBeTruthy();
   });
 
   it('renders Insights sub-tabs including Looking Back', () => {
     render(Header, { props: { activeTab: 'insights', activeSubTab: '' } });
     expect(screen.getByText('Costs')).toBeTruthy();
-    expect(screen.getByText('Trends')).toBeTruthy();
     expect(screen.getByText('Looking Back')).toBeTruthy();
   });
 
-  it('renders System sub-tabs including the relocated Triggers', () => {
+  it('renders the culled System sub-tabs', () => {
     render(Header, { props: { activeTab: 'system', activeSubTab: '' } });
-    expect(screen.getByText('Triggers')).toBeTruthy();
-    expect(screen.getByText('Plugins')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Projects' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Errors' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Storage' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Plugins' })).toBeTruthy();
   });
 
   it('navigates when a top-level tab is clicked', async () => {
@@ -94,7 +93,7 @@ describe('Header', () => {
 
   it('navigates with the sub-tab path when a sub-tab is clicked', async () => {
     render(Header, { props: { activeTab: 'activity', activeSubTab: '' } });
-    await fireEvent.click(screen.getByText('Timeline'));
-    expect(mockNavigate).toHaveBeenCalledWith('/activity/timeline');
+    await fireEvent.click(screen.getByText('Search'));
+    expect(mockNavigate).toHaveBeenCalledWith('/activity/search');
   });
 });

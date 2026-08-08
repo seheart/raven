@@ -74,29 +74,27 @@ test.describe('Sub-navigation', () => {
     await page.getByRole('button', { name: 'Dashboard', exact: true }).waitFor({ timeout: 10000 });
   });
 
-  test('System has sub-tabs (Code Health, Safety, Errors, Storage)', async ({ page }) => {
+  test('System has sub-tabs (Projects, Errors, Storage, Plugins)', async ({ page }) => {
     await page.getByRole('button', { name: 'System', exact: true }).first().click();
     const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await expect(subnav.getByRole('button', { name: 'Code Health', exact: true })).toBeVisible();
-    await expect(subnav.getByRole('button', { name: 'Safety', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Projects', exact: true })).toBeVisible();
     await expect(subnav.getByRole('button', { name: 'Errors', exact: true })).toBeVisible();
     await expect(subnav.getByRole('button', { name: 'Storage', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Plugins', exact: true })).toBeVisible();
   });
 
-  test('Activity has sub-tabs (Live, Timeline, Files)', async ({ page }) => {
+  test('Activity has sub-tabs (Changes, Search)', async ({ page }) => {
     await page.getByRole('button', { name: 'Activity', exact: true }).click();
     const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await expect(subnav.getByRole('button', { name: 'Live', exact: true })).toBeVisible();
-    await expect(subnav.getByRole('button', { name: 'Timeline', exact: true })).toBeVisible();
-    await expect(subnav.getByRole('button', { name: 'Files', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Changes', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Search', exact: true })).toBeVisible();
   });
 
-  test('Agents has sub-tabs (Stats, Models, Performance)', async ({ page }) => {
+  test('Agents has sub-tabs (Conversations, Models)', async ({ page }) => {
     await page.getByRole('button', { name: 'Agents', exact: true }).first().click();
     const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await expect(subnav.getByRole('button', { name: 'Stats', exact: true })).toBeVisible();
+    await expect(subnav.getByRole('button', { name: 'Conversations', exact: true })).toBeVisible();
     await expect(subnav.getByRole('button', { name: 'Models', exact: true })).toBeVisible();
-    await expect(subnav.getByRole('button', { name: 'Performance', exact: true })).toBeVisible();
   });
 
   test('Dashboard, Insights, and Activity all expose a sub-nav', async ({ page }) => {

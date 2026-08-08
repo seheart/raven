@@ -10,7 +10,6 @@
 
 import type { Express } from 'express';
 import type { Server as SocketIOServer } from 'socket.io';
-import { join } from 'path';
 import type { RateLimitRequestHandler } from 'express-rate-limit';
 
 import type { RavenDB } from '../db.js';
@@ -61,7 +60,6 @@ import { pauseManager } from '../pause-manager.js';
 
 import { createAgentEventsRoutesRouter } from './agent-events-routes.js';
 import { createAgentsRouter } from './agents.js';
-import { createAlertsRouter } from './alerts.js';
 import { createConversationsRouter } from './conversations.js';
 import { createCostsRouter } from './costs.js';
 import { createDashboardRouter } from './dashboard.js';
@@ -255,10 +253,6 @@ export function wireRoutes(app: Express, deps: WireRoutesDeps): void {
     })
   );
   app.use('/api', createPauseRouter(pauseManager, io));
-  app.use(
-    '/api/alerts',
-    createAlertsRouter({ templatesPath: join(process.cwd(), 'alert-templates.json') })
-  );
 
   app.use('/api/session', createLiveSessionRouter(db));
 

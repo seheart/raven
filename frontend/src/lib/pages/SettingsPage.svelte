@@ -391,7 +391,9 @@
           </div>
         {:else}
           <div class="text-sm text-muted">
-            No LAN address detected. Raven is accessible on localhost only.
+            Raven is bound to localhost only (the default). To reach it from another device on your
+            network, restart with <code class="font-mono">RAVEN_BIND=0.0.0.0</code> — and know that Raven
+            has no authentication, so anyone on the network can read everything it records.
           </div>
         {/if}
       </div>

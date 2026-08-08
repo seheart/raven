@@ -1041,9 +1041,9 @@
         {#if latestApiLatency}
           <span class="text-border">|</span>
           <button
-            onclick={() => navigate('/agents/network')}
+            onclick={() => navigate('/agents')}
             class="text-[11px] font-mono bg-transparent border-0 cursor-pointer p-0 hover:opacity-80"
-            title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for the full network view."
+            title="Latency of Claude's most recent API request. Yellow >10s, red >30s. Click for agent details."
           >
             <span class="text-muted">API</span>
             <span

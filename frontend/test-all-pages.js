@@ -8,49 +8,32 @@ import fs from 'fs';
 
 // All Raven routes based on navigation structure.
 // Mirrors the six top-level tabs (+ sub-tabs) defined in
-// src/lib/components/layout/Header.svelte after the May 2026 IA refactor,
-// plus the footer utility pages.
+// src/lib/components/layout/Header.svelte after the August 2026 cull,
+// plus the footer utility pages. (Roadmap / Design System are dev-only
+// but this crawler runs against the dev server, so they're included.)
 const routes = [
   // Dashboard + Narrative
   { path: '/today', name: 'Dashboard' },
   { path: '/narrative', name: 'Narrative' },
 
   // Activity
-  { path: '/activity', name: 'Activity Overview' },
-  { path: '/activity/live', name: 'Activity Live' },
-  { path: '/activity/changes', name: 'Activity Changes' },
-  { path: '/activity/timeline', name: 'Activity Timeline' },
-  { path: '/activity/files', name: 'Activity Files' },
-  { path: '/activity/projects', name: 'Activity Projects' },
-  { path: '/activity/health', name: 'Activity Health' },
+  { path: '/activity', name: 'Activity Changes' },
   { path: '/activity/search', name: 'Activity Search' },
 
   // Agents
-  { path: '/agents', name: 'Agents Monitor' },
-  { path: '/agents/stats', name: 'Agent Stats' },
-  { path: '/agents/convos', name: 'Agent Conversations' },
-  { path: '/agents/sub-agents', name: 'Sub-Agents' },
-  { path: '/agents/sessions', name: 'Agent Sessions' },
-  { path: '/agents/network', name: 'Agent Network' },
+  { path: '/agents', name: 'Agent Conversations' },
   { path: '/agents/models', name: 'Models' },
-  { path: '/agents/performance', name: 'Agent Performance' },
 
   // Insights
   { path: '/insights', name: 'Insights Overview' },
   { path: '/insights/costs', name: 'Costs' },
-  { path: '/insights/trends', name: 'Trends' },
   { path: '/insights/wrapped', name: 'Looking Back' },
 
   // System
-  { path: '/system', name: 'System Overview' },
-  { path: '/system/code-health', name: 'Code Health' },
-  { path: '/system/health-monitor', name: 'Health Monitor' },
-  { path: '/system/safety', name: 'Safety' },
+  { path: '/system', name: 'System Projects' },
   { path: '/system/errors', name: 'System Errors' },
-  { path: '/system/projects', name: 'System Projects' },
   { path: '/system/storage', name: 'Storage' },
   { path: '/system/plugins', name: 'Plugins' },
-  { path: '/system/triggers', name: 'Triggers' },
 
   // Utility pages
   { path: '/settings', name: 'Settings' },

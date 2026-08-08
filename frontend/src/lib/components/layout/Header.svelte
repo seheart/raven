@@ -81,8 +81,6 @@
   const utilityLinks = [
     { label: 'Settings', path: '/settings' },
     { label: 'About', path: '/about' },
-    { label: 'Roadmap', path: '/roadmap' },
-    { label: 'Design System', path: '/design-system' },
     { label: 'Diagnostic', path: '/diagnostic' }
   ];
   let isDark = $derived($uiSettings.theme === 'dark');
@@ -106,43 +104,29 @@
     { id: 'system', label: 'System', path: '/system' }
   ];
 
+  // Deliberately narrow (the August 2026 cull): every sub-tab left here is a
+  // distinct capability, not a re-slice of the same table. Old deep links
+  // (/activity/changes, /agents/convos, /system/projects) still resolve via
+  // router aliases in NewApp.svelte.
   const subTabs = {
     activity: [
-      { id: '', label: 'Overview' },
-      { id: 'live', label: 'Live' },
-      { id: 'changes', label: 'Changes' },
-      { id: 'timeline', label: 'Timeline' },
-      { id: 'files', label: 'Files' },
-      { id: 'projects', label: 'Projects' },
-      { id: 'health', label: 'Health' },
+      { id: '', label: 'Changes' },
       { id: 'search', label: 'Search' }
     ],
     agents: [
-      { id: '', label: 'Monitor' },
-      { id: 'stats', label: 'Stats' },
-      { id: 'convos', label: 'Conversations' },
-      { id: 'sub-agents', label: 'Sub-Agents' },
-      { id: 'sessions', label: 'Sessions' },
-      { id: 'network', label: 'Network' },
-      { id: 'models', label: 'Models' },
-      { id: 'performance', label: 'Performance' }
+      { id: '', label: 'Conversations' },
+      { id: 'models', label: 'Models' }
     ],
     insights: [
       { id: '', label: 'Overview' },
       { id: 'costs', label: 'Costs' },
-      { id: 'trends', label: 'Trends' },
       { id: 'wrapped', label: 'Looking Back' }
     ],
     system: [
-      { id: '', label: 'Overview' },
-      { id: 'code-health', label: 'Code Health' },
-      { id: 'health-monitor', label: 'Health Monitor' },
-      { id: 'safety', label: 'Safety' },
+      { id: '', label: 'Projects' },
       { id: 'errors', label: 'Errors' },
-      { id: 'projects', label: 'Projects' },
       { id: 'storage', label: 'Storage' },
-      { id: 'plugins', label: 'Plugins' },
-      { id: 'triggers', label: 'Triggers' }
+      { id: 'plugins', label: 'Plugins' }
     ],
     settings: []
   };

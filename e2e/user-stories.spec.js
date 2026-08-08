@@ -5,10 +5,10 @@ import { test, expect } from '@playwright/test';
  *
  * High-level flows phrased as "as a developer, I want to…" — kept lean so
  * regressions surface as named stories rather than a wall of selector noise.
- * Updated for the May 2026 IA refactor: top-level nav is Dashboard / Activity
- * / Agents / Insights / System; the old History and Analysis tabs are
- * rehomed under Activity (timeline, files, search) and split between Agents
- * (models, performance) and Insights (costs/trends).
+ * Updated for the August 2026 cull: top-level nav is Dashboard / Narrative /
+ * Activity (Changes, Search) / Agents (Conversations, Models) / Insights
+ * (Overview, Costs, Looking Back) / System (Projects, Errors, Storage,
+ * Plugins).
  */
 
 async function gotoDashboard(page) {
@@ -63,28 +63,18 @@ test.describe('Story: I can read storage usage', () => {
 });
 
 test.describe('Story: I can browse history', () => {
-  // History was rehomed under Activity in the May 2026 IA refactor.
-  // Timeline, Files, and Search all live as Activity sub-tabs now.
+  // After the August 2026 cull, Activity is Changes (default) + Search.
   test.setTimeout(60000);
   test.beforeEach(({ page }) => gotoDashboard(page));
 
-  test('Activity → Live loads the default view', async ({ page }) => {
+  test('Activity lands on Changes as the default view', async ({ page }) => {
     await page.getByRole('button', { name: 'Activity', exact: true }).click();
     await expect(page).toHaveURL(/\/activity(\/|$)/);
     await expect(
       page
         .getByRole('navigation', { name: /Sub navigation/i })
-        .getByRole('button', { name: 'Live', exact: true })
+        .getByRole('button', { name: 'Changes', exact: true })
     ).toBeVisible();
-  });
-
-  test('Activity → Timeline routes through', async ({ page }) => {
-    await page.getByRole('button', { name: 'Activity', exact: true }).click();
-    await page
-      .getByRole('navigation', { name: /Sub navigation/i })
-      .getByRole('button', { name: 'Timeline', exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/activity\/timeline$/);
   });
 
   test('Activity → Search routes through', async ({ page }) => {

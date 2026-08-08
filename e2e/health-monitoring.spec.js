@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
  * Health Monitoring E2E
  *
  * Two halves:
- *   1. UI smoke checks against the System → Health Monitor sub-tab.
+ *   1. UI smoke checks against the System tab + footer indicator.
  *   2. API contract tests for the health endpoints the dashboard consumes.
  *
  * API tests use relative URLs so they go through the frontend's vite proxy
@@ -16,21 +16,6 @@ test.describe('Health UI', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Dashboard', exact: true }).waitFor({ timeout: 10000 });
-  });
-
-  test('System → Health Monitor sub-tab is reachable', async ({ page }) => {
-    await page.getByRole('button', { name: 'System', exact: true }).first().click();
-    const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await expect(subnav.getByRole('button', { name: 'Health Monitor', exact: true })).toBeVisible();
-    await subnav.getByRole('button', { name: 'Health Monitor', exact: true }).click();
-    await expect(page).toHaveURL(/\/system\/health-monitor$/);
-  });
-
-  test('System → Code Health sub-tab is reachable', async ({ page }) => {
-    await page.getByRole('button', { name: 'System', exact: true }).first().click();
-    const subnav = page.getByRole('navigation', { name: /Sub navigation/i });
-    await subnav.getByRole('button', { name: 'Code Health', exact: true }).click();
-    await expect(page).toHaveURL(/\/system\/code-health$/);
   });
 
   test('System → Errors sub-tab is reachable', async ({ page }) => {
