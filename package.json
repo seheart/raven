@@ -1,6 +1,6 @@
 {
   "name": "raven-monitor",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Local-first AI agent monitoring tool - Web version",
   "type": "module",
   "bin": {

@@ -721,6 +721,13 @@ httpServer.listen(PORT, BIND_HOST, async () => {
     if (result.projects.length > 0) {
       logger.info(`📁 Monitored projects: ${result.projects.join(', ')}`);
     }
+    // Fresh installs discover zero projects — without this fallback the
+    // launcher's "Watching: <cwd>" banner was a lie and /api/health sat at
+    // 'degraded' forever (watcher: false).
+    if (result.watching === 0) {
+      logger.info(`📁 No configured projects yet — watching ${WATCH_PATH} directly`);
+      fileWatcher.start();
+    }
   } catch (err: any) {
     logger.error('Failed to initialize project watchers, falling back to single watcher:', err);
     fileWatcher.start();

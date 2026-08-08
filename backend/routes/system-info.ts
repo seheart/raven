@@ -14,11 +14,28 @@
  */
 
 import os from 'os';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import express, { Request, Response, Router } from 'express';
+import { resolveRavenPaths } from '../utils/paths.js';
 import type { RavenDB } from '../db.js';
 import type { AgentInfo } from '../types/agent-info.js';
 import { allBreakers } from '../utils/circuit-breaker.js';
 import { getDiskState } from '../utils/disk-state.js';
+
+// Real package version instead of a hardcoded literal (which sat at "0.5.0"
+// after the bump). packageRoot resolves to backend/ in both the source repo
+// and the published tarball, and backend/package.json ships in `files`.
+const APP_VERSION = (() => {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(join(resolveRavenPaths().packageRoot, 'package.json'), 'utf8')
+    );
+    return typeof pkg.version === 'string' ? pkg.version : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+})();
 
 interface RateLimitBucket {
   current: number;
@@ -212,7 +229,7 @@ export function createSystemInfoRouter(deps: SystemInfoDeps): Router {
 
     res.status(httpCode).json({
       status,
-      version: '0.5.0',
+      version: APP_VERSION,
       session_id: deps.sessionId,
       uptime: process.uptime(),
       active_agents: deps.agentRegistry.size,

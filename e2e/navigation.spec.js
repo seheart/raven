@@ -97,15 +97,12 @@ test.describe('Sub-navigation', () => {
     await expect(subnav.getByRole('button', { name: 'Models', exact: true })).toBeVisible();
   });
 
-  test('Dashboard, Insights, and Activity all expose a sub-nav', async ({ page }) => {
-    // Post-refactor every top-level tab except a few labs has at least one
-    // sub-tab — the previous "no sub-tab" trio (Dashboard, Insights, Code
-    // Changes) doesn't exist anymore. Surface the new contract instead.
-    for (const label of ['Dashboard', 'Insights', 'Activity']) {
+  test('Activity, Agents, Insights, and System all expose a sub-nav', async ({ page }) => {
+    // Post-cull contract: Dashboard and Narrative are single views with no
+    // sub-tabs; the four workhorse tabs each expose a sub-nav.
+    for (const label of ['Activity', 'Agents', 'Insights', 'System']) {
       await page.getByRole('button', { name: label, exact: true }).first().click();
-      await expect(
-        page.getByRole('navigation', { name: /Sub navigation/i })
-      ).toBeVisible();
+      await expect(page.getByRole('navigation', { name: /Sub navigation/i })).toBeVisible();
     }
   });
 
