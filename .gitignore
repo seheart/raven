@@ -37,10 +37,13 @@
 /frontend/dist
 /frontend/.svelte-kit
 /frontend/build
-# Bun's HTML asset metadata — regenerated on every frontend build, no
-# stable diff value. Kept tracked at one point but turned the diagnostic
-# Health Monitor's "uncommitted changes" into a perpetual phantom warning.
-/frontend/html/html.meta.json.gz
+# Vitest's HTML report (vitest.config.js reporter: [..., 'html']). Every
+# `npm run test:run` rewrites the whole directory, and the assets are
+# content-hashed, so each run dirties index.html and leaves a fresh pair of
+# index-*.js/css behind while the committed ones go stale. Only the meta
+# artifact was untracked originally; the rest of the directory had the same
+# problem and kept the Health Monitor's "uncommitted changes" check warning.
+/frontend/html/
 
 # Old frontend (Svelte 4) - retired after migration to Svelte 5
 /frontend-svelte4/
