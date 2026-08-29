@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # Raven - Restart Script
-# Stops and starts servers with fast startup.
-# Suppresses the browser auto-open: a restart means the user already has a
-# Raven tab open and wants the same tab to refresh, not a fresh one.
+# Stops and starts servers with fast startup, opening a tab like a cold start.
+# (RAVEN_NO_OPEN is still honoured by start.sh for headless/SSH runs.)
 
 ./stop.sh
 sleep 1
-RAVEN_NO_OPEN=1 ./start-fast.sh
+./start-fast.sh
